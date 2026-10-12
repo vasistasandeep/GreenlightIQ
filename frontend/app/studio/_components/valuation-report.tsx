@@ -1,0 +1,180 @@
+"use client";
+
+import { CheckCircle2, XCircle } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import type { GuardrailCheck, QuickEvaluateResponse } from "@/lib/types";
+import { StudioPayback } from "./studio-payback";
+import { StudioRadar } from "./studio-radar";
+import { decimals, guardrailLabel, multiple, num, pct, usd } from "./helpers";
+
+const BANNER: Record<string, { label: string; cls: string }> = {
+  GREENLIGHT: { label: "GREENLIGHT", cls: "bg-emerald-500/90 text-emerald-950" },
+  NEGOTIATE_HARD: { label: "NEGOTIATE HARD", cls: "bg-amber-500/90 text-amber-950" },
+  PASS: { label: "PASS", cls: "bg-rose-500/90 text-rose-950" },
+};
+
+function Panel({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-xl border border-slate-800 bg-slate-900/60 p-5",
+        className,
+      )}
+    >
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function CheckRow({ check }: { check: GuardrailCheck }) {
+  const passed = check.passed;
+  const detail = (() => {
+    switch (check.name) {
+      case "CPVH":
+        return num(check.computed_value) !== null
+          ? `$${decimals(check.computed_value)}/hr vs $${decimals(check.threshold)} ceiling`
+          : "Not computable (0 viewing hours)";
+      case "LTV_TO_COST":
+        return `${multiple(check.computed_value)} (Hurdle: ${multiple(check.threshold)})`;
+      case "CHURN_MITIGATION":
+        return `${pct(check.computed_value)} (Threshold: ${pct(check.threshold)})`;
+      case "PAYBACK_HORIZON":
+        return `${num(check.computed_value) ?? "â€”"} Months (Target: 9-12)`;
+      default:
+        return "";
+    }
+  })();
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-slate-800 py-2.5 last:border-b-0">
+      <div className="flex items-center gap-2.5">
+        {passed ? (
+          <CheckCircle2 className="h-5 w-5 text-emerald-400" aria-hidden />
+        ) : (
+          <XCircle className="h-5 w-5 text-rose-400" aria-hidden />
+        )}
+        <span className="font-medium text-slate-100">
+          {guardrailLabel(check.name)}
+        </span>
+      </div>
+      <span className="text-right text-sm text-slate-400">
+        <span
+          className={cn(
+            "mr-2 font-semibold",
+            passed ? "text-emerald-400" : "text-rose-400",
+          )}
+        >
+          {passed ? "PASS" : "BREACH"}
+        </span>
+        {detail}
+      </span>
+    </div>
+  );
+}
+
+export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
+  const banner = BANNER[result.recommendation_status] ?? {
+    label: result.recommendation_status,
+    cls: "bg-slate-600 text-slate-50",
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Recommendation banner */}
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-6 py-4 text-xl font-bold",
+          banner.cls,
+        )}
+      >
+        <span>[ {banner.label} ]</span>
+        {result.target_purchase_ceiling_usd !== null ? (
+          <span className="text-base font-semibold">
+            &bull; Target Purchase Ceiling: {usd(result.target_purchase_ceiling_usd)}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Four quantitative checks */}
+        <Panel title="Four Quantitative Checks">
+          <div className="flex flex-col">
+            {result.explanation.checks.map((c) => (
+              <CheckRow key={c.name} check={c} />
+            ))}
+          </div>
+        </Panel>
+
+        {/* Explainability + governance */}
+        <div className="flex flex-col gap-5">
+          <Panel title="Explainability">
+            <p className="text-sm text-slate-300">
+              <span className="text-slate-500">Dominant Factor: </span>
+              {result.explanation.dominant_factor
+                ? guardrailLabel(result.explanation.dominant_factor)
+                : "All checks passed - no breach drives the outcome."}
+            </p>
+            {result.explanation.unclassifiable ? (
+              <p className="mt-2 text-sm text-rose-400">
+                A breach could not be classified; treat with caution.
+              </p>
+            ) : null}
+          </Panel>
+
+          <Panel title="Governance">
+            {result.governance.required ? (
+              <ul className="space-y-1.5 text-sm">
+                {result.governance.required_roles.map((r) => (
+                  <li key={r} className="flex items-center justify-between">
+                    <span className="text-slate-300">{r.replace(/_/g, " ")}</span>
+                    <span className="font-semibold text-amber-400">PENDING</span>
+                  </li>
+                ))}
+                <li className="pt-1 text-xs text-slate-500">
+                  {result.governance.note}
+                </li>
+              </ul>
+            ) : (
+              <p className="text-sm text-emerald-400">
+                {result.governance.note}
+              </p>
+            )}
+          </Panel>
+        </div>
+
+        {/* Metadata radar */}
+        <Panel title="Metadata Vector Profile">
+          <StudioRadar profile={result.metadata_profile} />
+          <p className="mt-1 text-center text-[11px] text-slate-500">
+            Derived profile (demo embedding) - 0 to 10 scale
+          </p>
+        </Panel>
+
+        {/* Cumulative payback projection */}
+        <Panel title="Cumulative Payback Projection">
+          <StudioPayback
+            normalizedCostUsd={result.normalized_cost_usd}
+            paybackMonths={result.payback_horizon_months}
+          />
+          {result.payback_horizon_months ? (
+            <p className="mt-1 text-center text-[11px] text-slate-500">
+              Break-Even: Month {result.payback_horizon_months}
+            </p>
+          ) : null}
+        </Panel>
+      </div>
+    </div>
+  );
+}

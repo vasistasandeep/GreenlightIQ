@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api-client";
 import type { DashboardSummary } from "@/lib/types";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
@@ -50,13 +51,21 @@ export default async function DashboardPage() {
 
   return (
     <main className="container space-y-6 py-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Executive Command Dashboard
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Portfolio health at a glance across the active acquisition pipeline.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Executive Command Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Portfolio health at a glance across the active acquisition pipeline.
+          </p>
+        </div>
+        <Link
+          href="/studio"
+          className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-50 hover:bg-slate-800"
+        >
+          + New Asset Valuation
+        </Link>
       </header>
 
       {error ? (

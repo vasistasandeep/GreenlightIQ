@@ -225,3 +225,56 @@ export interface FinalizationStatus {
   /** Roles that have already approved. */
   approved_roles: string[];
 }
+
+
+// --------------------------------------------------------------------------- //
+// Asset Studio: manual single-title ingest + instant valuation
+// --------------------------------------------------------------------------- //
+
+/** Request body for POST /titles/quick-evaluate (the Asset Studio form). */
+export interface QuickEvaluateRequest {
+  title_name: string;
+  asset_type: AssetType;
+  acquisition_cost_or_budget: number;
+  native_currency: string;
+  target_territories: string[];
+  synopsis: string;
+  genre_tag?: string | null;
+  projected_viewing_hours?: number | null;
+  talent_pedigree_score?: number | null;
+  license_duration_months?: number | null;
+  is_exclusive: boolean;
+}
+
+/** The real Approval_Workflow gate for a decision (R20.3). */
+export interface Governance {
+  required: boolean;
+  required_roles: string[];
+  note: string;
+}
+
+/** Radar axes for the metadata profile (0-10). Derived for the instant view. */
+export interface MetadataProfile {
+  narrative_dna: number | string;
+  affective_tone: number | string;
+  talent_pedigree: number | string;
+  production_scale: number | string;
+  cultural_portability: number | string;
+}
+
+/** Instant executive scorecard returned by POST /titles/quick-evaluate. */
+export interface QuickEvaluateResponse {
+  title_id: string;
+  title_name: string;
+  recommendation_status: RecommendationStatus;
+  calculated_cpvh: number | string | null;
+  ltv_to_cost_multiple: number | string | null;
+  churn_reduction_pct: number | string | null;
+  payback_horizon_months: number | null;
+  normalized_cost_usd: number | string | null;
+  /** Derived renegotiation guidance, not a persisted engine output. */
+  target_purchase_ceiling_usd: number | string | null;
+  explanation: Explanation;
+  governance: Governance;
+  metadata_profile: MetadataProfile;
+}
