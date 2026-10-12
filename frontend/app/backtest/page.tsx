@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { AppShell } from "@/components/layout/top-nav";
 import { api, ApiError } from "@/lib/api-client";
 import type {
   BacktestAuditRequest,
@@ -102,7 +103,7 @@ export default function BacktestStudioPage() {
   }
 
   return (
-    <main className="container py-8">
+    <AppShell>
       <header className="mb-6">
         <h1 className="text-2xl font-semibold">Backtesting &amp; Calibration Studio</h1>
         <p className="text-muted-foreground">
@@ -164,6 +165,6 @@ export default function BacktestStudioPage() {
           />
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

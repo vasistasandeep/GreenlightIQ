@@ -4,13 +4,17 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --border: 214.3 31.8% 91.4%;
+    /* Dark portal palette. Semantic tokens so every component that uses
+       bg-background / text-muted-foreground / border flips to dark at once. */
+    --background: 222 47% 7%;          /* slate-950-ish */
+    --foreground: 210 40% 96%;         /* near-white */
+    --card: 222 44% 11%;               /* slate-900 surface */
+    --card-foreground: 210 40% 96%;
+    --primary: 158 64% 42%;            /* emerald-500 accent */
+    --primary-foreground: 158 70% 10%;
+    --muted: 217 33% 17%;              /* slate-800 */
+    --muted-foreground: 215 20% 65%;   /* slate-400 */
+    --border: 217 33% 20%;             /* slate-800 border */
   }
 
   * {

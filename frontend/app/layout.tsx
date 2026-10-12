@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CineROI AI",
+  title: {
+    default: "CineROI AI",
+    template: "%s - CineROI AI",
+  },
   description:
     "OTT content acquisition, licensing, greenlighting & historical backtesting intelligence engine",
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({
@@ -14,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="bg-slate-950 text-slate-100 antialiased">{children}</body>
     </html>
   );
 }

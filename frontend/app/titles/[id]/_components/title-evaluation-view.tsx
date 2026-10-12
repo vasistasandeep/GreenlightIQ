@@ -6,23 +6,25 @@
  * Client component that fetches the full valuation scorecard for a title through
  * the typed API client (carrying the ambient browser session credential) and
  * composes the deep-dive panels:
- *   - {@link MetadataRadar} — Narrative DNA / Affective Tone / Talent Pedigree /
+ *   - {@link MetadataRadar} - Narrative DNA / Affective Tone / Talent Pedigree /
  *     Production Scale radar (R15.1).
- *   - {@link FinancialAccordion} — CPVH ceiling checks, churn mitigation curve,
+ *   - {@link FinancialAccordion} - CPVH ceiling checks, churn mitigation curve,
  *     payback timeline bar chart (R15.2).
- *   - {@link NegotiationLeverage} — contractual safeguards / levers (R15.3).
- *   - {@link ExplanationPanel} — passed/breached checks, computed vs threshold,
+ *   - {@link NegotiationLeverage} - contractual safeguards / levers (R15.3).
+ *   - {@link ExplanationPanel} - passed/breached checks, computed vs threshold,
  *     shortfall, dominant factor (R30.4).
  *
  * A `404 TITLE_NOT_FOUND` is treated as the expected pending-valuation state
  * (R15.4); other failures render an error with a retry affordance.
  */
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, api } from "@/lib/api-client";
 import type { ValuationScorecard } from "@/lib/types";
 import { RecommendationBadge } from "@/components/recommendation-badge";
+import { AppShell } from "@/components/layout/top-nav";
 
 import { ExplanationPanel } from "./explanation-panel";
 import { FinancialAccordion } from "./financial-accordion";
@@ -71,11 +73,18 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
   }, [load]);
 
   return (
-    <main className="container py-8">
+    <AppShell>
+      <Link
+        href="/dashboard"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200"
+      >
+        &larr; Back to dashboard
+      </Link>
+
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Title Evaluation</h1>
-          <p className="text-sm text-muted-foreground">Title {titleId}</p>
+          <h1 className="text-2xl font-semibold text-slate-100">Title Evaluation</h1>
+          <p className="text-sm text-slate-400">Title {titleId}</p>
         </div>
         {state.status === "ready" ? (
           <RecommendationBadge
@@ -88,9 +97,9 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
       {state.status === "loading" ? (
         <div
           role="status"
-          className="rounded-lg border bg-muted/40 p-10 text-center text-sm text-muted-foreground"
+          className="rounded-lg border border-slate-800 bg-slate-900/60 p-10 text-center text-sm text-slate-400"
         >
-          Loading valuation…
+          Loading valuation...
         </div>
       ) : null}
 
@@ -101,14 +110,14 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
       {state.status === "error" ? (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-6 text-center"
+          className="rounded-lg border border-red-900/60 bg-red-950/40 p-6 text-center"
         >
-          <p className="font-medium text-red-800">Could not load this valuation.</p>
-          <p className="mt-1 text-sm text-red-700">{state.message}</p>
+          <p className="font-medium text-red-300">Could not load this valuation.</p>
+          <p className="mt-1 text-sm text-red-400">{state.message}</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="mt-4 inline-flex items-center rounded-md border border-red-300 bg-background px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            className="mt-4 inline-flex items-center rounded-md border border-red-800 bg-slate-900 px-3 py-1.5 text-sm font-medium text-red-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
             Retry
           </button>
@@ -127,6 +136,6 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
           </div>
         </div>
       ) : null}
-    </main>
+    </AppShell>
   );
 }

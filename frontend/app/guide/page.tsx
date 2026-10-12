@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { TopNav } from "@/components/layout/top-nav";
+
 /**
  * In-portal "How It Works" guide (`/guide`) - tabbed reference.
  *
@@ -507,18 +509,7 @@ export default function GuidePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100">
-      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/80 px-6 py-3 backdrop-blur">
-        <div className="flex items-center gap-2.5">
-          <span className="text-lg font-bold tracking-tight">CineROI AI</span>
-          <span className="hidden text-xs uppercase tracking-widest text-emerald-400 sm:inline">
-            How It Works
-          </span>
-        </div>
-        <nav className="flex items-center gap-2 text-sm">
-          <Link href="/dashboard" className="rounded-md border border-slate-700 px-3 py-1.5 text-slate-300 hover:border-emerald-500 hover:text-emerald-300">Dashboard</Link>
-          <Link href="/studio" className="rounded-md border border-slate-700 px-3 py-1.5 text-slate-300 hover:border-emerald-500 hover:text-emerald-300">Asset Studio</Link>
-        </nav>
-      </header>
+      <TopNav />
 
       <div className="mx-auto max-w-4xl px-6 py-10">
         <div className="mb-6">

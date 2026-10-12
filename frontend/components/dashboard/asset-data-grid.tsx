@@ -172,7 +172,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
     return (
       <div
         className={cn(
-          "rounded-lg border bg-background p-10 text-center text-sm text-muted-foreground",
+          "rounded-lg border border-slate-800 bg-slate-900/60 p-10 text-center text-sm text-muted-foreground",
           className,
         )}
       >
@@ -182,7 +182,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
   }
 
   return (
-    <div className={cn("overflow-x-auto rounded-lg border bg-background", className)}>
+    <div className={cn("overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/60", className)}>
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">
           Master asset data grid of pipeline titles

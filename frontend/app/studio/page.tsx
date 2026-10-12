@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { TopNav } from "@/components/layout/top-nav";
+
 import { ApiError, api } from "@/lib/api-client";
 import type { QuickEvaluateRequest, QuickEvaluateResponse } from "@/lib/types";
 import { AssetForm } from "./_components/asset-form";
@@ -41,33 +43,7 @@ export default function AssetStudioPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100">
-      {/* Top bar */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/80 px-6 py-3 backdrop-blur">
-        <div className="flex items-center gap-2.5">
-          <span className="text-lg font-bold tracking-tight">CineROI AI</span>
-          <span className="hidden text-xs uppercase tracking-widest text-emerald-400 sm:inline">
-            OTT Greenlight Intelligence Engine
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-emerald-700/50 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-            Live
-          </span>
-        </div>
-        <nav className="flex items-center gap-2">
-          <Link
-            href="/guide"
-            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-emerald-500 hover:text-emerald-300"
-          >
-            How It Works
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-emerald-500 hover:text-emerald-300"
-          >
-            Dashboard
-          </Link>
-        </nav>
-      </header>
+      <TopNav />
 
       <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[380px_1fr]">
         {/* Left: input panel */}

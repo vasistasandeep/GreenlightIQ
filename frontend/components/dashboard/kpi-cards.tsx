@@ -52,7 +52,7 @@ interface KpiCardProps {
 /** A single KPI card: large value with a label and a short descriptive hint. */
 function KpiCard({ label, value, hint }: KpiCardProps) {
   return (
-    <div className="rounded-lg border bg-background p-5 shadow-sm">
+    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-5">
       <p className="text-sm font-medium text-muted-foreground">{label}</p>
       <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">
         {value}

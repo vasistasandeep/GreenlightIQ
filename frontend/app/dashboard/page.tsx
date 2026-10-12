@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { AppShell } from "@/components/layout/top-nav";
 import { api, ApiError } from "@/lib/api-client";
 import type { DashboardSummary } from "@/lib/types";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
@@ -50,47 +52,41 @@ export default async function DashboardPage() {
   const { summary, error } = await loadSummary();
 
   return (
-    <main className="container space-y-6 py-8">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Executive Command Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Portfolio health at a glance across the active acquisition pipeline.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/guide"
-            className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            How It Works
-          </Link>
+    <AppShell>
+      <div className="space-y-6">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Executive Command Dashboard
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Portfolio health at a glance across the active acquisition pipeline.
+            </p>
+          </div>
           <Link
             href="/studio"
-            className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-50 hover:bg-slate-800"
+            className="inline-flex items-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 hover:bg-emerald-400"
           >
             + New Asset Valuation
           </Link>
-        </div>
-      </header>
+        </header>
 
-      {error ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-        >
-          {error}
-        </div>
-      ) : null}
+        {error ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-amber-700/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-300"
+          >
+            {error}
+          </div>
+        ) : null}
 
-      <KpiCards kpis={summary.kpis} />
+        <KpiCards kpis={summary.kpis} />
 
-      <section aria-label="Pipeline asset grid" className="space-y-3">
-        <h2 className="text-lg font-medium">Pipeline Assets</h2>
-        <AssetDataGrid titles={summary.titles} />
-      </section>
-    </main>
+        <section aria-label="Pipeline asset grid" className="space-y-3">
+          <h2 className="text-lg font-medium">Pipeline Assets</h2>
+          <AssetDataGrid titles={summary.titles} />
+        </section>
+      </div>
+    </AppShell>
   );
 }
