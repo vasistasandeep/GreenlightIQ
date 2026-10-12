@@ -10,13 +10,13 @@ line:
 
 Routers mounted (design "Added endpoints"):
 
-* jobs       — ``GET /jobs/{id}``, ``POST /jobs/{id}/retry`` (R23.4, R29.5)
-* auth       — ``POST /auth/login|logout``, ``GET /auth/session`` (R19)
-* decisions  — override / approve / reject / finalization (R20.2, R20.4, R20.5)
-* versions   — model-version catalog + ``GET /titles/{id}/versions`` (R26.3, R24.5)
-* calibration— ``POST /calibration/apply`` (R12, R16.3)
-* audit      — ``GET /audit/lineage/{subject_id}`` (R25.4)
-* health     — ``GET /health`` DB/queue/telemetry status (R29.4)
+* jobs       â€” ``GET /jobs/{id}``, ``POST /jobs/{id}/retry`` (R23.4, R29.5)
+* auth       â€” ``POST /auth/login|logout``, ``GET /auth/session`` (R19)
+* decisions  â€” override / approve / reject / finalization (R20.2, R20.4, R20.5)
+* versions   â€” model-version catalog + ``GET /titles/{id}/versions`` (R26.3, R24.5)
+* calibrationâ€” ``POST /calibration/apply`` (R12, R16.3)
+* audit      â€” ``GET /audit/lineage/{subject_id}`` (R25.4)
+* health     â€” ``GET /health`` DB/queue/telemetry status (R29.4)
 
 All business routers are mounted under the configured API prefix
 (``Settings.api_v1_prefix``, default ``/api/v1``). The health probe is mounted at
@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI
 
-from app.api import audit, auth, calibration, decisions, health, jobs, versions
+from app.api import audit, auth, calibration, dashboard, decisions, health, jobs, versions
 from app.core.config import get_settings
 
 __all__ = ["register_support_routers", "build_support_router"]
@@ -41,6 +41,7 @@ _PREFIXED_ROUTERS: tuple[APIRouter, ...] = (
     decisions.router,
     versions.router,
     calibration.router,
+    dashboard.router,
 )
 
 

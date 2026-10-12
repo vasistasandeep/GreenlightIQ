@@ -13,7 +13,7 @@ Cross-cutting concerns wired here
   validates it through the :class:`~app.engines.auth.AuthService`, and yields the
   request :class:`~app.core.security.UserContext`. A missing/invalid credential
   maps to ``401 UNAUTHENTICATED``; an expired/revoked one to
-  ``401 CREDENTIAL_EXPIRED`` — both via the error envelope (task 6.2).
+  ``401 CREDENTIAL_EXPIRED`` â€” both via the error envelope (task 6.2).
 * **Authorization (R20).** :func:`require_operation` returns a dependency that
   authorizes the actor for a specific :class:`~app.engines.rbac.Operation`
   before the handler runs, raising ``403`` through the envelope on denial.
@@ -43,6 +43,7 @@ from typing import Annotated, Any, AsyncIterator, Callable
 from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import get_db_session
 from app.core.errors import (
     CredentialExpiredError,
@@ -134,8 +135,8 @@ async def get_current_user(
     Resolves a user session token or an internal service credential, validating
     it through the :class:`AuthService`. Authentication failures are translated
     from the engine's :class:`~app.core.security.AuthError` into the shared error
-    envelope: a missing/invalid credential → ``401 UNAUTHENTICATED`` (R19.3); an
-    expired/revoked one → ``401 CREDENTIAL_EXPIRED`` (R19.6).
+    envelope: a missing/invalid credential â†’ ``401 UNAUTHENTICATED`` (R19.3); an
+    expired/revoked one â†’ ``401 CREDENTIAL_EXPIRED`` (R19.6).
 
     Raises:
         UnauthenticatedError: No or malformed credential was presented (R19.3).
@@ -143,6 +144,19 @@ async def get_current_user(
     """
     credential, is_service = _extract_credential(authorization, x_service_credential)
     if not credential:
+        # DEV/DEMO ONLY: resolve a synthetic demo principal so the UI works
+        # without a live SSO session. Gated to non-production and off by
+        # default; production_safety_errors() hard-blocks it in prod.
+        settings = get_settings()
+        if settings.demo_auth_bypass and not settings.is_production:
+            from app.core.security import UserRole
+
+            return UserContext(
+                user_id=uuid.uuid5(uuid.NAMESPACE_URL, "demo:content-buyer"),
+                display_name="Demo Content Buyer",
+                role=UserRole.CONTENT_BUYER,
+                authorized_territories=(),
+            )
         raise UnauthenticatedError("Authentication is required.")
 
     try:
@@ -271,7 +285,7 @@ class SnapshotValuationInputProvider:
     (``churn_reduction_value``, ``ltv``, ``cpm``, ad impressions, churn-reduction
     percentage, monthly margin, milestone schedule) are not columns on ``titles``.
     This provider sources them from the title's active ``title_versions``
-    source snapshot — the as-submitted manifest captured at ingestion — reading
+    source snapshot â€” the as-submitted manifest captured at ingestion â€” reading
     the modeling fields when present and applying conservative defaults when they
     are absent, so a valuation can always be produced for a persisted title.
 

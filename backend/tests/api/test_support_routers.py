@@ -274,3 +274,82 @@ def test_health_reports_component_statuses(app):
     for component in ("database", "task_queue", "telemetry"):
         assert component in body
         assert body[component]["status"] in {"up", "down"}
+
+
+# --------------------------------------------------------------------------- #
+# Dashboard summary (R14.1, R14.2)
+# --------------------------------------------------------------------------- #
+def test_dashboard_summary_aggregates_titles_and_kpis(app, monkeypatch):
+    """GET /dashboard/summary rolls titles + projections into KPIs and grid rows."""
+    import uuid as _uuid
+    from dataclasses import dataclass, field
+    from decimal import Decimal
+
+    import app.api.dashboard as dash
+
+    @dataclass
+    class _Title:
+        title_id: _uuid.UUID
+        title_name: str
+        asset_type: str
+        acquisition_cost_or_budget: Decimal
+        native_currency: str
+
+    @dataclass
+    class _Projection:
+        calculated_cpvh: Decimal | None
+        ltv_to_cost_multiple: Decimal | None
+        recommendation_status: str | None
+        normalized_cost_usd: Decimal | None = field(default=None)
+
+    t1 = _Title(_uuid.uuid4(), "Aurora", "ORIGINAL_SERIES", Decimal("42000000"), "USD")
+    t2 = _Title(_uuid.uuid4(), "Ledger", "ORIGINAL_FILM", Decimal("9500000"), "USD")
+    projections = {
+        t1.title_id: _Projection(Decimal("0.1680"), Decimal("3.8"), "GREENLIGHT",
+                                  Decimal("42000000")),
+        # CPVH above the 0.18 premium ceiling -> BREACH; non-greenlight -> risk.
+        t2.title_id: _Projection(Decimal("0.2375"), Decimal("2.9"), "NEGOTIATE_HARD",
+                                  Decimal("9500000")),
+    }
+
+    class _Titles:
+        def __init__(self, session):
+            ...
+
+        async def list(self, **_):
+            return [t1, t2]
+
+    class _Projections:
+        def __init__(self, session):
+            ...
+
+        async def get_latest_for_title(self, tid):
+            return projections.get(tid)
+
+    monkeypatch.setattr(dash, "TitleRepository", _Titles)
+    monkeypatch.setattr(dash, "FinancialProjectionRepository", _Projections)
+
+    async def _fake_session():
+        yield object()
+
+    app.dependency_overrides[deps.get_db_session] = _fake_session
+    client = TestClient(app)
+    try:
+        resp = client.get("/api/v1/dashboard/summary")
+    finally:
+        app.dependency_overrides.pop(deps.get_db_session, None)
+
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # Two titles in the grid, badges derived from the CPVH ceiling.
+    assert len(body["titles"]) == 2
+    by_name = {t["title_name"]: t for t in body["titles"]}
+    assert by_name["Aurora"]["cpvh_status"] == "PASS"
+    assert by_name["Ledger"]["cpvh_status"] == "BREACH"
+
+    # KPIs: summed valuation, averaged LTV, and risk = share of non-GREENLIGHT.
+    kpis = body["kpis"]
+    assert kpis["active_pipeline_valuation_usd"] == 51500000.0
+    assert kpis["avg_ltv_to_cost"] == 3.35
+    assert kpis["portfolio_risk_exposure"] == 0.5

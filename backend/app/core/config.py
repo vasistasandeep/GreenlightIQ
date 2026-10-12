@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     #: default) accepts any host and is intended for local/dev only; production
     #: pins the real hostname(s), e.g. ["app.example.com"].
     trusted_hosts: list[str] = Field(default_factory=lambda: ["*"])
+    #: DEV/DEMO ONLY: when true, unauthenticated API requests are resolved to a
+    #: synthetic demo user so the UI works without a live SSO session. Hard-
+    #: blocked in production by production_safety_errors(). Never enable in prod.
+    demo_auth_bypass: bool = Field(default=False)
 
     # --- Base currency (R21 canonicalization) ---
     base_currency: str = "USD"
@@ -83,7 +87,7 @@ class Settings(BaseSettings):
     #: Base64 url-safe 32-byte Fernet key used to encrypt sensitive column
     #: values (unreleased scripts, deal terms, PII). When unset, the
     #: EncryptedType decorator raises on use rather than silently storing
-    #: plaintext — generate one with
+    #: plaintext â€” generate one with
     #: ``python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"``.
     encryption_key: str | None = Field(default=None)
     #: When True (default), using an encrypted column without a configured
@@ -157,6 +161,11 @@ class Settings(BaseSettings):
         if self.sso_audience is None:
             errors.append(
                 "CINEROI_SSO_AUDIENCE must be set so SSO assertions are validated."
+            )
+        if self.demo_auth_bypass:
+            errors.append(
+                "CINEROI_DEMO_AUTH_BYPASS must be false in production "
+                "(it disables authentication)."
             )
         return errors
 

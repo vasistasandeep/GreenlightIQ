@@ -1,5 +1,5 @@
 # =============================================================================
-# CineROI AI — full-stack orchestration (Requirements 18.2, 18.3, 18.4)
+# CineROI AI Ã¢â‚¬â€ full-stack orchestration (Requirements 18.2, 18.3, 18.4)
 # =============================================================================
 # Services:
 #   db        PostgreSQL 16 + pgvector            (VECTOR(1536), cosine search)
@@ -33,6 +33,11 @@ x-backend-env: &backend-env
   CINEROI_ENCRYPTION_REQUIRED: ${CINEROI_ENCRYPTION_REQUIRED:-false}
   CINEROI_LOG_LEVEL: ${CINEROI_LOG_LEVEL:-INFO}
   CINEROI_LOG_JSON: ${CINEROI_LOG_JSON:-true}
+  # Local/dev: let the browser UI (localhost:3000) call the API cross-origin.
+  CINEROI_CORS_ALLOW_ORIGINS: ${CINEROI_CORS_ALLOW_ORIGINS:-["http://localhost:3000"]}
+  # DEV/DEMO ONLY: resolve a synthetic demo user for unauthenticated UI calls so
+  # the demo works without a live SSO session. Hard-blocked in production.
+  CINEROI_DEMO_AUTH_BYPASS: ${CINEROI_DEMO_AUTH_BYPASS:-true}
 
 services:
   # ---------------------------------------------------------------------------
@@ -56,7 +61,7 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Redis — Celery broker (db 0) and result backend (db 1).
+  # Redis Ã¢â‚¬â€ Celery broker (db 0) and result backend (db 1).
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
@@ -117,7 +122,7 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Celery worker fleet — consumes every queue (ingest/extract/audit/telemetry).
+  # Celery worker fleet Ã¢â‚¬â€ consumes every queue (ingest/extract/audit/telemetry).
   # Shares the backend image; only the command differs.
   # ---------------------------------------------------------------------------
   worker:
@@ -152,6 +157,9 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+      # Server Components fetch over the Docker network, not the browser's
+      # localhost. Point them at the backend service directly.
+      API_BASE_URL_INTERNAL: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:
