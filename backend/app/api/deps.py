@@ -310,6 +310,18 @@ class SnapshotValuationInputProvider:
         if not isinstance(milestone_schedule, list):
             milestone_schedule = None
 
+        # Optional explicit rate date (e.g. the quick-evaluate path resolves the
+        # latest available rate for a non-USD currency and stamps it here).
+        from datetime import date as _date
+
+        rate_date = None
+        raw_rate_date = snapshot.get("rate_date")
+        if raw_rate_date:
+            try:
+                rate_date = _date.fromisoformat(str(raw_rate_date))
+            except ValueError:
+                rate_date = None
+
         return ValuationInputs(
             churn_reduction_value=_coerce_decimal(
                 snapshot.get("churn_reduction_value"), Decimal("0")
@@ -325,6 +337,7 @@ class SnapshotValuationInputProvider:
             ),
             monthly_margin=_coerce_decimal(snapshot.get("monthly_margin"), Decimal("0")),
             milestone_schedule=milestone_schedule,
+            rate_date=rate_date,
         )
 
 

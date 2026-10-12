@@ -9,9 +9,18 @@ import { StudioRadar } from "./studio-radar";
 import { decimals, guardrailLabel, multiple, num, pct, usd } from "./helpers";
 
 const BANNER: Record<string, { label: string; cls: string }> = {
-  GREENLIGHT: { label: "GREENLIGHT", cls: "bg-emerald-500/90 text-emerald-950" },
-  NEGOTIATE_HARD: { label: "NEGOTIATE HARD", cls: "bg-amber-500/90 text-amber-950" },
-  PASS: { label: "PASS", cls: "bg-rose-500/90 text-rose-950" },
+  GREENLIGHT: {
+    label: "GREENLIGHT",
+    cls: "bg-gradient-to-r from-emerald-500 to-emerald-400 text-emerald-950 shadow-lg shadow-emerald-500/20",
+  },
+  NEGOTIATE_HARD: {
+    label: "NEGOTIATE HARD",
+    cls: "bg-gradient-to-r from-amber-500 to-amber-400 text-amber-950 shadow-lg shadow-amber-500/20",
+  },
+  PASS: {
+    label: "PASS",
+    cls: "bg-gradient-to-r from-rose-500 to-rose-400 text-rose-950 shadow-lg shadow-rose-500/20",
+  },
 };
 
 function Panel({

@@ -28,6 +28,7 @@ conveniences are *derived* here and labelled as such in the response:
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -136,7 +137,7 @@ class QuickEvaluateResponse(BaseModel):
     metadata_profile: MetadataProfileOut
 
 
-def _modeled_inputs(body: QuickEvaluateRequest) -> dict[str, Any]:
+def _modeled_inputs(body: QuickEvaluateRequest, rate_date: str | None = None) -> dict[str, Any]:
     """Derive demo-reasonable modeled financial drivers from the typed fields.
 
     The form captures business facts (cost, pedigree, exclusivity); the
@@ -176,18 +177,16 @@ def _modeled_inputs(body: QuickEvaluateRequest) -> dict[str, Any]:
     # cost at roughly the target month, giving a realistic break-even. The full
     # cost is disbursed across the schedule, front-loaded with 40% at signing so
     # the curve dips before recovering (the payback bar chart reads naturally).
-    target_payback = (Decimal("11") - quality * Decimal("5")).quantize(Decimal("1"))  # 6 .. 11
-    if target_payback < 1:
-        target_payback = Decimal("1")
-    monthly_margin = (cost / target_payback).quantize(Decimal("0.01"))
-
-    schedule_months = min(duration, 12)
-    upfront = (cost * Decimal("0.40")).quantize(Decimal("0.01"))
-    remainder = cost - upfront
-    per_tail = (remainder / Decimal(max(schedule_months - 1, 1))).quantize(Decimal("0.01"))
-    milestones = [{"month": 1, "amount": str(upfront)}]
-    for m in range(2, schedule_months + 1):
-        milestones.append({"month": m, "amount": str(per_tail)})
+    # Payback: a stronger title recovers sooner. We target a break-even in a
+    # 7..11 month band (higher pedigree -> fewer months) and size the monthly
+    # contribution margin so cumulative margin overtakes the cost at the target.
+    # The acquisition cost is disbursed at signing (month 1), so cumulative
+    # contribution dips to -cost then climbs by `monthly_margin` each month,
+    # crossing zero at exactly `target_payback` - a clean, legible payback curve.
+    target_payback = int((Decimal("11") - quality * Decimal("4")).to_integral_value())  # 7 .. 11
+    target_payback = max(target_payback, 1)
+    monthly_margin = (cost / Decimal(target_payback)).quantize(Decimal("0.01"))
+    milestones = [{"month": 1, "amount": str(cost)}]
     return {
         "logline": body.synopsis,
         "manifest_content": body.synopsis,
@@ -202,6 +201,7 @@ def _modeled_inputs(body: QuickEvaluateRequest) -> dict[str, Any]:
         "talent_pedigree_score": str(pedigree),
         "is_exclusive": body.is_exclusive,
         "license_duration_months": duration,
+        "rate_date": rate_date,
     }
 
 
@@ -315,10 +315,25 @@ async def quick_evaluate(
     )
     await titles.create(title)
 
+    # Non-USD costs need a dated exchange rate. Use today's rate if present,
+    # otherwise fall back to the most recent available rate so a valuation can
+    # always be produced for the supported demo currencies.
+    rate_date_iso: str | None = None
+    if body.native_currency != "USD":
+        from app.repositories.exchange_rates import ExchangeRateRepository
+
+        rates = ExchangeRateRepository(session)
+        today = date.today()
+        row = await rates.get_rate(body.native_currency, "USD", today)
+        if row is None:
+            row = await rates.get_latest_rate(body.native_currency, "USD")
+        if row is not None:
+            rate_date_iso = row.rate_date.isoformat()
+
     version = TitleVersion(
         title_id=title.title_id,
         version_number=1,
-        source_snapshot=_modeled_inputs(body),
+        source_snapshot=_modeled_inputs(body, rate_date_iso),
         is_active=True,
     )
     await versions.create(version)

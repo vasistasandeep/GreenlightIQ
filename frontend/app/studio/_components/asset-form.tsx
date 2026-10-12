@@ -30,24 +30,37 @@ const PRESETS: Record<string, Partial<QuickEvaluateRequest>> = {
     native_currency: "USD",
     target_territories: ["IN", "SEA"],
     synopsis:
-      "A gritty, fast-paced urban crime-noir saga delving into Bangalore's underground syndicate and the detectives who hunt it.",
+      "A gritty, fast-paced urban crime-noir saga delving into Bangalore's underground syndicate and the detectives who hunt it. A breakout ensemble and a festival-circuit showrunner anchor a bingeable eight-episode arc built for subscriber retention.",
     genre_tag: "Crime-Noir",
     talent_pedigree_score: 7.5,
     license_duration_months: 24,
     is_exclusive: true,
   },
-  "Apex Horizon": {
+  "Apex Horizon (High-Budget)": {
     title_name: "Apex Horizon",
     asset_type: "ORIGINAL_FILM",
     acquisition_cost_or_budget: 42_000_000,
     native_currency: "USD",
     target_territories: ["GLOBAL"],
     synopsis:
-      "A sweeping sci-fi thriller: a marooned crew races a collapsing orbital station as a rival syndicate closes in.",
+      "A sweeping, four-quadrant sci-fi thriller: a marooned crew races a collapsing orbital station as a rival syndicate closes in. A-list leads and a tentpole director make this a global marquee event with blockbuster franchise upside.",
     genre_tag: "Sci-Fi Thriller",
     talent_pedigree_score: 9.0,
     license_duration_months: 36,
     is_exclusive: true,
+  },
+  "Vintage Reruns (Library)": {
+    title_name: "Vintage Reruns Vol. 7",
+    asset_type: "LICENSED_LIBRARY",
+    acquisition_cost_or_budget: 1_200_000,
+    native_currency: "EUR",
+    target_territories: ["EU", "NA"],
+    synopsis:
+      "A nostalgia-driven catalogue bundle of beloved mid-budget library titles - comfort-viewing filler that broadens the back-catalogue tail without headline spend.",
+    genre_tag: "Comedy-Classic",
+    talent_pedigree_score: 4.0,
+    license_duration_months: 12,
+    is_exclusive: false,
   },
 };
 
