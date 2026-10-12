@@ -60,12 +60,20 @@ export default async function DashboardPage() {
             Portfolio health at a glance across the active acquisition pipeline.
           </p>
         </div>
-        <Link
-          href="/studio"
-          className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-50 hover:bg-slate-800"
-        >
-          + New Asset Valuation
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/guide"
+            className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            How It Works
+          </Link>
+          <Link
+            href="/studio"
+            className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-50 hover:bg-slate-800"
+          >
+            + New Asset Valuation
+          </Link>
+        </div>
       </header>
 
       {error ? (

@@ -55,6 +55,12 @@ export default function AssetStudioPage() {
         </div>
         <nav className="flex items-center gap-2">
           <Link
+            href="/guide"
+            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-emerald-500 hover:text-emerald-300"
+          >
+            How It Works
+          </Link>
+          <Link
             href="/dashboard"
             className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-emerald-500 hover:text-emerald-300"
           >
