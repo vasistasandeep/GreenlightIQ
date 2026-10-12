@@ -1,0 +1,227 @@
+/**
+ * Shared domain types mirroring the backend contract.
+ *
+ * These are the minimal shapes the typed API client exposes. They are expanded
+ * as the backend schemas (task 16) and frontend views (tasks 19-21) are built.
+ */
+
+export type AssetType =
+  | "ORIGINAL_SERIES"
+  | "ORIGINAL_FILM"
+  | "LICENSED_LIBRARY"
+  | "CO_PRODUCTION";
+
+export type RecommendationStatus = "GREENLIGHT" | "NEGOTIATE_HARD" | "PASS";
+
+export type JobStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+
+/** Standard backend error envelope: { error_code, message, details }. */
+export interface ApiErrorEnvelope {
+  error_code: string;
+  message: string;
+  details?: unknown;
+}
+
+/** Session context returned by the auth endpoints (R19.2). */
+export interface SessionInfo {
+  token: string;
+  user_id: string;
+  role: string;
+  issued_at: string;
+  expires_at: string;
+}
+
+/** The guardrail checks evaluated by the engine (R30.1). */
+export type GuardrailName =
+  | "CPVH"
+  | "LTV_TO_COST"
+  | "CHURN_MITIGATION"
+  | "PAYBACK_HORIZON";
+
+/**
+ * One guardrail evaluation result from the recommendation explanation (R30.1, R30.2).
+ *
+ * Mirrors the backend `GuardrailCheck`. Decimal values are serialized by the
+ * backend as JSON numbers or strings; the UI coerces them defensively.
+ */
+export interface GuardrailCheck {
+  name: GuardrailName;
+  /** The computed metric value, or `null` when it could not be computed. */
+  computed_value: number | string | null;
+  /** The applicable threshold for this guardrail. */
+  threshold: number | string | null;
+  passed: boolean;
+  breached: boolean;
+  /** Normalized distance past the threshold for a breach (R30.2), else `null`. */
+  shortfall_magnitude: number | string | null;
+  /**
+   * `true` when the breach is correctable through renegotiated terms,
+   * `false` when non-correctable, or `null` when it cannot be classified.
+   */
+  correctable: boolean | null;
+}
+
+/**
+ * Structured explainability payload for a recommendation (R30).
+ *
+ * Mirrors the backend `Explanation`: every guardrail check with its pass/breach
+ * status (R30.1) plus the dominant contributing factor (R30.3).
+ */
+export interface Explanation {
+  checks: GuardrailCheck[];
+  /** Name of the breached check with the largest shortfall, or `null` (R30.3). */
+  dominant_factor: GuardrailName | string | null;
+  /** `true` when a breach could not be classified as correctable (R8.4). */
+  unclassifiable: boolean;
+}
+
+/**
+ * Extracted metadata profile surfaced in the full scorecard (R10.2, R15.1).
+ *
+ * A projection of the title's `metadata_vectors` row: the affective tone
+ * triggers and the talent-pedigree / production-scale scores. The 1536-dim
+ * Narrative_DNA embedding is summarized by its dimension count.
+ */
+export interface MetadataBreakdown {
+  affective_primary: string | null;
+  affective_secondary: string | null;
+  talent_pedigree_score: number | string | null;
+  production_scale_metric: number | string | null;
+  narrative_dna_dimensions: number | null;
+  extraction_status: string | null;
+}
+
+/**
+ * The full valuation scorecard returned by `GET /valuation/{title_id}` (R10, R30.4).
+ *
+ * Carries the persisted guardrail outputs, the model-version stamp, the
+ * metadata-vector breakdown (R10.2), and the recommendation explanation (R30.4).
+ */
+export interface ValuationScorecard {
+  title_id: string;
+  calculated_cpvh: number | string | null;
+  ltv_to_cost_multiple: number | string | null;
+  churn_reduction_pct: number | string | null;
+  payback_horizon_months: number | null;
+  recommendation_status: RecommendationStatus | null;
+  normalized_cost_usd: number | string | null;
+  model_version_id: string | null;
+  explanation: Explanation | null;
+  metadata_breakdown: MetadataBreakdown | null;
+}
+
+/**
+ * CPVH guardrail outcome for a title, as surfaced in the dashboard grid (R14.2).
+ *
+ * `PASS`/`BREACH` reflect whether the computed cost-per-viewing-hour is within
+ * the asset-type ceiling (R4). `NO_CEILING` applies to asset types without a
+ * defined ceiling, and `PENDING` to titles with no completed valuation yet.
+ */
+export type CpvhStatus = "PASS" | "BREACH" | "NO_CEILING" | "PENDING";
+
+/**
+ * KPI header-card figures for the Executive Command Dashboard (R14.1).
+ *
+ * All monetary values are USD-normalized. Fields are `null` when the pipeline
+ * has no data to compute the figure (e.g. no completed valuations yet).
+ */
+export interface DashboardKpis {
+  /** Sum of normalized acquisition cost across active-pipeline titles (USD). */
+  active_pipeline_valuation_usd: number | null;
+  /** Mean LTV-to-Cost multiple across valued titles. */
+  avg_ltv_to_cost: number | null;
+  /** Portfolio risk exposure index (0–1); higher means more breaches/PASS titles. */
+  portfolio_risk_exposure: number | null;
+  /** Model prediction accuracy rate (0–1), derived from backtesting MAPE. */
+  model_accuracy_rate: number | null;
+}
+
+/**
+ * One row of the master asset data grid (R14.2).
+ *
+ * Combines title identity with its latest valuation outcome. Valuation-derived
+ * fields are `null`/`PENDING` until a completed valuation exists.
+ */
+export interface TitleSummary {
+  title_id: string;
+  title_name: string;
+  asset_type: AssetType;
+  /** Native asking price / acquisition cost (not currency-normalized). */
+  asking_price: number;
+  native_currency: string;
+  cpvh_status: CpvhStatus;
+  ltv_to_cost_multiple: number | null;
+  recommendation_status: RecommendationStatus | null;
+}
+
+/** Aggregate payload backing the dashboard: KPI figures + the grid rows (R14). */
+export interface DashboardSummary {
+  kpis: DashboardKpis;
+  titles: TitleSummary[];
+}
+
+// --------------------------------------------------------------------------- //
+// Backtesting & Calibration Studio (R11, R12, R16)
+// --------------------------------------------------------------------------- //
+
+/** One observed actual-outcome metric in a ground-truth submission (R11.1). */
+export interface GroundTruthMetricInput {
+  /** The audited metric, e.g. "cpvh" or "ltv_to_cost_multiple". */
+  metric_name: string;
+  /** The observed actual value; must be numeric server-side (R11.2). */
+  actual_value: number;
+}
+
+/** Request body for POST /backtest/audit — ground-truth submission (R11.1). */
+export interface BacktestAuditRequest {
+  title_id: string;
+  metrics: GroundTruthMetricInput[];
+}
+
+/** One predicted/actual row of the returned audit scorecard (R11.6, R11.7). */
+export interface AuditMetric {
+  metric: string;
+  predicted: number;
+  actual: number;
+  /** True when the pair was excluded from MAPE (zero actual — R11.7). */
+  excluded: boolean;
+}
+
+/** The audit scorecard returned by POST /backtest/audit (R11.6, R11.8). */
+export interface BacktestAuditResponse {
+  title_id: string;
+  metrics: AuditMetric[];
+  /** Mean absolute percentage error across eligible metrics, or null (R11.8). */
+  mape: number | null;
+  /** True when every metric was excluded, so MAPE is undefined (R11.8). */
+  no_eligible_metrics: boolean;
+}
+
+/** Request body for POST /calibration/apply (R12, R16.3). */
+export interface CalibrationApplyRequest {
+  title_id: string;
+}
+
+/** The outcome of a calibration-apply request (R12.3, R12.5, R16.4). */
+export interface CalibrationApplyResponse {
+  /** True when MAPE exceeded the threshold and a new version was forked (R12.3). */
+  adjustment_required: boolean;
+  mape: number | null;
+  /** The id of the newly activated model version when adjustment occurred. */
+  new_model_version_id: string | null;
+  /** Applied weight offsets keyed by weight name, shown on success (R16.4). */
+  offsets: Record<string, number> | null;
+}
+
+/** Finalization gating report for a decision (R20.5). */
+export interface FinalizationStatus {
+  decision_id: string;
+  /** True when all required sign-offs are recorded (R20.5). */
+  can_finalize: boolean;
+  /** Roles required to sign off a high-budget GREENLIGHT (R20.3, R20.5). */
+  required_roles: string[];
+  /** Required roles whose approval is still outstanding (R20.5). */
+  outstanding_roles: string[];
+  /** Roles that have already approved. */
+  approved_roles: string[];
+}

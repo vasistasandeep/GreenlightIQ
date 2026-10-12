@@ -1,0 +1,112 @@
+# =============================================================================
+# CineROI AI - PRODUCTION compose overlay
+# =============================================================================
+# Layers on top of docker-compose.yml. Run with:
+#
+#   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Differences from the dev stack:
+#   * All config comes from .env.prod (no insecure inline defaults).
+#   * db and redis are NOT published to the host (internal network only).
+#   * An nginx service terminates TLS and is the only public ingress (443/80).
+#   * backend/frontend/worker use restart: always and resource limits.
+#   * The embedding provider is the real model (set in .env.prod).
+# =============================================================================
+
+services:
+  db:
+    # Keep the volume; drop the host port publish (internal access only).
+    ports: []
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cineroi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+      POSTGRES_DB: ${POSTGRES_DB:-cineroi}
+    restart: always
+
+  redis:
+    ports: []
+    restart: always
+
+  db-init:
+    environment:
+      CINEROI_ENVIRONMENT: ${CINEROI_ENVIRONMENT}
+      CINEROI_DATABASE_URL: ${CINEROI_DATABASE_URL}
+      CINEROI_ENCRYPTION_KEY: ${CINEROI_ENCRYPTION_KEY}
+      CINEROI_ENCRYPTION_REQUIRED: ${CINEROI_ENCRYPTION_REQUIRED}
+      PYTHONPATH: /app
+
+  backend:
+    # Do not publish 8000 directly; nginx is the ingress.
+    ports: []
+    environment:
+      CINEROI_ENVIRONMENT: ${CINEROI_ENVIRONMENT}
+      CINEROI_DEBUG: ${CINEROI_DEBUG}
+      CINEROI_DATABASE_URL: ${CINEROI_DATABASE_URL}
+      CINEROI_BROKER_URL: ${CINEROI_BROKER_URL}
+      CINEROI_RESULT_BACKEND_URL: ${CINEROI_RESULT_BACKEND_URL}
+      CINEROI_SECRET_KEY: ${CINEROI_SECRET_KEY}
+      CINEROI_SERVICE_CREDENTIAL_SECRET: ${CINEROI_SERVICE_CREDENTIAL_SECRET}
+      CINEROI_ENCRYPTION_KEY: ${CINEROI_ENCRYPTION_KEY}
+      CINEROI_ENCRYPTION_REQUIRED: ${CINEROI_ENCRYPTION_REQUIRED}
+      CINEROI_TRUSTED_HOSTS: ${CINEROI_TRUSTED_HOSTS}
+      CINEROI_CORS_ALLOW_ORIGINS: ${CINEROI_CORS_ALLOW_ORIGINS}
+      CINEROI_SSO_AUDIENCE: ${CINEROI_SSO_AUDIENCE}
+      CINEROI_EMBEDDING_PROVIDER: ${CINEROI_EMBEDDING_PROVIDER}
+      CINEROI_EMBEDDING_API_KEY: ${CINEROI_EMBEDDING_API_KEY}
+      CINEROI_EMBEDDING_MODEL: ${CINEROI_EMBEDDING_MODEL}
+      CINEROI_LOG_LEVEL: ${CINEROI_LOG_LEVEL:-INFO}
+      CINEROI_LOG_JSON: ${CINEROI_LOG_JSON:-true}
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1g
+
+  worker:
+    environment:
+      CINEROI_ENVIRONMENT: ${CINEROI_ENVIRONMENT}
+      CINEROI_DATABASE_URL: ${CINEROI_DATABASE_URL}
+      CINEROI_BROKER_URL: ${CINEROI_BROKER_URL}
+      CINEROI_RESULT_BACKEND_URL: ${CINEROI_RESULT_BACKEND_URL}
+      CINEROI_SECRET_KEY: ${CINEROI_SECRET_KEY}
+      CINEROI_ENCRYPTION_KEY: ${CINEROI_ENCRYPTION_KEY}
+      CINEROI_ENCRYPTION_REQUIRED: ${CINEROI_ENCRYPTION_REQUIRED}
+      CINEROI_EMBEDDING_PROVIDER: ${CINEROI_EMBEDDING_PROVIDER}
+      CINEROI_EMBEDDING_API_KEY: ${CINEROI_EMBEDDING_API_KEY}
+      CINEROI_EMBEDDING_MODEL: ${CINEROI_EMBEDDING_MODEL}
+      CINEROI_LOG_JSON: ${CINEROI_LOG_JSON:-true}
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+
+  frontend:
+    ports: []
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # Nginx TLS reverse proxy - the only public ingress in production.
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/proxy_common.conf:/etc/nginx/proxy_common.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    restart: always

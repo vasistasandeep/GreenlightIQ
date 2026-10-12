@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Env & secrets - ignore real env files, but keep the example templates tracked.
+.env
+.env.*
+!.env.example
+!.env.prod.example
+# Never commit real production env or TLS private keys.
+.env.prod
+nginx/certs/
+
+# OS / editor
+.DS_Store
+Thumbs.db

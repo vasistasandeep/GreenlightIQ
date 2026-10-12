@@ -1,0 +1,34 @@
+# Build-context exclusions shared by the backend and frontend images.
+# The compose build context is the repo root (the backend image needs the
+# database/ scripts), so keep heavy / environment-specific artifacts out.
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
+**/*.egg-info/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.hypothesis/
+
+# Node / Next.js
+**/node_modules/
+**/.next/
+**/out/
+frontend/tsconfig.tsbuildinfo
+
+# Env & secrets (never bake real secrets into an image)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Tests are not needed in the runtime images
+backend/tests/
+
+# VCS / tooling / docs
+.git/
+.kiro/
+**/.DS_Store
+**/Thumbs.db

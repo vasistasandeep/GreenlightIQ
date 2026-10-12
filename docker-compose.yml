@@ -1,0 +1,168 @@
+# =============================================================================
+# CineROI AI — full-stack orchestration (Requirements 18.2, 18.3, 18.4)
+# =============================================================================
+# Services:
+#   db        PostgreSQL 16 + pgvector            (VECTOR(1536), cosine search)
+#   redis     Redis broker + result backend       (Celery transport)
+#   db-init   one-shot: alembic upgrade + seed     (schema + mock data on boot)
+#   backend   FastAPI API (uvicorn)                GET /health reports readiness
+#   worker    Celery worker fleet                  ingest/extract/audit/telemetry
+#   frontend  Next.js App Router (standalone)      executive decision-support UI
+#
+# Bring the whole stack up with:
+#   docker compose up --build
+# The database is initialized from database/migrations + database/seed on the
+# first boot via the `db-init` job; backend and worker wait for it to finish.
+# =============================================================================
+
+name: cineroi-ai
+
+# Shared backend environment (API + worker + db-init). Values default to the
+# in-cluster service hostnames; override via a root .env file if desired.
+x-backend-env: &backend-env
+  CINEROI_ENVIRONMENT: ${CINEROI_ENVIRONMENT:-development}
+  CINEROI_DEBUG: ${CINEROI_DEBUG:-false}
+  # psycopg async driver -> the `db` service, database `cineroi`.
+  CINEROI_DATABASE_URL: postgresql+psycopg://cineroi:cineroi@db:5432/cineroi
+  CINEROI_BROKER_URL: redis://redis:6379/0
+  CINEROI_RESULT_BACKEND_URL: redis://redis:6379/1
+  CINEROI_SECRET_KEY: ${CINEROI_SECRET_KEY:-change-me-in-production}
+  CINEROI_SESSION_IDLE_TIMEOUT_MINUTES: ${CINEROI_SESSION_IDLE_TIMEOUT_MINUTES:-30}
+  CINEROI_ENCRYPTION_KEY: ${CINEROI_ENCRYPTION_KEY:-}
+  # Local/dev default: allow unencrypted passthrough when no key is supplied.
+  CINEROI_ENCRYPTION_REQUIRED: ${CINEROI_ENCRYPTION_REQUIRED:-false}
+  CINEROI_LOG_LEVEL: ${CINEROI_LOG_LEVEL:-INFO}
+  CINEROI_LOG_JSON: ${CINEROI_LOG_JSON:-true}
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 with the pgvector extension pre-installed.
+  # ---------------------------------------------------------------------------
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: cineroi
+      POSTGRES_PASSWORD: cineroi
+      POSTGRES_DB: cineroi
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cineroi -d cineroi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis — Celery broker (db 0) and result backend (db 1).
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # One-shot schema initialization + mock seed (R18.4). Runs the Alembic
+  # migrations then applies database/seed/*.sql via database/seed/seed.py, then
+  # exits. The backend and worker depend on its successful completion.
+  # PYTHONPATH=/app makes the backend `app` package importable so the Alembic
+  # env.py can load the ORM metadata.
+  # ---------------------------------------------------------------------------
+  db-init:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    working_dir: /database
+    environment:
+      <<: *backend-env
+      PYTHONPATH: /app
+    command: ["python", "/database/seed/seed.py"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # FastAPI backend (uvicorn). Exposes the REST surface and GET /health.
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      <<: *backend-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Celery worker fleet — consumes every queue (ingest/extract/audit/telemetry).
+  # Shares the backend image; only the command differs.
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      <<: *backend-env
+    command:
+      - celery
+      - -A
+      - app.tasks.celery_app:celery_app
+      - worker
+      - --loglevel=info
+      - --queues=ingest,extract,audit,telemetry
+    depends_on:
+      redis:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Next.js frontend (standalone server). Talks to the backend over the public
+  # API base URL baked at build time.
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/dashboard || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
