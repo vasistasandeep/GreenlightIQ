@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/layout/top-nav";
 import { api, ApiError } from "@/lib/api-client";
@@ -10,6 +10,12 @@ import type {
   CalibrationApplyResponse,
   FinalizationStatus,
 } from "@/lib/types";
+import {
+  selectAuditableTitles,
+  type AuditableTitleOption,
+  type TitlesLoadStatus,
+} from "@/lib/backtest/select-auditable-titles";
+import { mapAuditError } from "@/lib/backtest/map-audit-error";
 import { CalibrationController } from "@/components/backtest/calibration-controller";
 import { GroundTruthForm } from "@/components/backtest/ground-truth-form";
 import { SignOffPanel } from "@/components/backtest/sign-off-panel";
@@ -26,10 +32,20 @@ import { VarianceChart } from "@/components/backtest/variance-chart";
  * {@link SignOffPanel} surfacing the required roles and outstanding approvals for
  * a high-budget greenlight (R20.5).
  *
+ * On mount the page loads the auditable titles from `GET /dashboard/summary`
+ * (titles that already carry a stored prediction) and threads them into the
+ * ground-truth selector, so a demo user never types an internal identifier and
+ * only submits audits that can succeed. Audit rejections are translated into
+ * readable, actionable messages via {@link mapAuditError}.
+ *
  * This page owns the request lifecycle and threads results into the presentational
  * components; all backend access goes through the typed {@link api} client.
  */
 export default function BacktestStudioPage() {
+  const [titles, setTitles] = useState<AuditableTitleOption[]>([]);
+  const [titlesStatus, setTitlesStatus] = useState<TitlesLoadStatus>("loading");
+  const [titlesError, setTitlesError] = useState<string | null>(null);
+
   const [auditTitleId, setAuditTitleId] = useState<string | null>(null);
 
   const [audit, setAudit] = useState<BacktestAuditResponse | null>(null);
@@ -43,6 +59,34 @@ export default function BacktestStudioPage() {
   const [finalization, setFinalization] = useState<FinalizationStatus | null>(null);
   const [finalizationLoading, setFinalizationLoading] = useState(false);
   const [finalizationError, setFinalizationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function loadTitles() {
+      setTitlesStatus("loading");
+      setTitlesError(null);
+      try {
+        const summary = await api.getDashboardSummary();
+        if (!active) {
+          return;
+        }
+        const auditable = selectAuditableTitles(summary.titles);
+        setTitles(auditable);
+        setTitlesStatus(auditable.length > 0 ? "loaded" : "empty");
+      } catch {
+        if (!active) {
+          return;
+        }
+        setTitles([]);
+        setTitlesStatus("error");
+        setTitlesError("Could not load auditable titles. Please retry.");
+      }
+    }
+    void loadTitles();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function messageFor(err: unknown): string {
     if (err instanceof ApiError) {
@@ -65,7 +109,7 @@ export default function BacktestStudioPage() {
     } catch (err) {
       setAudit(null);
       setAuditTitleId(null);
-      setAuditError(messageFor(err));
+      setAuditError(mapAuditError(err));
     } finally {
       setAuditing(false);
     }
@@ -115,7 +159,17 @@ export default function BacktestStudioPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,22rem)_1fr]">
         {/* Left pane: ground-truth input (R16.1). */}
         <div className="rounded-lg border border-border p-5">
-          <GroundTruthForm onSubmit={handleAudit} submitting={auditing} />
+          <GroundTruthForm
+            titles={titles}
+            titlesStatus={titlesStatus}
+            onSubmit={handleAudit}
+            submitting={auditing}
+          />
+          {titlesStatus === "error" && titlesError ? (
+            <p role="alert" className="mt-4 text-sm font-medium text-red-600">
+              {titlesError}
+            </p>
+          ) : null}
         </div>
 
         {/* Right pane: variance charts, calibration, and sign-off. */}
@@ -131,7 +185,7 @@ export default function BacktestStudioPage() {
               <VarianceChart metrics={audit.metrics} />
               {audit.no_eligible_metrics ? (
                 <p className="mt-3 text-sm text-amber-700">
-                  No eligible metrics — every actual was zero, so MAPE is undefined.
+                  No eligible metrics - every actual was zero, so MAPE is undefined.
                 </p>
               ) : typeof audit.mape === "number" ? (
                 <p className="mt-3 text-sm text-muted-foreground">

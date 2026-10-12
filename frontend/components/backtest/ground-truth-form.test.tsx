@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { GroundTruthForm } from "@/components/backtest/ground-truth-form";
 import type { BacktestAuditRequest } from "@/lib/types";
+import type { AuditableTitleOption } from "@/lib/backtest/select-auditable-titles";
 
 /**
  * GroundTruthForm submission + validation tests (R16.1).
@@ -13,7 +14,15 @@ import type { BacktestAuditRequest } from "@/lib/types";
  * submit, only including metrics the analyst actually filled in, and must
  * block submission with a descriptive message when required input is missing
  * or non-numeric (mirroring the server-side R11.2 contract it feeds).
+ *
+ * The historical title is chosen from a selector of auditable titles supplied by
+ * the page (R1.1-R1.4, R2.4), not typed free-hand.
  */
+
+const TITLES: AuditableTitleOption[] = [
+  { title_id: "title-123", title_name: "Maharani" },
+  { title_id: "title-456", title_name: "The Long Road" },
+];
 
 /** Capture the request the form hands to its parent on a valid submit. */
 function lastRequest(onSubmit: ReturnType<typeof vi.fn>): BacktestAuditRequest {
@@ -27,24 +36,32 @@ describe("GroundTruthForm (R16.1)", () => {
     onSubmit = vi.fn();
   });
 
-  it("renders the title-id control and the audited-metric fields", () => {
-    render(<GroundTruthForm onSubmit={onSubmit} />);
+  it("renders a title selector listing each auditable title name (R1.1, R1.2)", () => {
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
 
-    expect(screen.getByLabelText("Historical title ID")).toBeInTheDocument();
+    const selector = screen.getByLabelText("Historical title");
+    expect(selector).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Maharani" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "The Long Road" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Actual CPVH")).toBeInTheDocument();
     expect(
       screen.getByLabelText("Actual LTV-to-Cost multiple"),
     ).toBeInTheDocument();
   });
 
-  it("submits a shaped request with the entered actuals", async () => {
+  it("submits a shaped request with the selected title id and entered actuals (R1.3, R1.5)", async () => {
     const user = userEvent.setup();
-    render(<GroundTruthForm onSubmit={onSubmit} />);
-
-    await user.type(
-      screen.getByLabelText("Historical title ID"),
-      "title-123",
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
     );
+
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-123");
     await user.type(screen.getByLabelText("Actual CPVH"), "0.12");
     await user.type(
       screen.getByLabelText("Actual LTV-to-Cost multiple"),
@@ -62,52 +79,81 @@ describe("GroundTruthForm (R16.1)", () => {
     });
   });
 
-  it("omits blank metric fields rather than sending them as zero", async () => {
+  it("omits blank metric fields rather than sending them as zero (R4.3)", async () => {
     const user = userEvent.setup();
-    render(<GroundTruthForm onSubmit={onSubmit} />);
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
 
-    await user.type(screen.getByLabelText("Historical title ID"), "t-1");
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-456");
     await user.type(screen.getByLabelText("Actual CPVH"), "0.09");
     // Leave the LTV field blank.
     await user.click(screen.getByRole("button", { name: /Run audit/i }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
     const request = lastRequest(onSubmit);
+    expect(request.title_id).toBe("title-456");
     expect(request.metrics).toEqual([
       { metric_name: "cpvh", actual_value: 0.09 },
     ]);
   });
 
-  it("trims surrounding whitespace from the title identifier", async () => {
-    const user = userEvent.setup();
-    render(<GroundTruthForm onSubmit={onSubmit} />);
+  describe("title selection gating (R1.4, R2.4)", () => {
+    it("keeps submit disabled until a title is selected", async () => {
+      const user = userEvent.setup();
+      render(
+        <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+      );
 
-    await user.type(screen.getByLabelText("Historical title ID"), "  t-7  ");
-    await user.type(screen.getByLabelText("Actual CPVH"), "0.1");
-    await user.click(screen.getByRole("button", { name: /Run audit/i }));
+      const submit = screen.getByRole("button", { name: /Run audit/i });
+      expect(submit).toBeDisabled();
 
-    expect(lastRequest(onSubmit).title_id).toBe("t-7");
+      await user.selectOptions(
+        screen.getByLabelText("Historical title"),
+        "title-123",
+      );
+      expect(submit).toBeEnabled();
+    });
+
+    it("shows the empty-state message and disables controls when no titles are auditable", () => {
+      render(
+        <GroundTruthForm titles={[]} titlesStatus="empty" onSubmit={onSubmit} />,
+      );
+
+      expect(
+        screen.getByText(
+          /no titles with a stored prediction are available to audit/i,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText("Historical title")).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Run audit/i })).toBeDisabled();
+    });
+
+    it("disables the selector while titles are loading", () => {
+      render(
+        <GroundTruthForm titles={[]} titlesStatus="loading" onSubmit={onSubmit} />,
+      );
+
+      expect(screen.getByLabelText("Historical title")).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Run audit/i })).toBeDisabled();
+    });
   });
 
   describe("validation", () => {
-    it("blocks submission and reports a missing title identifier", async () => {
-      const user = userEvent.setup();
-      render(<GroundTruthForm onSubmit={onSubmit} />);
-
-      await user.type(screen.getByLabelText("Actual CPVH"), "0.1");
-      await user.click(screen.getByRole("button", { name: /Run audit/i }));
-
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        /title identifier is required/i,
-      );
-    });
-
     it("blocks submission when no actual values are entered", async () => {
       const user = userEvent.setup();
-      render(<GroundTruthForm onSubmit={onSubmit} />);
+      render(
+        <GroundTruthForm
+          titles={TITLES}
+          titlesStatus="loaded"
+          onSubmit={onSubmit}
+        />,
+      );
 
-      await user.type(screen.getByLabelText("Historical title ID"), "t-1");
+      await user.selectOptions(
+        screen.getByLabelText("Historical title"),
+        "title-123",
+      );
       await user.click(screen.getByRole("button", { name: /Run audit/i }));
 
       expect(onSubmit).not.toHaveBeenCalled();
@@ -117,9 +163,16 @@ describe("GroundTruthForm (R16.1)", () => {
     });
 
     it("disables the controls while an audit is in flight", () => {
-      render(<GroundTruthForm onSubmit={onSubmit} submitting />);
+      render(
+        <GroundTruthForm
+          titles={TITLES}
+          titlesStatus="loaded"
+          onSubmit={onSubmit}
+          submitting
+        />,
+      );
 
-      expect(screen.getByLabelText("Historical title ID")).toBeDisabled();
+      expect(screen.getByLabelText("Historical title")).toBeDisabled();
       expect(screen.getByLabelText("Actual CPVH")).toBeDisabled();
       expect(
         screen.getByRole("button", { name: /Running audit/i }),
