@@ -146,19 +146,23 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Next.js frontend (standalone server). Talks to the backend over the public
-  # API base URL baked at build time.
+  # Next.js frontend (standalone server). The browser calls same-origin
+  # /api/... and Next proxies to the backend, so the whole app works behind a
+  # single URL (localhost, a tunnel, or any host) with no hardcoded API origin.
   # ---------------------------------------------------------------------------
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+        # Empty -> the browser uses same-origin requests (recommended).
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+        # Where the Next server proxies /api and /health (the backend service).
+        API_BASE_URL_INTERNAL: http://backend:8000
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
-      # Server Components fetch over the Docker network, not the browser's
-      # localhost. Point them at the backend service directly.
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+      # Server Components + the /api rewrite reach the backend over the Docker
+      # network, not the browser's localhost.
       API_BASE_URL_INTERNAL: http://backend:8000
     ports:
       - "3000:3000"

@@ -24,19 +24,29 @@ import type {
 } from "./types";
 
 /**
- * Resolve the backend base URL.
+ * Resolve the backend base URL for a request.
  *
- * Server Components run inside the frontend container, where `localhost` is the
- * frontend itself - they must reach the backend over the Docker network via
- * `API_BASE_URL_INTERNAL` (e.g. http://backend:8000). Browser code uses the
- * public `NEXT_PUBLIC_API_BASE_URL`. Falls back to localhost for local dev.
+ * - **Browser:** use SAME-ORIGIN by default (empty base), so calls go to
+ *   `/api/v1/...` on whatever host served the page. Next.js rewrites proxy
+ *   `/api/*` and `/health` to the backend (see next.config.mjs). This makes the
+ *   app work behind a single public URL (a tunnel, a load balancer, or any
+ *   host) with no hardcoded localhost. An explicit `NEXT_PUBLIC_API_BASE_URL`
+ *   still overrides it when a separate API origin is desired.
+ * - **Server (RSC):** reach the backend directly over the internal network via
+ *   `API_BASE_URL_INTERNAL` (e.g. http://backend:8000), falling back to
+ *   localhost for local dev outside Docker.
  */
 function resolveApiBaseUrl(): string {
   const isServer = typeof window === "undefined";
-  if (isServer && process.env.API_BASE_URL_INTERNAL) {
-    return process.env.API_BASE_URL_INTERNAL;
+  if (isServer) {
+    return (
+      process.env.API_BASE_URL_INTERNAL ??
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      "http://localhost:8000"
+    );
   }
-  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+  // Browser: prefer an explicit public base, else same-origin ("" -> /api/v1).
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 }
 
 const API_BASE_URL = resolveApiBaseUrl();

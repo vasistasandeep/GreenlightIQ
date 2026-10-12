@@ -24,8 +24,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ ./
 # The public base URL is baked at build time for NEXT_PUBLIC_* vars; it can be
 # overridden at build via --build-arg and defaults to the compose service name.
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+ARG NEXT_PUBLIC_API_BASE_URL=
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+# Where the Next.js server proxies same-origin /api and /health at runtime.
+# Baked into the rewrite config at build; defaults to the compose backend host.
+ARG API_BASE_URL_INTERNAL=http://backend:8000
+ENV API_BASE_URL_INTERNAL=${API_BASE_URL_INTERNAL}
 RUN npm run build
 
 # ---- run: minimal standalone server ------------------------------------------
