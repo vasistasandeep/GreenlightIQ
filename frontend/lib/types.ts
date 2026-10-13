@@ -267,6 +267,17 @@ export interface TitleDecision {
   decision_id: string;
 }
 
+/** Best-effort Asset Studio fields parsed from an uploaded pitch PDF. */
+export interface ParsedPitch {
+  title_name: string | null;
+  synopsis: string | null;
+  genre_tag: string | null;
+  acquisition_cost_or_budget: number | null;
+  native_currency: string | null;
+  is_exclusive: boolean | null;
+  source_text_preview: string | null;
+}
+
 /** 202 response from POST /titles/ingest - a dispatched batch job (R1, R23.2). */
 export interface IngestAccepted {
   job_id: string;

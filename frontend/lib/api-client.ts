@@ -27,6 +27,7 @@ import type {
   ModelVersion,
   OverrideRequest,
   OverrideResult,
+  ParsedPitch,
   TitleDecision,
   WhatIfRequest,
   ValuationScorecard,
@@ -291,6 +292,37 @@ export const api = {
   /** GET /api/v1/jobs/{jobId} - poll a dispatched job's status (R23.4). */
   getJob(jobId: string, options?: RequestOptions) {
     return apiFetch<JobStatusInfo>(`/jobs/${jobId}`, { method: "GET", ...options });
+  },
+
+  /**
+   * POST /api/v1/titles/parse-pitch - extract Asset Studio fields from a pitch
+   * PDF. Sends the raw PDF bytes; returns best-effort pre-fill values. Never
+   * persists; the user reviews and edits before running a valuation.
+   */
+  async parsePitch(file: Blob, options?: { token?: string }): Promise<ParsedPitch> {
+    const credential = options?.token ?? getSessionToken() ?? undefined;
+    const response = await fetch(`${API_BASE_URL}${API_V1}/titles/parse-pitch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+        ...(credential ? { Authorization: `Bearer ${credential}` } : {}),
+      },
+      body: file,
+    });
+    if (!response.ok) {
+      let envelope: ApiErrorEnvelope | undefined;
+      try {
+        envelope = (await response.json()) as ApiErrorEnvelope;
+      } catch {
+        envelope = undefined;
+      }
+      throw new ApiError(
+        response.status,
+        envelope?.message ?? `Request failed with status ${response.status}`,
+        envelope,
+      );
+    }
+    return (await response.json()) as ParsedPitch;
   },
 
   /**

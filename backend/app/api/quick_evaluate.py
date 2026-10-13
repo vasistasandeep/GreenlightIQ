@@ -27,16 +27,19 @@ conveniences are *derived* here and labelled as such in the response:
 
 from __future__ import annotations
 
+import io
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field, field_validator
 
 from app.api.deps import GuardrailsEngineDep, SessionDep, require_operation
+from app.core.errors import UnsupportedFormatError
 from app.domain import negotiation
+from app.domain.pitch_parse import parse_pitch_text
 from app.engines.rbac import Operation
 from app.schemas.api import (
     ChurnCohortOut,
@@ -447,6 +450,61 @@ def _opt_decimal(value: Any) -> Decimal | None:
         return Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return None
+
+
+class ParsedPitchResponse(BaseModel):
+    """Best-effort Asset Studio fields parsed from an uploaded pitch PDF.
+
+    Any field may be null when the parser could not recognize it; the UI
+    pre-fills what is present and leaves the rest for the user to review.
+    """
+
+    title_name: str | None = None
+    synopsis: str | None = None
+    genre_tag: str | None = None
+    acquisition_cost_or_budget: float | None = None
+    native_currency: str | None = None
+    is_exclusive: bool | None = None
+    source_text_preview: str | None = None
+
+
+@router.post(
+    "/parse-pitch",
+    response_model=ParsedPitchResponse,
+    dependencies=[Depends(require_operation(Operation.INGEST))],
+    summary="Extract Asset Studio fields from an uploaded pitch/script PDF.",
+)
+async def parse_pitch(request: Request) -> ParsedPitchResponse:
+    """Parse a pitch-deck PDF into pre-fill fields for the Asset Studio form.
+
+    Accepts the raw PDF bytes (Content-Type application/pdf), extracts the text
+    with pypdf, and runs best-effort heuristics. Never persists anything; the
+    user reviews and edits the pre-filled form before running a valuation. An
+    unreadable PDF maps to ``415 UNSUPPORTED_FORMAT``.
+    """
+    payload = await request.body()
+    try:
+        from pypdf import PdfReader
+
+        reader = PdfReader(io.BytesIO(payload))
+        text = "\n".join((page.extract_text() or "") for page in reader.pages).strip()
+    except Exception as exc:  # noqa: BLE001 - normalize any parse fault.
+        raise UnsupportedFormatError(
+            "The pitch PDF could not be read.",
+            details={"content_type": "pdf"},
+        ) from exc
+
+    parsed = parse_pitch_text(text)
+    preview = text[:280] if text else None
+    return ParsedPitchResponse(
+        title_name=parsed.get("title_name"),
+        synopsis=parsed.get("synopsis"),
+        genre_tag=parsed.get("genre_tag"),
+        acquisition_cost_or_budget=parsed.get("acquisition_cost_or_budget"),
+        native_currency=parsed.get("native_currency"),
+        is_exclusive=parsed.get("is_exclusive"),
+        source_text_preview=preview,
+    )
 
 
 __all__ = ["router"]

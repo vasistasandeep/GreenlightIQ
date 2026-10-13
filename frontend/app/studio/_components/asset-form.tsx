@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { parseShorthandAmount } from "./helpers";
+import { api, ApiError } from "@/lib/api-client";
 import type { AssetType, QuickEvaluateRequest } from "@/lib/types";
 
 const ASSET_TYPES: { value: AssetType; label: string }[] = [
@@ -88,6 +89,8 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
   const [duration, setDuration] = useState("24");
   const [exclusive, setExclusive] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const [parseNote, setParseNote] = useState<string | null>(null);
 
   function toggleTerritory(code: string) {
     setTerritories((prev) =>
@@ -109,6 +112,44 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
     setDuration(String(p.license_duration_months ?? "24"));
     setExclusive(Boolean(p.is_exclusive));
     setError(null);
+  }
+
+  async function handlePitchFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParsing(true);
+    setParseNote(null);
+    setError(null);
+    try {
+      const p = await api.parsePitch(file);
+      if (p.title_name) setTitleName(p.title_name);
+      if (p.synopsis) setSynopsis(p.synopsis);
+      if (p.genre_tag) setGenre(p.genre_tag);
+      if (typeof p.acquisition_cost_or_budget === "number") {
+        setCost(String(p.acquisition_cost_or_budget));
+      }
+      if (p.native_currency) setCurrency(p.native_currency);
+      if (typeof p.is_exclusive === "boolean") setExclusive(p.is_exclusive);
+      const filled = [
+        p.title_name && "title",
+        p.synopsis && "synopsis",
+        p.genre_tag && "genre",
+        typeof p.acquisition_cost_or_budget === "number" && "budget",
+      ].filter(Boolean);
+      setParseNote(
+        filled.length > 0
+          ? `Pre-filled ${filled.join(", ")} from the pitch. Review and edit before running.`
+          : "Could not recognize fields in that PDF. Enter them manually.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.envelope?.message ?? err.message
+          : "Could not read that PDF.",
+      );
+    } finally {
+      setParsing(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -140,6 +181,22 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <label className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-slate-700 bg-slate-900/40 px-4 py-5 text-center text-sm text-slate-400 hover:border-emerald-600/60">
+        <span className="font-medium text-slate-300">
+          {parsing ? "Reading pitch PDF..." : "Drop a script / pitch PDF to auto-fill"}
+        </span>
+        <span className="text-xs">We parse title, synopsis, genre, and budget for you to review.</span>
+        <input
+          type="file"
+          accept=".pdf,application/pdf"
+          className="hidden"
+          disabled={parsing}
+          onChange={handlePitchFile}
+        />
+      </label>
+      {parseNote ? (
+        <p className="text-xs text-emerald-400">{parseNote}</p>
+      ) : null}
       <div>
         <label htmlFor="f-title" className={labelCls}>Title Name</label>
         <input id="f-title" className={fieldCls} value={titleName}
