@@ -82,7 +82,16 @@ def get_celery_app() -> "Celery":
     from celery import Celery  # imported lazily so tests need no broker
 
     settings = get_settings()
-    app = Celery("cineroi", broker=settings.broker_url, backend=settings.result_backend_url)
+    app = Celery(
+        "cineroi",
+        broker=settings.broker_url,
+        backend=settings.result_backend_url,
+        # Explicitly include the task module so the worker CLI registers the
+        # tasks. autodiscover_tasks looks for an `app.tasks.tasks` module, but the
+        # tasks actually live in `app.tasks.jobs`; without this the worker raises
+        # KeyError 'app.tasks.jobs.ingest_batch' on the first delivered message.
+        include=["app.tasks.jobs"],
+    )
 
     app.conf.update(
         task_default_queue=QUEUE_INGEST,
@@ -99,7 +108,7 @@ def get_celery_app() -> "Celery":
         enable_utc=True,
     )
     # Ensure task modules are imported so the tasks register on the app.
-    app.autodiscover_tasks(["app.tasks"])
+    app.autodiscover_tasks(["app.tasks.jobs"])
     return app
 
 # Module-level Celery application instance for the `celery -A` worker/beat

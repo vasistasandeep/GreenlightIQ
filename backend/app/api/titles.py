@@ -133,6 +133,11 @@ async def ingest_titles(
         requested_by=actor.user_id,
     )
     await jobs.create(job)
+    # Durably commit the PENDING job BEFORE dispatching, so the worker (a
+    # separate process/session) and the client's GET /jobs/{id} poll can both
+    # see it. Engines/repositories flush but do not commit; this handler owns
+    # the transaction boundary (R23.2, R23.3).
+    await session.commit()
 
     # Dispatch the heavy per-row work to the Task_Queue (R23.1) and ack (R23.2).
     dispatcher.dispatch_ingest(

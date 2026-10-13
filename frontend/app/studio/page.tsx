@@ -9,6 +9,7 @@ import { ApiError, api } from "@/lib/api-client";
 import type { QuickEvaluateRequest, QuickEvaluateResponse } from "@/lib/types";
 import { AssetForm } from "./_components/asset-form";
 import { ValuationReport } from "./_components/valuation-report";
+import { BatchIngest } from "./_components/batch-ingest";
 
 /**
  * Asset Studio (`/studio`) - manual asset ingestion + instant ROI valuation.
@@ -19,6 +20,7 @@ import { ValuationReport } from "./_components/valuation-report";
  * rendered in place on the right.
  */
 export default function AssetStudioPage() {
+  const [tab, setTab] = useState<"single" | "batch">("single");
   const [result, setResult] = useState<QuickEvaluateResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +50,37 @@ export default function AssetStudioPage() {
       <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[380px_1fr]">
         {/* Left: input panel */}
         <aside className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Input New Asset
-          </h2>
-          <AssetForm onSubmit={handleSubmit} submitting={submitting} />
+          <div className="mb-4 flex gap-2" role="tablist" aria-label="Ingestion mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "single"}
+              onClick={() => setTab("single")}
+              className={
+                "rounded-md px-3 py-1.5 text-xs font-semibold uppercase " +
+                (tab === "single" ? "bg-emerald-500 text-emerald-950" : "bg-slate-800 text-slate-300")
+              }
+            >
+              Single Asset
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "batch"}
+              onClick={() => setTab("batch")}
+              className={
+                "rounded-md px-3 py-1.5 text-xs font-semibold uppercase " +
+                (tab === "batch" ? "bg-emerald-500 text-emerald-950" : "bg-slate-800 text-slate-300")
+              }
+            >
+              Batch Slate
+            </button>
+          </div>
+          {tab === "single" ? (
+            <AssetForm onSubmit={handleSubmit} submitting={submitting} />
+          ) : (
+            <BatchIngest />
+          )}
         </aside>
 
         {/* Right: valuation report */}

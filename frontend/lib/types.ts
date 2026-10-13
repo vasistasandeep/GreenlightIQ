@@ -267,6 +267,25 @@ export interface TitleDecision {
   decision_id: string;
 }
 
+/** 202 response from POST /titles/ingest - a dispatched batch job (R1, R23.2). */
+export interface IngestAccepted {
+  job_id: string;
+  status: JobStatus;
+  accepted_count?: number | null;
+  rejected_count?: number | null;
+  rejections?: { row: number | null; reason: string }[] | null;
+}
+
+/** A job's lifecycle status + terminal payload, polled via GET /jobs/{id}. */
+export interface JobStatusInfo {
+  job_id: string;
+  job_type: string;
+  status: JobStatus;
+  result: Record<string, unknown> | null;
+  failure_reason: string | null;
+  dead_lettered: boolean;
+}
+
 /** One immutable model version in the catalog (R26.1, R26.3). */
 export interface ModelVersion {
   model_version_id: string;

@@ -21,6 +21,8 @@ import type {
   QuickEvaluateRequest,
   QuickEvaluateResponse,
   SessionInfo,
+  IngestAccepted,
+  JobStatusInfo,
   Lineage,
   ModelVersion,
   OverrideRequest,
@@ -248,6 +250,47 @@ export const api = {
       method: "POST",
       ...options,
     });
+  },
+
+  /**
+   * POST /api/v1/titles/ingest - dispatch a raw CSV/JSON batch manifest for
+   * asynchronous ingestion (R1, R23.2). The body is sent raw (not JSON-wrapped)
+   * with the matching Content-Type; returns 202 + a job id to poll via getJob.
+   */
+  async ingestBatch(
+    body: string,
+    contentType: "csv" | "json",
+    options?: { token?: string },
+  ): Promise<IngestAccepted> {
+    const credential = options?.token ?? getSessionToken() ?? undefined;
+    const mime = contentType === "csv" ? "text/csv" : "application/json";
+    const response = await fetch(`${API_BASE_URL}${API_V1}/titles/ingest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": mime,
+        ...(credential ? { Authorization: `Bearer ${credential}` } : {}),
+      },
+      body,
+    });
+    if (!response.ok) {
+      let envelope: ApiErrorEnvelope | undefined;
+      try {
+        envelope = (await response.json()) as ApiErrorEnvelope;
+      } catch {
+        envelope = undefined;
+      }
+      throw new ApiError(
+        response.status,
+        envelope?.message ?? `Request failed with status ${response.status}`,
+        envelope,
+      );
+    }
+    return (await response.json()) as IngestAccepted;
+  },
+
+  /** GET /api/v1/jobs/{jobId} - poll a dispatched job's status (R23.4). */
+  getJob(jobId: string, options?: RequestOptions) {
+    return apiFetch<JobStatusInfo>(`/jobs/${jobId}`, { method: "GET", ...options });
   },
 
   /**
