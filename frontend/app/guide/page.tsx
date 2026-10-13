@@ -236,9 +236,17 @@ function OverviewTab() {
     <div className="space-y-8">
       <div className="space-y-3 text-sm leading-relaxed text-slate-300">
         <p>
-          Think of CineROI AI as a disciplined gatekeeper for buying TV and film
-          content. You give it a title and its deal terms; it answers one
-          question with evidence: <span className="font-medium text-slate-100">should we buy this, haggle, or walk away?</span>
+          <span className="font-medium text-slate-100">In one sentence:</span> CineROI AI
+          is a credit check for content deals. You hand it a title and the price
+          on the table; it hands back a clear answer, backed by numbers anyone
+          can follow.
+        </p>
+        <p>
+          Every title gets exactly one of three answers to the question
+          {" "}<span className="font-medium text-slate-100">&quot;should we buy this, haggle, or walk away?&quot;</span>
+          There is no jargon you need to know to read the result - the system
+          spells out, in dollars and plain sentences, why it landed where it did.
+          This guide shows you the whole thing with real titles and real math.
         </p>
       </div>
 
@@ -246,11 +254,11 @@ function OverviewTab() {
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">The journey of one title</h3>
         <ol className="ml-4 list-decimal space-y-2 text-sm text-slate-300 marker:text-emerald-400">
           <li><span className="font-medium text-slate-100">Ingest</span> - a title comes in: one at a time in the Asset Studio, a whole slate via CSV/JSON, or by dropping a pitch PDF that auto-fills the form.</li>
-          <li><span className="font-medium text-slate-100">Understand it</span> - the system reads the material into a numeric profile: Narrative DNA, emotional tone, talent pedigree, production scale.</li>
-          <li><span className="font-medium text-slate-100">Match the audience</span> - it compares the title to what subscriber groups actually like.</li>
-          <li><span className="font-medium text-slate-100">Run the money checks</span> - four financial guardrails (next tab), all in USD.</li>
+          <li><span className="font-medium text-slate-100">Understand it</span> - the system reads the script and deal to size up the story, the mood, the strength of the cast, and the scale of the production.</li>
+          <li><span className="font-medium text-slate-100">Match the audience</span> - it checks how well the title fits what our different subscriber groups actually like to watch.</li>
+          <li><span className="font-medium text-slate-100">Run the money checks</span> - the four checks on the next tab, all in US dollars so every deal is judged the same way.</li>
           <li><span className="font-medium text-slate-100">Decide</span> - GREENLIGHT, NEGOTIATE HARD, or PASS, with the reasoning spelled out.</li>
-          <li><span className="font-medium text-slate-100">Keep itself honest</span> - it later checks predictions against real outcomes and re-tunes.</li>
+          <li><span className="font-medium text-slate-100">Keep itself honest</span> - later, it compares what it predicted to what actually happened, and tunes itself to get better.</li>
         </ol>
       </div>
 
@@ -275,10 +283,10 @@ function OverviewTab() {
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Where you do things in the portal</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Card title="Dashboard">Portfolio at a glance - KPIs and a sortable grid of every title with its badge.</Card>
-          <Card title="Asset Studio">Evaluate titles: one at a time, a whole slate (CSV/JSON), or by dropping a pitch PDF. Shorthand budgets (12 Cr, 1.5M) welcome.</Card>
-          <Card title="Title Evaluation">Deep dive on a title: radar, LTV attribution, negotiation playbook, what-if sliders, override, audit history, and a PDF memo export.</Card>
-          <Card title="Backtest Studio">Audit predictions vs reality, re-tune (calibrate) the model, roll back versions, and clear executive sign-off gates.</Card>
+          <Card title="Dashboard">The whole portfolio at a glance - headline numbers up top and a sortable list of every title with its verdict. Search and filter to find anything fast.</Card>
+          <Card title="Asset Studio">Where you evaluate a title - type one in, upload a whole catalog at once, or drop a pitch PDF and let it fill the form. Press one button to get the verdict.</Card>
+          <Card title="Title page">The full story on one title - the four checks, a price to negotiate to, &quot;what if&quot; sliders to test scenarios, the deal-stage tracker, the full history, and a one-page PDF to take to a meeting.</Card>
+          <Card title="Backtest Studio">Where we check how accurate the system has been (predicted vs what really happened), tune it up when needed, and record the executive sign-offs big deals require.</Card>
         </div>
         <p className="mt-3 text-xs text-slate-500">
           New here? The <span className="text-emerald-400">Features &amp; How-To</span> tab has a step-by-step recipe for every one of these.
@@ -289,18 +297,18 @@ function OverviewTab() {
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Common questions</h3>
         <div className="space-y-2">
           {[
-            ["Why did my title get PASS?", "At least one guardrail failed in a way that lowering the price can't fix - usually weak churn mitigation. Check the Explainability panel for the dominant factor."],
-            ["What's the difference between NEGOTIATE HARD and PASS?", "NEGOTIATE HARD means every failing check would clear at a lower price, so there's a deal to be had. PASS means a failure is structural and no price fixes it."],
-            ["What's a 'good' CPVH?", "At or below the ceiling for the asset type: 0.18 USD for premium originals, 0.05 USD for library titles. Lower means better value per hour watched."],
-            ["Why does the recommendation need CCO and CFO approval?", "Only when it's a GREENLIGHT above $25M. High-budget commitments require dual executive sign-off before they can be finalized."],
-            ["I left Viewing Hours blank - is that OK?", "Yes. The engine estimates viewing hours from the budget and pedigree so CPVH can still be computed."],
-            ["Are the numbers real?", "The guardrail math, recommendation logic, backtesting, and governance are the real engine. In demo mode the Narrative DNA embedding and some modeled financial drivers are deterministic placeholders so the stack runs with no external services."],
-            ["Can thresholds be changed?", "They're set by the active Model Version (feature weights + guardrail parameters). Calibration forks a new immutable version rather than editing values in place, so every past decision stays reproducible."],
-            ["How do I know the price to negotiate to?", "Open a NEGOTIATE HARD / PASS title and read the Negotiation Playbook: it gives a target purchase ceiling and the implied discount versus the current ask, plus talking points per failing check."],
-            ["Can I see what happens if viewership or cost changes?", "Yes - the What-if sliders on the title page recompute the verdict live under different assumptions. It's a preview only and never changes the saved record (set all sliders to 100% to reproduce the official result)."],
-            ["Can I upload a whole catalog instead of typing titles?", "Yes - the Asset Studio's Batch Slate tab ingests a CSV or JSON slate in one go, or you can drop a single pitch PDF to auto-fill the form."],
-            ["How do I get a one-pager for a committee meeting?", "On the title page, click Export Greenlight Memo (PDF) - it opens a print-ready executive brief you can save as PDF."],
-            ["Who can override a recommendation, and is it tracked?", "Only decision-making roles (Content Buyer / CCO / CFO). Every override needs a written justification and is recorded in the append-only audit log, visible in the title's Audit history."],
+            ["Why did my title get a PASS?", "Because at least one failure can't be fixed by paying less - almost always that it doesn't keep subscribers from cancelling. The title page spells out the single biggest reason in plain words."],
+            ["What's the difference between NEGOTIATE HARD and PASS?", "NEGOTIATE HARD means the only problems are price problems - there's a lower price where the deal works, so go haggle. PASS means something is wrong that no discount can fix, so there's no deal to be had."],
+            ["What counts as a good cost-per-hour?", "The lower the better. The limit is $0.18 per hour for premium originals and $0.05 per hour for cheaper library titles. For example, a title that costs $42M and is watched 250M hours is $0.168/hour - just under the line."],
+            ["Why do some greenlights need two executives to approve?", "Only the big ones. Any 'buy' decision above $25M needs sign-off from both the Chief Content Officer and the CFO before it's final - a second pair of eyes on a large commitment."],
+            ["What if I don't know the viewing hours?", "Leave it blank. The system estimates how many hours a title will be watched from its budget and talent, so it can still work out the cost-per-hour."],
+            ["Are these real numbers?", "The decision math - the four checks, the final verdict, the accuracy tracking, and the approvals - is the real engine. In this demo, the 'read the script' part and a few modeled inputs use fixed stand-in values so the whole thing runs on a laptop with no outside services."],
+            ["Can the rules (the lines titles must clear) be changed?", "They're part of a saved 'model version.' When the model is re-tuned it saves a brand-new version rather than editing the old one, so every past decision can always be reproduced exactly as it was made."],
+            ["How do I know what price to negotiate to?", "Open any NEGOTIATE HARD title. The Negotiation Playbook gives you a target price to aim for, how big a discount that is versus the asking price, and talking points for each thing that's holding the deal back."],
+            ["Can I test 'what if the price or audience were different'?", "Yes. The title page has sliders for cost, viewership, and subscriber impact. Drag them and the verdict recalculates live. It's a sandbox - it never changes the saved record. (Set every slider back to 100% to see the official result.)"],
+            ["Can I bring in a whole catalog at once?", "Yes. The Asset Studio has a Batch Slate tab that takes a spreadsheet or file of many titles in one upload. You can also drop a single pitch PDF and it fills the form for you to review."],
+            ["How do I get a one-pager for a committee meeting?", "On any title page, click 'Export Greenlight Memo (PDF).' It opens a clean, print-ready one-page brief - the verdict, the four checks, the negotiation target, and a sign-off box - that you can save as a PDF."],
+            ["Can someone overrule the system, and is that tracked?", "Yes - a Content Buyer, CCO, or CFO can override the verdict when their judgment should win. They must type a reason, and the change is recorded permanently in the title's history, which anyone can review."],
           ].map(([q, a]) => (
             <details key={q} className="group rounded-lg border border-slate-800 bg-slate-900/60 p-4">
               <summary className="cursor-pointer list-none font-medium text-slate-100 marker:content-none">
@@ -317,42 +325,166 @@ function OverviewTab() {
   );
 }
 
+/** One guardrail explained for a non-financial reader: rule + a real worked number. */
+function GuardrailExplainer({
+  n,
+  name,
+  question,
+  formula,
+  line,
+  worked,
+  result,
+  resultOk,
+}: {
+  n: number;
+  name: string;
+  question: string;
+  formula: string;
+  line: React.ReactNode;
+  worked: React.ReactNode;
+  result: string;
+  resultOk: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+      <h3 className="text-base font-semibold text-slate-100">
+        Guardrail {n}: {name}
+      </h3>
+      <p className="mt-1 text-sm text-slate-300">
+        <span className="font-medium text-slate-100">The question it answers: </span>
+        {question}
+      </p>
+      <p className="mt-2 text-sm text-slate-400">
+        <span className="font-medium text-slate-300">The rule: </span>
+        {line}
+      </p>
+      <Formula>{formula}</Formula>
+      <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Worked with a real title
+        </p>
+        <div className="mt-1 text-sm text-slate-300">{worked}</div>
+        <p className={"mt-2 text-sm font-medium " + (resultOk ? "text-emerald-300" : "text-rose-300")}>
+          {resultOk ? "PASS - " : "BREACH - "}
+          {result}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function GuardrailsTab() {
   return (
     <div className="space-y-6">
-      <p className="text-sm leading-relaxed text-slate-300">
-        Four checks decide the money question. Each has a plain-English meaning,
-        a formula, and a line it must not cross. All amounts are converted to USD
-        first, so a title bought in rupees and one bought in euros are judged on
-        the same scale.
-      </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Card title="1. CPVH - Cost per Viewing Hour">
-          <span className="text-slate-300">Plain English:</span> how much are we paying for each hour someone watches? Cheaper per hour is better.
-          <Formula>CPVH = Acquisition Cost / Projected Viewing Hours</Formula>
-          <p className="mt-2">Must stay at or below <span className="text-emerald-300">0.18 USD</span> (premium) or <span className="text-emerald-300">0.05 USD</span> (library). Over the line = breach.</p>
-        </Card>
-        <Card title="2. LTV-to-Cost Multiple">
-          <span className="text-slate-300">Plain English:</span> for every dollar we spend, how many dollars of long-term value come back?
-          <Formula>((Churn Value x LTV) + (Elasticity x CPM x Impressions)) / Cost</Formula>
-          <p className="mt-2">Must be <span className="text-emerald-300">3.2x or higher</span>. Below = breach.</p>
-        </Card>
-        <Card title="3. Churn Mitigation">
-          <span className="text-slate-300">Plain English:</span> does having this title stop people from cancelling?
-          <Formula>Modeled monthly cohort churn reduction %</Formula>
-          <p className="mt-2">Must be <span className="text-emerald-300">at least 1.5%</span>. Below = breach. (A price cut can&apos;t fix weak retention - so this breach is non-correctable.)</p>
-        </Card>
-        <Card title="4. Payback Horizon">
-          <span className="text-slate-300">Plain English:</span> how many months until the title pays for itself?
-          <Formula>Months until cumulative margin turns positive</Formula>
-          <p className="mt-2">Target <span className="text-emerald-300">9-12 months</span>. Over 12 = breach.</p>
-        </Card>
+      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm leading-relaxed text-slate-300">
+        <p>
+          Think of it like a bank running four checks before approving a loan.
+          Before we commit money to a title, the engine runs four money checks.
+          A title has to clear all four to get a straight &quot;yes.&quot; Each check
+          below shows the plain question it answers, the one line it must not
+          cross, and the <span className="font-medium text-slate-100">actual arithmetic</span> from
+          a real title in the system - so you can see exactly where the number
+          comes from.
+        </p>
+        <p className="mt-2 text-slate-400">
+          Every amount is first converted to US dollars, so a title bought in
+          rupees and one bought in euros are judged on the very same scale.
+        </p>
       </div>
-      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
-        <span className="font-medium text-slate-100">Why &quot;correctable&quot; matters:</span>{" "}
-        CPVH and LTV both depend on price - pay less and they improve, so breaking
-        them only means &quot;negotiate.&quot; Weak churn or an unfixable payback can&apos;t
-        be solved by paying less, so those breaks mean &quot;pass.&quot;
+
+      <GuardrailExplainer
+        n={1}
+        name="Cost per Viewing Hour (CPVH)"
+        question="How much are we paying for each hour an audience actually watches? Cheaper per hour is better value."
+        formula="CPVH  =  Cost (in USD)  /  Projected Viewing Hours"
+        line={<>Stay at or below <span className="text-emerald-300">$0.18 per hour</span> for premium originals, or <span className="text-emerald-300">$0.05 per hour</span> for cheaper library titles. Go over the line and it&apos;s a breach.</>}
+        worked={
+          <>
+            <span className="font-medium text-slate-100">Aurora Protocol</span> cost
+            {" "}<span className="text-slate-100">$42,000,000</span> and is expected to be
+            watched for <span className="text-slate-100">250,000,000</span> hours.
+            <div className="mt-1 font-mono text-xs text-emerald-300">
+              $42,000,000 &divide; 250,000,000 hours = $0.168 per hour
+            </div>
+          </>
+        }
+        result="$0.168 is just under the $0.18 ceiling. Good value per hour."
+        resultOk={true}
+      />
+
+      <GuardrailExplainer
+        n={2}
+        name="Return on Spend (LTV-to-Cost)"
+        question="For every $1 we put in, how many dollars of value come back over the title's life? Higher is better."
+        formula="Return  =  Total modeled value  /  Cost (in USD)"
+        line={<>Must return at least <span className="text-emerald-300">$3.20 for every $1 spent</span> (written &quot;3.2x&quot;). Below that is a breach.</>}
+        worked={
+          <>
+            <span className="font-medium text-slate-100">The Ledger</span> cost
+            {" "}<span className="text-slate-100">$9,500,000</span>. Its modeled value
+            (subscribers it keeps + advertising it earns) works out to about
+            {" "}<span className="text-slate-100">$27,550,000</span>.
+            <div className="mt-1 font-mono text-xs text-rose-300">
+              $27,550,000 &divide; $9,500,000 = 2.9x
+            </div>
+          </>
+        }
+        result="2.9x is below the 3.2x hurdle. It would clear if the price were lower - so this breach is fixable by negotiating."
+        resultOk={false}
+      />
+
+      <GuardrailExplainer
+        n={3}
+        name="Keeps Subscribers (Churn Mitigation)"
+        question="Does having this title stop people from cancelling their subscription?"
+        formula="Churn reduction  =  modeled % of subscribers kept each month"
+        line={<>Must keep at least <span className="text-emerald-300">1.5% of subscribers</span> from cancelling each month. Below that is a breach.</>}
+        worked={
+          <>
+            <span className="font-medium text-slate-100">Vintage Reruns Vol. 7</span> is
+            modeled to reduce cancellations by only
+            {" "}<span className="text-slate-100">0.9%</span> a month.
+            <div className="mt-1 font-mono text-xs text-rose-300">
+              0.9% &lt; 1.5% required
+            </div>
+          </>
+        }
+        result="0.9% misses the 1.5% floor. Important: paying less does NOT make a title more loved - so this breach can't be fixed by negotiating. One of these forces a PASS."
+        resultOk={false}
+      />
+
+      <GuardrailExplainer
+        n={4}
+        name="Pays for Itself in Time (Payback Horizon)"
+        question="How many months until the title earns back what we paid for it?"
+        formula="Payback  =  first month the running total turns positive"
+        line={<>Target <span className="text-emerald-300">9 to 12 months</span>. Longer than 12 months is a breach.</>}
+        worked={
+          <>
+            <span className="font-medium text-slate-100">Aurora Protocol</span> earns back
+            its cost by <span className="text-slate-100">month 11</span>.
+            <div className="mt-1 font-mono text-xs text-emerald-300">
+              11 months &le; 12-month limit
+            </div>
+          </>
+        }
+        result="Month 11 is inside the 9-12 month window."
+        resultOk={true}
+      />
+
+      <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
+        <p className="font-medium text-emerald-300">The one idea that drives every verdict: can a lower price fix it?</p>
+        <p className="mt-2">
+          Three of the four checks - cost per hour, return on spend, and payback -
+          all get <span className="font-medium text-slate-100">better when we pay less</span>. So if
+          only those fail, the title isn&apos;t bad - the price is wrong. That&apos;s a
+          <span className="font-medium text-amber-300"> NEGOTIATE HARD</span>.
+        </p>
+        <p className="mt-2">
+          But &quot;keeps subscribers&quot; is about how good the title is, not its price.
+          No discount makes a show more binge-worthy. So if that one fails, no
+          deal works and the answer is <span className="font-medium text-rose-300">PASS</span>.
+        </p>
       </div>
     </div>
   );
@@ -410,69 +542,191 @@ function ExampleBlock({
   );
 }
 
-function ExamplesTab() {
+/** A single numbered arithmetic step in the step-by-step walkthrough. */
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-6">
-      <p className="text-sm leading-relaxed text-slate-300">
-        Three real titles, run through the actual engine. Each shows every check,
-        the number it produced, the line it had to clear, and why the final
-        verdict came out the way it did. These are the exact figures the Asset
-        Studio returns - try them yourself with the matching presets.
-      </p>
-
-      <ExampleBlock
-        title="The Bengaluru Syndicate"
-        subtitle="Original Series - $1.25M - pedigree 7.5"
-        verdict="GREENLIGHT"
-        cost="$1,250,000"
-        checks={[
-          { label: "CPVH", plain: "Cost per viewing hour is well under the 0.18 ceiling.", math: "0.1598 <= 0.18", verdict: "pass" },
-          { label: "LTV-to-Cost", plain: "Returns 4.25x per dollar - comfortably above the 3.2x hurdle.", math: "4.25x >= 3.2x", verdict: "pass" },
-          { label: "Churn Mitigation", plain: "Retains subscribers at 2.5%, above the 1.5% floor.", math: "2.5% >= 1.5%", verdict: "pass" },
-          { label: "Payback Horizon", plain: "Pays for itself in 9 months, inside the 9-12 target.", math: "9 <= 12", verdict: "pass" },
-        ]}
-        takeaway="All four checks pass, so the engine says buy it as proposed. No breaches, no caveats."
-      />
-
-      <ExampleBlock
-        title="Vintage Reruns Vol. 7"
-        subtitle="Licensed Library - EUR 1.2M (-> $1.308M) - pedigree 4.0"
-        verdict="NEGOTIATE HARD"
-        cost="$1,308,000 (converted from EUR)"
-        checks={[
-          { label: "CPVH", plain: "Very cheap per hour - well under the stricter 0.05 library ceiling.", math: "0.0436 <= 0.05", verdict: "pass" },
-          { label: "LTV-to-Cost", plain: "Just misses the 3.2x hurdle - the one thing holding it back.", math: "3.19x < 3.2x", verdict: "breach" },
-          { label: "Churn Mitigation", plain: "Retention impact clears the floor.", math: "1.8% >= 1.5%", verdict: "pass" },
-          { label: "Payback Horizon", plain: "Recovers in 10 months, inside target.", math: "10 <= 12", verdict: "pass" },
-        ]}
-        ceiling="~$1,305,000"
-        takeaway="Only the LTV check fails, and it fails because of price - pay a little less and it clears. The engine's dominant factor is LTV-to-Cost, so the message to the buyer is: this is worth having, go negotiate the price down."
-      />
-
-      <ExampleBlock
-        title="Overpriced Epic"
-        subtitle="Original Film - $80M - pedigree 2.0"
-        verdict="PASS"
-        cost="$80,000,000"
-        checks={[
-          { label: "CPVH", plain: "Massively overpriced per hour - more than 4x the ceiling.", math: "0.80 > 0.18", verdict: "breach" },
-          { label: "LTV-to-Cost", plain: "Below the 3.2x hurdle.", math: "3.04x < 3.2x", verdict: "breach" },
-          { label: "Churn Mitigation", plain: "Weak retention impact - below the 1.5% floor, and no price cut can fix that.", math: "1.4% < 1.5%", verdict: "breach" },
-          { label: "Payback Horizon", plain: "Still recovers within the window.", math: "11 <= 12", verdict: "pass" },
-        ]}
-        takeaway="Three checks fail. The CPVH and LTV breaches are about price, but the churn breach is NOT - a weak retention effect can't be fixed by paying less. One non-correctable breach is enough to force a PASS. Dominant factor: CPVH. Walk away."
-      />
-
-      <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
-        <span className="font-medium text-emerald-300">Try it live: </span>
-        open the <Link href="/studio" className="text-emerald-400 underline">Asset Studio</Link>,
-        click a preset (Bengaluru, Apex Horizon, or Vintage Reruns), and press
-        &quot;RUN ROI VALUATION&quot; to watch these numbers appear on the scorecard.
+    <div className="flex gap-3 border-b border-slate-800 py-3 last:border-b-0">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-emerald-950">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-slate-100">{title}</p>
+        <div className="mt-1 text-sm text-slate-400">{children}</div>
       </div>
     </div>
   );
 }
 
+function WalkthroughTheLedger() {
+  return (
+    <div className="rounded-xl border border-amber-800/40 bg-amber-500/[0.04] p-5">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold text-slate-100">
+          Follow the money, one step at a time: The Ledger
+        </h3>
+        <Verdict kind="NEGOTIATE HARD" />
+      </div>
+      <p className="mb-4 text-sm text-slate-400">
+        Here is one real title taken from the raw deal all the way to the final
+        answer, with every number shown. Nothing is hidden - if you can read a
+        bank statement, you can read this.
+      </p>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-4">
+        <Step n={1} title="Start with the deal on the table">
+          We are offered <span className="text-slate-100">The Ledger</span>, an original
+          film, for <span className="text-slate-100">$9,500,000</span>. We expect it to be
+          watched for <span className="text-slate-100">40,000,000</span> hours. It is a
+          US-dollar deal, so no currency conversion is needed (the amount is already
+          what we compare on).
+        </Step>
+
+        <Step n={2} title="Check 1 - what are we paying per hour watched?">
+          Divide the cost by the hours:
+          <div className="mt-1 font-mono text-xs text-slate-300">
+            $9,500,000 &divide; 40,000,000 hours = <span className="text-rose-300">$0.2375 per hour</span>
+          </div>
+          The ceiling for a premium original is $0.18/hour. $0.2375 is over it, so this
+          check <span className="text-rose-300">fails</span> - but it&apos;s a price problem:
+          pay less, and the per-hour cost drops.
+        </Step>
+
+        <Step n={3} title="Check 2 - how many dollars come back per dollar spent?">
+          The engine totals the value the title creates (subscribers it keeps plus
+          advertising it earns): about <span className="text-slate-100">$27,550,000</span>. Divide by cost:
+          <div className="mt-1 font-mono text-xs text-slate-300">
+            $27,550,000 &divide; $9,500,000 = <span className="text-rose-300">2.9x</span>
+          </div>
+          The hurdle is 3.2x. 2.9x is under it, so this check
+          <span className="text-rose-300"> fails</span> - again a price problem, because a
+          smaller cost makes the same value go further.
+        </Step>
+
+        <Step n={4} title="Check 3 - does it keep subscribers from cancelling?">
+          The Ledger is modeled to cut monthly cancellations by
+          {" "}<span className="text-slate-100">1.6%</span>. The floor is 1.5%.
+          <div className="mt-1 font-mono text-xs text-emerald-300">
+            1.6% &ge; 1.5% required -&gt; PASS
+          </div>
+          This is the check a discount can&apos;t influence - and it passes, which is what
+          keeps the title alive.
+        </Step>
+
+        <Step n={5} title="Check 4 - how long until it pays for itself?">
+          At its current price it earns back the cost in
+          {" "}<span className="text-slate-100">15 months</span>. The limit is 12.
+          <div className="mt-1 font-mono text-xs text-rose-300">
+            15 months &gt; 12-month limit -&gt; fails
+          </div>
+          Still a price problem: a cheaper title pays back sooner.
+        </Step>
+
+        <Step n={6} title="Add it up into one answer">
+          Three checks failed, one passed. But look at WHICH failed: cost-per-hour,
+          return, and payback are <span className="text-slate-100">all fixable by paying less</span>.
+          The one check that a discount can&apos;t fix - keeping subscribers - passed. So
+          this isn&apos;t a bad title; it&apos;s a <span className="font-medium text-amber-300">good title at the wrong price</span>.
+          The verdict is <span className="font-medium text-amber-300">NEGOTIATE HARD</span>.
+        </Step>
+
+        <Step n={7} title="Get the price to aim for">
+          The engine does the math in reverse to find the highest price at which all the
+          price-driven checks would pass: <span className="text-emerald-300">$7,200,000</span>.
+          <div className="mt-1 font-mono text-xs text-slate-300">
+            ($9,500,000 - $7,200,000) &divide; $9,500,000 = ~24% discount to ask for
+          </div>
+          The buyer walks into the room with a target: negotiate the seller down to about
+          $7.2M (roughly a 24% cut) and the deal clears.
+        </Step>
+      </div>
+    </div>
+  );
+}
+
+function ExamplesTab() {
+  return (
+    <div className="space-y-6">
+      <p className="text-sm leading-relaxed text-slate-300">
+        First, one title walked through end to end with every calculation shown.
+        Then three real titles - one of each possible answer - with the exact
+        figures the system produces. You can open any of these in the dashboard
+        and see the same numbers.
+      </p>
+
+      <WalkthroughTheLedger />
+
+      <div className="pt-2">
+        <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-emerald-400">
+          One of each answer, with real numbers
+        </h3>
+        <p className="mb-4 text-sm text-slate-400">
+          Every row shows the title&apos;s number, the line it had to clear, and whether
+          it passed. These are live figures from the seeded demo titles.
+        </p>
+      </div>
+
+      <ExampleBlock
+        title="Aurora Protocol"
+        subtitle="Original Series - $42,000,000 - watched 250,000,000 hours"
+        verdict="GREENLIGHT"
+        cost="$42,000,000 (US dollars, no conversion)"
+        checks={[
+          { label: "Cost per hour", plain: "$42,000,000 / 250,000,000 hours = $0.168/hour, just under the $0.18 ceiling.", math: "$0.168 <= $0.18", verdict: "pass" },
+          { label: "Return on spend", plain: "Returns $3.80 of value for every $1 spent - above the 3.2x hurdle.", math: "3.8x >= 3.2x", verdict: "pass" },
+          { label: "Keeps subscribers", plain: "Cuts monthly cancellations by 2.1%, above the 1.5% floor.", math: "2.1% >= 1.5%", verdict: "pass" },
+          { label: "Pays for itself", plain: "Earns its cost back by month 11, inside the 9-12 target.", math: "11 <= 12", verdict: "pass" },
+        ]}
+        governance="Because this is a GREENLIGHT above $25M, it also needs sign-off from BOTH the Chief Content Officer and the CFO before it is final."
+        takeaway="All four checks pass, so the engine says acquire it as proposed. The only extra step is the dual executive sign-off that any greenlight over $25M requires."
+      />
+
+      <ExampleBlock
+        title="The Ledger"
+        subtitle="Original Film - $9,500,000 - watched 40,000,000 hours"
+        verdict="NEGOTIATE HARD"
+        cost="$9,500,000 (US dollars, no conversion)"
+        checks={[
+          { label: "Cost per hour", plain: "$9,500,000 / 40,000,000 hours = $0.2375/hour, over the $0.18 ceiling. Fixable by paying less.", math: "$0.2375 > $0.18", verdict: "breach" },
+          { label: "Return on spend", plain: "Returns 2.9x, just under the 3.2x hurdle. Fixable by paying less.", math: "2.9x < 3.2x", verdict: "breach" },
+          { label: "Keeps subscribers", plain: "Cuts cancellations by 1.6%, clearing the 1.5% floor.", math: "1.6% >= 1.5%", verdict: "pass" },
+          { label: "Pays for itself", plain: "Takes 15 months at this price, over the 12-month limit. Fixable by paying less.", math: "15 > 12", verdict: "breach" },
+        ]}
+        ceiling="$7,200,000 (about a 24% discount off the $9.5M ask)"
+        takeaway="Three checks fail, but every failure is a price problem - and the one check a discount can't fix (keeping subscribers) passes. So it's a good title at the wrong price: negotiate the seller down toward $7.2M and it clears."
+      />
+
+      <ExampleBlock
+        title="Vintage Reruns Vol. 7"
+        subtitle="Licensed Library - EUR 1,200,000 - watched 60,000,000 hours"
+        verdict="PASS"
+        cost="$1,308,000 (converted: EUR 1,200,000 x 1.09)"
+        checks={[
+          { label: "Cost per hour", plain: "$1,308,000 / 60,000,000 hours = $0.0218/hour, well under the stricter $0.05 library ceiling.", math: "$0.0218 <= $0.05", verdict: "pass" },
+          { label: "Return on spend", plain: "Returns a strong 4.1x per dollar.", math: "4.1x >= 3.2x", verdict: "pass" },
+          { label: "Keeps subscribers", plain: "Only cuts cancellations by 0.9%, below the 1.5% floor - and no price cut can change how sticky a title is.", math: "0.9% < 1.5%", verdict: "breach" },
+          { label: "Pays for itself", plain: "Earns back in 8 months, well inside the window.", math: "8 <= 12", verdict: "pass" },
+        ]}
+        takeaway="Three checks pass and it's dirt cheap per hour - but the one failure is the one that matters most: it does not keep subscribers. That cannot be fixed by paying less, so there is no price at which this becomes a good deal. The answer is PASS - walk away."
+      />
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
+        <p className="font-medium text-slate-100">Notice the pattern across all three:</p>
+        <ul className="mt-2 ml-4 list-disc space-y-1 text-slate-400 marker:text-emerald-400">
+          <li><span className="text-emerald-300">GREENLIGHT</span> - all four checks pass.</li>
+          <li><span className="text-amber-300">NEGOTIATE HARD</span> - some checks fail, but every failure is a price problem, so a lower price fixes it.</li>
+          <li><span className="text-rose-300">PASS</span> - at least one failure is NOT about price (it does not keep subscribers), so no deal works.</li>
+        </ul>
+      </div>
+
+      <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
+        <span className="font-medium text-emerald-300">See it live: </span>
+        open the <Link href="/dashboard" className="text-emerald-400 underline">Dashboard</Link>,
+        click any of these titles, and the scorecard shows the very same numbers you
+        just read.
+      </div>
+    </div>
+  );
+}
 // --------------------------------------------------------------------------- //
 // Features & How-To tab
 // --------------------------------------------------------------------------- //
@@ -811,8 +1065,9 @@ export default function GuidePage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">How CineROI AI Works</h1>
           <p className="mt-2 max-w-2xl text-slate-400">
-            A plain-English guide to the whole platform - what it does, how it
-            decides, and worked examples with real numbers.
+            A plain-English guide for anyone - no finance or tech background
+            needed. What it does, how it decides, and the real math behind every
+            verdict, worked out step by step.
           </p>
         </div>
 
