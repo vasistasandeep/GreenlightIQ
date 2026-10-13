@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { parseShorthandAmount } from "./helpers";
 import type { AssetType, QuickEvaluateRequest } from "@/lib/types";
 
 const ASSET_TYPES: { value: AssetType; label: string }[] = [
@@ -116,9 +117,9 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
 
     if (!titleName.trim()) return setError("Title name is required.");
     if (!synopsis.trim()) return setError("A logline / synopsis is required.");
-    const costN = Number(cost);
+    const costN = parseShorthandAmount(cost) ?? NaN;
     if (!Number.isFinite(costN) || costN < 0.01 || costN > 999_999_999.99) {
-      return setError("Cost must be between 0.01 and 999,999,999.99.");
+      return setError("Cost must be between 0.01 and 999,999,999.99 (e.g. 12 Cr, 1.5M, 500k).");
     }
 
     const payload: QuickEvaluateRequest = {
@@ -165,6 +166,18 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
             {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+        {parseShorthandAmount(cost) !== null ? (
+          <p className="mt-1 text-xs text-slate-500">
+            {new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
+              parseShorthandAmount(cost)!,
+            )}{" "}
+            {currency}
+          </p>
+        ) : cost.trim() !== "" ? (
+          <p className="mt-1 text-xs text-amber-500">
+            Enter a number or shorthand like 12 Cr, 1.5M, 500k.
+          </p>
+        ) : null}
       </div>
 
       <div>
