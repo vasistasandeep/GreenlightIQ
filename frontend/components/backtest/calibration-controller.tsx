@@ -16,9 +16,25 @@ import type { CalibrationApplyResponse } from "@/lib/types";
  * component renders the trigger and the applied-offset confirmation.
  */
 
-function formatOffset(value: number): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}`;
+/**
+ * Coerce a possibly string-encoded decimal (the backend serializes Decimal as a
+ * JSON string, e.g. "0.10") to a finite number, or null when it is not numeric.
+ */
+function toNumber(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatOffset(value: number | string): string {
+  const n = toNumber(value);
+  if (n === null) {
+    return String(value);
+  }
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}`;
 }
 
 const WEIGHT_LABELS: Record<string, string> = {
@@ -95,9 +111,9 @@ export function CalibrationController({
             <p className="text-sm font-medium text-emerald-700">
               Recalibration applied — a new model version was activated.
             </p>
-            {typeof result.mape === "number" ? (
+            {toNumber(result.mape) !== null ? (
               <p className="text-sm text-muted-foreground">
-                Historical MAPE: {result.mape.toFixed(2)}%
+                Historical MAPE: {toNumber(result.mape)!.toFixed(2)}%
               </p>
             ) : null}
             {result.new_model_version_id ? (
@@ -119,7 +135,11 @@ export function CalibrationController({
                       <span
                         className={cn(
                           "font-mono font-semibold",
-                          value > 0 ? "text-emerald-700" : value < 0 ? "text-red-600" : "text-muted-foreground",
+                          (toNumber(value) ?? 0) > 0
+                            ? "text-emerald-700"
+                            : (toNumber(value) ?? 0) < 0
+                              ? "text-red-600"
+                              : "text-muted-foreground",
                         )}
                       >
                         {formatOffset(value)}
@@ -135,9 +155,9 @@ export function CalibrationController({
             <p className="text-sm font-medium">
               No adjustment needed — the active weights are unchanged.
             </p>
-            {typeof result.mape === "number" ? (
+            {toNumber(result.mape) !== null ? (
               <p className="text-sm text-muted-foreground">
-                Historical MAPE of {result.mape.toFixed(2)}% is within tolerance.
+                Historical MAPE of {toNumber(result.mape)!.toFixed(2)}% is within tolerance.
               </p>
             ) : null}
           </div>

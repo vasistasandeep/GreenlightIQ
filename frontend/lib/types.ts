@@ -206,11 +206,24 @@ export interface CalibrationApplyRequest {
 export interface CalibrationApplyResponse {
   /** True when MAPE exceeded the threshold and a new version was forked (R12.3). */
   adjustment_required: boolean;
-  mape: number | null;
+  /** Backend serializes Decimal as a JSON string; the UI coerces defensively. */
+  mape: number | string | null;
   /** The id of the newly activated model version when adjustment occurred. */
   new_model_version_id: string | null;
-  /** Applied weight offsets keyed by weight name, shown on success (R16.4). */
-  offsets: Record<string, number> | null;
+  /**
+   * Applied weight offsets keyed by weight name, shown on success (R16.4).
+   * Values are Decimal, serialized by the backend as JSON strings.
+   */
+  offsets: Record<string, number | string> | null;
+}
+
+/**
+ * Resolves a title to its latest decision (financial projection) id, which the
+ * sign-off / finalization endpoints key on (R20.5).
+ */
+export interface TitleDecision {
+  title_id: string;
+  decision_id: string;
 }
 
 /** Finalization gating report for a decision (R20.5). */

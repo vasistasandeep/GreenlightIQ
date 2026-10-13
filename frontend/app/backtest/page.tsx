@@ -105,6 +105,9 @@ export default function BacktestStudioPage() {
       const response = await api.backtestAudit(request);
       setAudit(response);
       setAuditTitleId(request.title_id);
+      // Finalization keys on a decision (financial projection) id, not a title
+      // id; resolve the title's latest decision before fetching its sign-off
+      // gate so we never request /decisions/{titleId} (which 404s).
       void loadFinalization(request.title_id);
     } catch (err) {
       setAudit(null);
@@ -132,15 +135,24 @@ export default function BacktestStudioPage() {
     }
   }
 
-  async function loadFinalization(decisionId: string) {
+  async function loadFinalization(titleId: string) {
     setFinalizationLoading(true);
     setFinalizationError(null);
     try {
-      const status = await api.getFinalization(decisionId);
+      // A title maps to a decision (its latest financial projection); the
+      // finalization gate is keyed on that decision id (R20.5).
+      const { decision_id } = await api.getTitleDecision(titleId);
+      const status = await api.getFinalization(decision_id);
       setFinalization(status);
     } catch (err) {
       setFinalization(null);
-      setFinalizationError(messageFor(err));
+      // A title with no decision yet is a benign "nothing to finalize" state,
+      // not an error to alarm the user with.
+      if (err instanceof ApiError && err.status === 404) {
+        setFinalizationError(null);
+      } else {
+        setFinalizationError(messageFor(err));
+      }
     } finally {
       setFinalizationLoading(false);
     }

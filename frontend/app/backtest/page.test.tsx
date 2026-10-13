@@ -42,11 +42,13 @@ vi.mock("next/navigation", () => ({
 const {
   getDashboardSummary,
   backtestAudit,
+  getTitleDecision,
   getFinalization,
   applyCalibration,
 } = vi.hoisted(() => ({
   getDashboardSummary: vi.fn(),
   backtestAudit: vi.fn(),
+  getTitleDecision: vi.fn(),
   getFinalization: vi.fn(),
   applyCalibration: vi.fn(),
 }));
@@ -60,6 +62,7 @@ vi.mock("@/lib/api-client", async () => {
     api: {
       getDashboardSummary,
       backtestAudit,
+      getTitleDecision,
       getFinalization,
       applyCalibration,
     },
@@ -161,8 +164,12 @@ describe("BacktestStudioPage", () => {
       mape: 12.5,
       no_eligible_metrics: false,
     });
+    getTitleDecision.mockResolvedValue({
+      title_id: "t-pred",
+      decision_id: "proj-1",
+    });
     getFinalization.mockResolvedValue({
-      decision_id: "t-pred",
+      decision_id: "proj-1",
       can_finalize: false,
       required_roles: [],
       outstanding_roles: [],
@@ -178,6 +185,7 @@ describe("BacktestStudioPage", () => {
     await user.click(screen.getByRole("button", { name: /Run audit/i }));
 
     expect(await screen.findByText(/Overall MAPE/i)).toBeInTheDocument();
-    await waitFor(() => expect(getFinalization).toHaveBeenCalledWith("t-pred"));
+    await waitFor(() => expect(getTitleDecision).toHaveBeenCalledWith("t-pred"));
+    await waitFor(() => expect(getFinalization).toHaveBeenCalledWith("proj-1"));
   });
 });

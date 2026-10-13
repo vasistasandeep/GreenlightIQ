@@ -26,3 +26,7 @@ nginx/certs/
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Diagnostics (local browser captures / error screenshots)
+*.har
+errors/

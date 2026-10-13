@@ -20,6 +20,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from app.api.deps import (
     CurrentUser,
@@ -122,6 +123,58 @@ async def get_valuation(
         model_version_id=projection.model_version_id,
         explanation=projection.explanation,
         metadata_breakdown=breakdown,
+    )
+
+
+class TitleDecisionResponse(BaseModel):
+    """The decision (latest financial projection) id for a title (R20.5).
+
+    The sign-off / finalization endpoints key on a
+    ``financial_projections.projection_id`` ("the decision"), not on a title id.
+    This resolves a title to its most recent decision so a title-centric view
+    (e.g. the Backtesting Studio) can look up finalization status.
+    """
+
+    title_id: uuid.UUID
+    decision_id: uuid.UUID
+
+
+@router.get(
+    "/{title_id}/decision",
+    response_model=TitleDecisionResponse,
+    dependencies=[Depends(require_operation(Operation.VALUATION))],
+    summary="Resolve a title to its latest decision (projection) id (R20.5).",
+)
+async def get_title_decision(
+    title_id: uuid.UUID,
+    actor: CurrentUser,
+    session: SessionDep,
+) -> TitleDecisionResponse:
+    """Return the latest decision id for a title, or 404 when none exists.
+
+    Raises ``404 TITLE_NOT_FOUND`` when the title does not exist or has no
+    computed valuation yet, mirroring ``GET /valuation/{title_id}`` (R10.3).
+    """
+    titles = TitleRepository(session)
+    title = await titles.get(title_id)
+    if title is None:
+        raise TitleNotFoundError(
+            f"No title exists for id {title_id!r}.",
+            details={"title_id": str(title_id)},
+        )
+
+    projection = await FinancialProjectionRepository(session).get_latest_for_title(
+        title_id
+    )
+    if projection is None:
+        raise TitleNotFoundError(
+            "No computed valuation exists for this title yet.",
+            details={"title_id": str(title_id)},
+        )
+
+    return TitleDecisionResponse(
+        title_id=title_id,
+        decision_id=projection.projection_id,
     )
 
 

@@ -20,6 +20,7 @@ import type {
   QuickEvaluateRequest,
   QuickEvaluateResponse,
   SessionInfo,
+  TitleDecision,
   ValuationScorecard,
 } from "./types";
 
@@ -172,6 +173,17 @@ export const api = {
   /** GET /api/v1/valuation/{titleId} Ã¢â‚¬â€ full financial scorecard (R10). */
   getValuation(titleId: string, options?: RequestOptions) {
     return apiFetch<ValuationScorecard>(`/valuation/${titleId}`, {
+      method: "GET",
+      ...options,
+    });
+  },
+  /**
+   * GET /api/v1/valuation/{titleId}/decision - resolve a title to its latest
+   * decision (financial projection) id, which the sign-off / finalization
+   * endpoints key on (R20.5).
+   */
+  getTitleDecision(titleId: string, options?: RequestOptions) {
+    return apiFetch<TitleDecision>(`/valuation/${titleId}/decision`, {
       method: "GET",
       ...options,
     });
