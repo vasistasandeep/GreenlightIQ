@@ -264,11 +264,45 @@ def render() -> str:
     w("INSERT INTO title_versions (title_version_id, title_id, version_number, "
       "source_snapshot, is_active) VALUES")
     rows = []
+    rate_map = {"USD": 1.0, "INR": 0.012, "EUR": 1.09, "GBP": 1.27}
     for t in TITLES:
-        label = t[0]
-        name = t[1]
+        (label, name, atype, cost, cur, terrs, genre, vh, hist,
+         cpvh, ltv, churn, payback, rec) = t
         tv_label = f"{label}-v1"
-        snapshot = {"title_name": name, "ingested": "seed", "version": 1}
+        # Back-fill modeling inputs so a live recompute reproduces the stored
+        # scorecard. Territory weighting is identity (no seeded telemetry), so
+        # the LTV-to-cost numerator is churn_reduction_value*ltv (SVOD) +
+        # watch_time_elasticity*cpm*ad_impressions (AVOD). We size inputs to a
+        # 70/30 SVOD/AVOD split of total_value = ltv_multiple * normalized_cost.
+        normalized = float(cost) * rate_map[cur]
+        total_value = float(ltv) * normalized
+        svod_value = total_value * 0.70
+        avod_value = total_value * 0.30
+        # SVOD: churn_reduction_value * ltv_per_sub. Fix ltv_per_sub = 120.
+        ltv_per_sub = 120.0
+        churn_reduction_value = round(svod_value / ltv_per_sub, 4)
+        # AVOD: watch_time_elasticity(=1) * cpm * ad_impressions. Fix cpm = 25.
+        cpm = 25.0
+        ad_impressions = round(avod_value / cpm, 2)
+        snapshot = {
+            "title_name": name,
+            "ingested": "seed",
+            "version": 1,
+            # Modeled valuation inputs (consistent with the seeded projection).
+            "churn_reduction_value": churn_reduction_value,
+            "ltv": ltv_per_sub,
+            "watch_time_elasticity": 1.0,
+            "cpm": cpm,
+            "ad_impressions": ad_impressions,
+            "churn_reduction_pct": float(churn),
+            "monthly_margin": round(normalized / float(payback), 2),
+            # Two equal milestones as STRING amounts (the engine's _to_decimal
+            # rejects floats); keeps payback computable on a live recompute.
+            "milestone_schedule": [
+                {"month": 0, "amount": f"{normalized / 2:.2f}", "currency": "USD"},
+                {"month": 6, "amount": f"{normalized / 2:.2f}", "currency": "USD"},
+            ],
+        }
         rows.append(
             f"  ('{det_uuid(tv_label)}', '{det_uuid(label)}', 1, "
             f"{_json(snapshot)}, TRUE)"
