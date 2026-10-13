@@ -209,6 +209,17 @@ def render() -> str:
             f"  ('{det_uuid(label)}', {q(label)}, {q(name)}, {q(role)}, "
             f"{_json(terrs)}::jsonb)"
         )
+    # The dev/demo auth-bypass principal (deps.py: uuid5(NAMESPACE_URL,
+    # 'demo:cfo'), role CFO). Seeded as a real user so audited actions it
+    # performs (override / sign-off) satisfy the audit_log actor FK. DEV/DEMO
+    # only; harmless in production where the bypass is disabled.
+    import uuid as _uuid
+
+    demo_id = _uuid.uuid5(_uuid.NAMESPACE_URL, "demo:cfo")
+    rows.append(
+        f"  ('{demo_id}', 'demo:cfo', 'Demo CFO', 'CFO', "
+        f"{_json([])}::jsonb)"
+    )
     w(",\n".join(rows))
     w("ON CONFLICT (user_id) DO NOTHING;")
     w("")

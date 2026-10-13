@@ -26,6 +26,8 @@ import type { ValuationScorecard } from "@/lib/types";
 import { RecommendationBadge } from "@/components/recommendation-badge";
 import { GreenlightMemo } from "./greenlight-memo";
 import { SensitivityPanel } from "./sensitivity-panel";
+import { OverridePanel } from "./override-panel";
+import { AuditLineage } from "./audit-lineage";
 import { AppShell } from "@/components/layout/top-nav";
 
 import { ExplanationPanel } from "./explanation-panel";
@@ -147,6 +149,16 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
           </div>
           <div className="lg:col-span-2">
             <SensitivityPanel titleId={titleId} />
+          </div>
+          <div className="lg:col-span-2">
+            <OverridePanel
+              titleId={titleId}
+              currentStatus={state.scorecard.recommendation_status}
+              onOverridden={() => void load()}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <AuditLineage titleId={titleId} />
           </div>
           <GreenlightMemo titleId={titleId} scorecard={state.scorecard} />
         </div>

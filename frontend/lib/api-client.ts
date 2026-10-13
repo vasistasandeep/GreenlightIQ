@@ -21,6 +21,9 @@ import type {
   QuickEvaluateRequest,
   QuickEvaluateResponse,
   SessionInfo,
+  Lineage,
+  OverrideRequest,
+  OverrideResult,
   TitleDecision,
   WhatIfRequest,
   ValuationScorecard,
@@ -199,6 +202,30 @@ export const api = {
     return apiFetch<ValuationScorecard>(`/valuation/${titleId}/what-if`, {
       method: "POST",
       body,
+      ...options,
+    });
+  },
+
+  /**
+   * POST /api/v1/decisions/{decisionId}/override - override a decision's
+   * recommendation with a mandatory justification, recorded in the audit log
+   * (R20.2). Gated to decision-making roles by the backend.
+   */
+  overrideDecision(decisionId: string, body: OverrideRequest, options?: RequestOptions) {
+    return apiFetch<OverrideResult>(`/decisions/${decisionId}/override`, {
+      method: "POST",
+      body,
+      ...options,
+    });
+  },
+
+  /**
+   * GET /api/v1/audit/lineage/{subjectId} - the ordered, append-only audit
+   * lineage for a decision or title (R25.4).
+   */
+  getLineage(subjectId: string, options?: RequestOptions) {
+    return apiFetch<Lineage>(`/audit/lineage/${subjectId}`, {
+      method: "GET",
       ...options,
     });
   },

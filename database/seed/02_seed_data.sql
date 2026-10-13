@@ -21,7 +21,8 @@ INSERT INTO users (user_id, external_subject, display_name, user_role, authorize
   ('cc73908c-408e-5f4e-9ff5-ea38cbe02b09', 'user-analyst', 'Dana Analyst', 'DATA_ANALYST', '["US","GB"]'::jsonb),
   ('57dd8615-a6f8-561c-ace1-76c2116bc392', 'user-buyer', 'Carl Buyer', 'CONTENT_BUYER', '["US","IN","GB"]'::jsonb),
   ('b9735089-43b4-54f1-8bae-0d20d386a8d9', 'user-cco', 'Chris Content-Officer', 'CHIEF_CONTENT_OFFICER', '["US","IN","GB","DE"]'::jsonb),
-  ('0c013454-92d8-56aa-afe5-b180a1c71265', 'user-cfo', 'Fran Finance', 'CFO', '["US","IN","GB","DE","FR"]'::jsonb)
+  ('0c013454-92d8-56aa-afe5-b180a1c71265', 'user-cfo', 'Fran Finance', 'CFO', '["US","IN","GB","DE","FR"]'::jsonb),
+  ('c10bd9de-a73d-50e9-8542-7353f6474c55', 'demo:cfo', 'Demo CFO', 'CFO', '[]'::jsonb)
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Initial ACTIVE model version; coupled weights sum to exactly 1.00 (R12.2, R26.1).

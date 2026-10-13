@@ -267,6 +267,37 @@ export interface TitleDecision {
   decision_id: string;
 }
 
+/** Request to override a decision's recommendation (R20.2). */
+export interface OverrideRequest {
+  recommendation_status: RecommendationStatus;
+  justification?: string | null;
+}
+
+/** The result of an override, echoing the applied status (R20.2). */
+export interface OverrideResult {
+  decision_id: string;
+  previous_status: string | null;
+  recommendation_status: string;
+}
+
+/** One append-only entry in a subject's audit lineage (R25.1, R25.4). */
+export interface AuditEntry {
+  audit_id: string;
+  subject_id: string;
+  actor_id: string | null;
+  action: string;
+  before_value: Record<string, unknown> | null;
+  after_value: Record<string, unknown> | null;
+  model_version_id: string | null;
+  created_at: string | null;
+}
+
+/** The ordered audit lineage for a subject (R25.4). */
+export interface Lineage {
+  subject_id: string;
+  entries: AuditEntry[];
+}
+
 /** Confirmation that an approve/reject/sign-off act was recorded (R20.4). */
 export interface DecisionActionResult {
   decision_id: string;
