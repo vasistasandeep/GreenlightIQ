@@ -212,14 +212,22 @@ class Backtesting_Module:
             validated.append((str(metric_name), actual_value))
 
         # All metrics are valid; persist them within the caller's transaction.
+        # Upsert per (title, metric): a repeat submission for the same metric
+        # replaces the prior actual rather than appending a duplicate row, so a
+        # title carries exactly one ground-truth value per metric and the audit
+        # scorecard renders one bar pair per metric (not one per submission).
         for metric_name, actual_value in validated:
-            await self.ground_truth.create(
-                HistoricalGroundTruth(
-                    title_id=title_id,
-                    metric_name=metric_name,
-                    actual_value=actual_value,
+            existing = await self.ground_truth.get_metric(title_id, metric_name)
+            if existing is not None:
+                await self.ground_truth.update(existing, actual_value=actual_value)
+            else:
+                await self.ground_truth.create(
+                    HistoricalGroundTruth(
+                        title_id=title_id,
+                        metric_name=metric_name,
+                        actual_value=actual_value,
+                    )
                 )
-            )
 
         return title_id
 
@@ -261,11 +269,25 @@ class Backtesting_Module:
 
         projection = await self.financial_projections.get_latest_for_title(title_id)
 
+        # Collapse to one ground-truth value per metric, keeping the most recent
+        # submission. New writes upsert (see persist_ground_truth), but this also
+        # defends against any legacy duplicate rows so the scorecard always has a
+        # single predicted/actual pair per metric.
+        latest_by_metric: dict[str, HistoricalGroundTruth] = {}
+        for truth in truths:
+            current = latest_by_metric.get(truth.metric_name)
+            if current is None or (
+                truth.recorded_at is not None
+                and current.recorded_at is not None
+                and truth.recorded_at >= current.recorded_at
+            ):
+                latest_by_metric[truth.metric_name] = truth
+
         # Pair predicted vs actual per metric by metric name. Only metrics that
         # have both a comparable prediction and an actual are auditable.
         audit_metrics: list[AuditMetric] = []
         mape_pairs: list[tuple[Decimal, Decimal]] = []
-        for truth in truths:
+        for truth in latest_by_metric.values():
             predicted = self._predicted_for(projection, truth.metric_name)
             if predicted is None:
                 # No comparable prediction for this metric; nothing to audit.

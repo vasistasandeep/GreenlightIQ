@@ -181,8 +181,9 @@ export interface BacktestAuditRequest {
 /** One predicted/actual row of the returned audit scorecard (R11.6, R11.7). */
 export interface AuditMetric {
   metric: string;
-  predicted: number;
-  actual: number;
+  /** Decimal values are serialized by the backend as JSON strings; coerce defensively. */
+  predicted: number | string;
+  actual: number | string;
   /** True when the pair was excluded from MAPE (zero actual — R11.7). */
   excluded: boolean;
 }
@@ -191,8 +192,9 @@ export interface AuditMetric {
 export interface BacktestAuditResponse {
   title_id: string;
   metrics: AuditMetric[];
-  /** Mean absolute percentage error across eligible metrics, or null (R11.8). */
-  mape: number | null;
+  /** Mean absolute percentage error across eligible metrics, or null (R11.8).
+   * Serialized by the backend as a JSON string; the UI coerces defensively. */
+  mape: number | string | null;
   /** True when every metric was excluded, so MAPE is undefined (R11.8). */
   no_eligible_metrics: boolean;
 }
@@ -224,6 +226,14 @@ export interface CalibrationApplyResponse {
 export interface TitleDecision {
   title_id: string;
   decision_id: string;
+}
+
+/** Confirmation that an approve/reject/sign-off act was recorded (R20.4). */
+export interface DecisionActionResult {
+  decision_id: string;
+  action: string;
+  actor_id: string;
+  acted_at: string | null;
 }
 
 /** Finalization gating report for a decision (R20.5). */

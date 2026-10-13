@@ -63,6 +63,21 @@ class InMemoryGroundTruthRepository:
     async def list_for_title(self, title_id: uuid.UUID) -> list[HistoricalGroundTruth]:
         return [row for row in self.created if row.title_id == title_id]
 
+    async def get_metric(
+        self, title_id: uuid.UUID, metric_name: str
+    ) -> HistoricalGroundTruth | None:
+        for row in self.created:
+            if row.title_id == title_id and row.metric_name == metric_name:
+                return row
+        return None
+
+    async def update(
+        self, instance: HistoricalGroundTruth, **values: Any
+    ) -> HistoricalGroundTruth:
+        for key, value in values.items():
+            setattr(instance, key, value)
+        return instance
+
 
 class InMemoryFinancialProjectionRepository:
     """Minimal in-memory stand-in for ``FinancialProjectionRepository``."""
@@ -224,16 +239,19 @@ async def test_ground_truth_validation_rejects_invalid_records(
     carries a non-numeric / boolean actual value, ``persist_ground_truth`` raises
     :class:`GroundTruthInvalidError` and persists **no** rows — the ground-truth
     fake must have received zero creates. A fully valid record persists one row
-    per metric and returns the title id (R11.2, R11.1).
+    per DISTINCT metric name (persistence upserts per title+metric, so a repeated
+    metric replaces rather than duplicates) and returns the title id (R11.2, R11.1).
     """
     is_valid, record = tagged
     module, ground_truth = _make_module()
 
     if is_valid:
         returned = await module.persist_ground_truth(record)  # type: ignore[arg-type]
-        # A valid record persists exactly one row per metric and returns the id.
+        # A valid record persists exactly one row per distinct metric name and
+        # returns the id; a repeated metric upserts rather than duplicating.
         assert returned == record["title_id"]
-        assert len(ground_truth.created) == len(record["metrics"])
+        distinct_metrics = {m["metric_name"] for m in record["metrics"]}
+        assert len(ground_truth.created) == len(distinct_metrics)
         for row in ground_truth.created:
             assert row.title_id == record["title_id"]
             assert isinstance(row.actual_value, Decimal)

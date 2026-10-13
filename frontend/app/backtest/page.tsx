@@ -59,6 +59,8 @@ export default function BacktestStudioPage() {
   const [finalization, setFinalization] = useState<FinalizationStatus | null>(null);
   const [finalizationLoading, setFinalizationLoading] = useState(false);
   const [finalizationError, setFinalizationError] = useState<string | null>(null);
+  const [decisionId, setDecisionId] = useState<string | null>(null);
+  const [approvingRole, setApprovingRole] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -142,10 +144,12 @@ export default function BacktestStudioPage() {
       // A title maps to a decision (its latest financial projection); the
       // finalization gate is keyed on that decision id (R20.5).
       const { decision_id } = await api.getTitleDecision(titleId);
+      setDecisionId(decision_id);
       const status = await api.getFinalization(decision_id);
       setFinalization(status);
     } catch (err) {
       setFinalization(null);
+      setDecisionId(null);
       // A title with no decision yet is a benign "nothing to finalize" state,
       // not an error to alarm the user with.
       if (err instanceof ApiError && err.status === 404) {
@@ -158,10 +162,32 @@ export default function BacktestStudioPage() {
     }
   }
 
+  async function handleApproveRole(role: string) {
+    if (!decisionId) {
+      return;
+    }
+    setApprovingRole(role);
+    try {
+      // DEV/DEMO ONLY: record the sign-off under the seeded user holding this
+      // role so a single demo session can clear a two-role gate.
+      await api.demoSignOff(decisionId, role);
+      const status = await api.getFinalization(decisionId);
+      setFinalization(status);
+    } catch (err) {
+      setFinalizationError(messageFor(err));
+    } finally {
+      setApprovingRole(null);
+    }
+  }
+
   // The predicted CPVH is only known once the audit returns; surface it to the
   // form so the read-only "Predicted" CPVH field can fill in after Run audit.
-  const predictedCpvh =
+  const predictedCpvhRaw =
     audit?.metrics.find((m) => m.metric === "cpvh")?.predicted ?? null;
+  const predictedCpvh =
+    predictedCpvhRaw !== null && Number.isFinite(Number(predictedCpvhRaw))
+      ? Number(predictedCpvhRaw)
+      : null;
 
   return (
     <AppShell>
@@ -205,11 +231,11 @@ export default function BacktestStudioPage() {
                 <p className="mt-3 text-sm text-amber-700">
                   No eligible metrics - every actual was zero, so MAPE is undefined.
                 </p>
-              ) : typeof audit.mape === "number" ? (
+              ) : Number.isFinite(Number(audit.mape)) ? (
                 <p className="mt-3 text-sm text-muted-foreground">
                   Overall MAPE:{" "}
                   <span className="font-semibold text-foreground">
-                    {audit.mape.toFixed(2)}%
+                    {Number(audit.mape).toFixed(2)}%
                   </span>
                 </p>
               ) : null}
@@ -234,6 +260,8 @@ export default function BacktestStudioPage() {
             status={finalization}
             loading={finalizationLoading}
             error={finalizationError}
+            onApproveRole={decisionId ? handleApproveRole : undefined}
+            approvingRole={approvingRole}
           />
         </div>
       </div>

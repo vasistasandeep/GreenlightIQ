@@ -28,6 +28,7 @@ import type { AuditMetric } from "@/lib/types";
 /** Human-friendly labels for the metric keys the backend emits. */
 const METRIC_LABELS: Record<string, string> = {
   cpvh: "CPVH",
+  ltv_to_cost: "LTV-to-Cost",
   ltv_to_cost_multiple: "LTV-to-Cost",
 };
 
@@ -53,8 +54,9 @@ export function VarianceChart({ metrics, className }: VarianceChartProps) {
   const data: VarianceDatum[] = metrics.map((row) => ({
     metric: row.metric,
     label: labelFor(row.metric),
-    predicted: row.predicted,
-    actual: row.actual,
+    // Decimal values arrive as strings over the wire; coerce for the chart.
+    predicted: Number(row.predicted),
+    actual: Number(row.actual),
     excluded: row.excluded,
   }));
 

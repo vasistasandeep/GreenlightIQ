@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { SignOffPanel } from "@/components/backtest/sign-off-panel";
 import type { FinalizationStatus } from "@/lib/types";
@@ -41,7 +42,7 @@ describe("SignOffPanel (R20.5)", () => {
   it("prompts to load a decision before any status is provided", () => {
     render(<SignOffPanel />);
     expect(
-      screen.getByText(/Load a decision to view its sign-off requirements/i),
+      screen.getByText(/Run an audit on a title to view its sign-off requirements/i),
     ).toBeInTheDocument();
   });
 
@@ -100,6 +101,41 @@ describe("SignOffPanel (R20.5)", () => {
         within(roleRow("Chief Financial Officer")).getByText(/Approved/i),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Outstanding/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("interactive sign-off (demo)", () => {
+    it("shows an Approve action only for outstanding roles when onApproveRole is given", () => {
+      render(<SignOffPanel status={AWAITING} onApproveRole={vi.fn()} />);
+
+      // CFO is outstanding -> has an approve button; CCO is approved -> none.
+      expect(
+        within(roleRow("Chief Financial Officer")).getByRole("button", {
+          name: /Approve as Chief Financial Officer/i,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        within(roleRow("Chief Content Officer")).queryByRole("button"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("invokes onApproveRole with the outstanding role when clicked", async () => {
+      const onApproveRole = vi.fn();
+      const user = userEvent.setup();
+      render(<SignOffPanel status={AWAITING} onApproveRole={onApproveRole} />);
+
+      await user.click(
+        within(roleRow("Chief Financial Officer")).getByRole("button", {
+          name: /Approve as Chief Financial Officer/i,
+        }),
+      );
+
+      expect(onApproveRole).toHaveBeenCalledWith("CFO");
+    });
+
+    it("renders no approve actions when onApproveRole is omitted (read-only)", () => {
+      render(<SignOffPanel status={AWAITING} />);
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
   });
 

@@ -28,6 +28,16 @@ class UserRepository(BaseRepository[User]):
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def get_by_role(self, role: str) -> User | None:
+        """Return any user holding the given role, if one exists (R20.1).
+
+        Used by the dev/demo sign-off helper to attribute an approval to a
+        seeded user who actually holds the required executive role.
+        """
+        stmt = select(User).where(User.user_role == role).limit(1)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
 
 class SessionRepository(BaseRepository[Session]):
     """Async access to the ``sessions`` table (R19.2, R19.4, R19.6)."""

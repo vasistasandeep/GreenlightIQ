@@ -16,6 +16,7 @@ import type {
   CalibrationApplyRequest,
   CalibrationApplyResponse,
   DashboardSummary,
+  DecisionActionResult,
   FinalizationStatus,
   QuickEvaluateRequest,
   QuickEvaluateResponse,
@@ -247,5 +248,17 @@ export const api = {
       method: "GET",
       ...options,
     });
+  },
+
+  /**
+   * POST /api/v1/decisions/{decisionId}/demo-sign-off - DEV/DEMO ONLY. Record an
+   * APPROVE on behalf of a seeded executive role so a single demo session can
+   * clear a two-role (CCO + CFO) sign-off gate end-to-end (R20.4, R20.5).
+   */
+  demoSignOff(decisionId: string, role: string, options?: RequestOptions) {
+    return apiFetch<DecisionActionResult>(
+      `/decisions/${decisionId}/demo-sign-off`,
+      { method: "POST", body: { role }, ...options },
+    );
   },
 };

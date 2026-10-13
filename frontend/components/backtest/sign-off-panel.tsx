@@ -7,10 +7,13 @@ import type { FinalizationStatus } from "@/lib/types";
  * SignOffPanel (R20.5).
  *
  * High-budget GREENLIGHT decisions require executive sign-off before they can be
- * finalized. This panel loads a decision's finalization gate
- * (`GET /decisions/{id}/finalization`) and surfaces the required roles together
- * with which approvals remain outstanding, so the studio makes the gating
- * explicit. A decision with no sign-off gate reports it is clear to finalize.
+ * finalized. This panel shows a decision's finalization gate (required roles and
+ * which approvals remain outstanding) and - in the demo - lets the user record a
+ * sign-off for each outstanding role so the gate can be cleared end-to-end.
+ *
+ * A decision that needs no sign-off reports it is clear to finalize; a title with
+ * no decision yet shows a neutral "nothing to finalize" message rather than an
+ * error.
  *
  * Role identifiers from the backend are rendered as readable labels; unknown
  * roles fall back to a title-cased form of the identifier.
@@ -41,6 +44,14 @@ export interface SignOffPanelProps {
   loading?: boolean;
   /** An error message if the finalization status could not be loaded. */
   error?: string | null;
+  /**
+   * Record a sign-off for a specific required role (demo). When provided, each
+   * outstanding role shows an Approve action; resolves when the gate is
+   * refreshed. Omit to render the panel read-only.
+   */
+  onApproveRole?: (role: string) => void | Promise<void>;
+  /** The role currently being signed off, if any (disables that row's button). */
+  approvingRole?: string | null;
   className?: string;
 }
 
@@ -48,6 +59,8 @@ export function SignOffPanel({
   status = null,
   loading = false,
   error = null,
+  onApproveRole,
+  approvingRole = null,
   className,
 }: SignOffPanelProps) {
   const outstanding = new Set(status?.outstanding_roles ?? []);
@@ -68,18 +81,18 @@ export function SignOffPanel({
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading sign-off status…</p>
+        <p className="text-sm text-muted-foreground">Loading sign-off status...</p>
       ) : error ? (
         <p role="alert" className="text-sm font-medium text-red-600">
           {error}
         </p>
       ) : !status ? (
         <p className="text-sm text-muted-foreground">
-          Load a decision to view its sign-off requirements.
+          Run an audit on a title to view its sign-off requirements.
         </p>
       ) : status.required_roles.length === 0 ? (
         <p className="text-sm font-medium text-emerald-700">
-          No sign-off required — this decision is clear to finalize.
+          No sign-off required - this decision is clear to finalize.
         </p>
       ) : (
         <>
@@ -101,21 +114,45 @@ export function SignOffPanel({
               return (
                 <li
                   key={role}
-                  className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
                 >
                   <span className="font-medium">{roleLabel(role)}</span>
-                  <span
-                    className={cn(
-                      "text-xs font-semibold uppercase",
-                      isApproved ? "text-emerald-700" : "text-amber-700",
-                    )}
-                  >
-                    {isApproved ? "Approved" : isOutstanding ? "Outstanding" : "Pending"}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        "text-xs font-semibold uppercase",
+                        isApproved ? "text-emerald-700" : "text-amber-700",
+                      )}
+                    >
+                      {isApproved ? "Approved" : "Outstanding"}
+                    </span>
+                    {onApproveRole && !isApproved ? (
+                      <button
+                        type="button"
+                        onClick={() => onApproveRole(role)}
+                        disabled={approvingRole === role}
+                        className={cn(
+                          "inline-flex items-center rounded-md border border-primary px-2.5 py-1",
+                          "text-xs font-semibold text-primary",
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                        )}
+                      >
+                        {approvingRole === role
+                          ? "Signing..."
+                          : `Approve as ${roleLabel(role)}`}
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               );
             })}
           </ul>
+
+          {status.can_finalize ? (
+            <p className="text-sm font-medium text-emerald-700">
+              All required sign-offs recorded - this decision can be finalized.
+            </p>
+          ) : null}
         </>
       )}
     </section>
