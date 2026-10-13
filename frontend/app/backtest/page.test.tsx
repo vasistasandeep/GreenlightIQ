@@ -184,7 +184,7 @@ describe("BacktestStudioPage", () => {
     await user.type(screen.getByLabelText("Actual CPVH"), "0.12");
     await user.click(screen.getByRole("button", { name: /Run audit/i }));
 
-    expect(await screen.findByText(/Overall MAPE/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Prediction Error \(MAPE\)/i)).toBeInTheDocument();
     await waitFor(() => expect(getTitleDecision).toHaveBeenCalledWith("t-pred"));
     await waitFor(() => expect(getFinalization).toHaveBeenCalledWith("proj-1"));
   });

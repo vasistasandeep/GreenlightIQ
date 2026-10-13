@@ -1,8 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  Check,
+  CircleAlert,
+  Minus,
+  Clock,
+  type LucideIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { CpvhStatus, TitleSummary } from "@/lib/types";
@@ -44,12 +54,12 @@ const ASSET_TYPE_LABELS: Record<TitleSummary["asset_type"], string> = {
 /** Display labels and badge styling for each CPVH status. */
 const CPVH_STATUS_META: Record<
   CpvhStatus,
-  { label: string; className: string }
+  { label: string; className: string; icon: LucideIcon }
 > = {
-  PASS: { label: "Pass", className: "text-emerald-700" },
-  BREACH: { label: "Breach", className: "text-red-700" },
-  NO_CEILING: { label: "No Ceiling", className: "text-slate-600" },
-  PENDING: { label: "Pending", className: "text-muted-foreground" },
+  PASS: { label: "Pass", className: "text-emerald-400", icon: Check },
+  BREACH: { label: "Breach", className: "text-rose-400", icon: CircleAlert },
+  NO_CEILING: { label: "No Ceiling", className: "text-slate-400", icon: Minus },
+  PENDING: { label: "Pending", className: "text-slate-500", icon: Clock },
 };
 
 /** Rank CPVH statuses so sorting is meaningful (best-to-worst / known-first). */
@@ -172,11 +182,35 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
     return (
       <div
         className={cn(
-          "rounded-lg border border-slate-800 bg-slate-900/60 p-10 text-center text-sm text-muted-foreground",
+          "flex flex-col items-center gap-4 rounded-lg border border-dashed border-slate-700 bg-slate-900/60 p-12 text-center",
           className,
         )}
       >
-        No titles in the pipeline yet. Ingest a batch to populate the dashboard.
+        <div className="rounded-full bg-slate-800 p-3">
+          <Clock className="h-6 w-6 text-slate-400" aria-hidden />
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-slate-200">
+            No active titles in the pipeline yet.
+          </p>
+          <p className="text-sm text-slate-400">
+            Evaluate your first asset to populate the dashboard.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/studio"
+            className="inline-flex items-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 hover:bg-emerald-400"
+          >
+            Evaluate an asset
+          </Link>
+          <Link
+            href="/guide"
+            className="inline-flex items-center rounded-md border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
+          >
+            How it works
+          </Link>
+        </div>
       </div>
     );
   }
@@ -253,7 +287,8 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
                   {formatPrice(title.asking_price, title.native_currency)}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={cn("font-medium", cpvh.className)}>
+                  <span className={cn("inline-flex items-center gap-1 font-medium", cpvh.className)}>
+                    <cpvh.icon className="h-3.5 w-3.5" aria-hidden />
                     {cpvh.label}
                   </span>
                 </td>

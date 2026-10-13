@@ -69,7 +69,11 @@ describe("AssetDataGrid", () => {
   it("renders an empty-state message when there are no titles", () => {
     render(<AssetDataGrid titles={[]} />);
     expect(
-      screen.getByText(/No titles in the pipeline yet/i),
+      screen.getByText(/No active titles in the pipeline yet/i),
+    ).toBeInTheDocument();
+    // The empty state offers a clear next action.
+    expect(
+      screen.getByRole("link", { name: /Evaluate an asset/i }),
     ).toBeInTheDocument();
   });
 

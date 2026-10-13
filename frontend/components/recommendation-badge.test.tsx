@@ -51,6 +51,16 @@ describe("RecommendationBadge (R14.3)", () => {
     expect(screen.queryByText("NEGOTIATE_HARD")).not.toBeInTheDocument();
   });
 
+  it("renders a status icon so meaning is not color-only (a11y)", () => {
+    const { container } = render(
+      <RecommendationBadge status="GREENLIGHT" data-testid="badge" />,
+    );
+    // A decorative SVG icon accompanies the label on every status.
+    const icon = container.querySelector("svg");
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveAttribute("aria-hidden");
+  });
+
   it("forwards extra props and merges className onto the badge", () => {
     render(
       <RecommendationBadge

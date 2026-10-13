@@ -233,10 +233,11 @@ export default function BacktestStudioPage() {
                 </p>
               ) : Number.isFinite(Number(audit.mape)) ? (
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Overall MAPE:{" "}
+                  Prediction Error (MAPE):{" "}
                   <span className="font-semibold text-foreground">
                     {Number(audit.mape).toFixed(2)}%
-                  </span>
+                  </span>{" "}
+                  <span className="text-xs">(lower is better)</span>
                 </p>
               ) : null}
             </div>
