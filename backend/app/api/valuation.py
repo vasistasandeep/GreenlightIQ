@@ -18,9 +18,10 @@ Two endpoints make up the valuation surface:
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.deps import (
     CurrentUser,
@@ -261,6 +262,95 @@ def _explanation_dict(explanation: object) -> dict:
     if hasattr(explanation, "__dict__"):
         return dict(vars(explanation))
     return {"explanation": str(explanation)}
+
+
+class WhatIfRequest(BaseModel):
+    """Bounded scenario multipliers for POST /valuation/{title_id}/what-if (R4).
+
+    Each multiplier is strictly positive and within the inclusive demo range
+    [0.5, 2.0]; the range includes 1.0 (the identity scenario). churn_multiplier
+    defaults to 1.0 when omitted (R1.5).
+    """
+
+    cost_multiplier: Decimal = Field(..., gt=Decimal("0"), ge=Decimal("0.5"), le=Decimal("2.0"))
+    viewership_multiplier: Decimal = Field(
+        ..., gt=Decimal("0"), ge=Decimal("0.5"), le=Decimal("2.0")
+    )
+    churn_multiplier: Decimal = Field(
+        default=Decimal("1.0"), gt=Decimal("0"), ge=Decimal("0.5"), le=Decimal("2.0")
+    )
+
+
+@router.post(
+    "/{title_id}/what-if",
+    response_model=ValuationScorecardResponse,
+    dependencies=[Depends(require_operation(Operation.VALUATION))],
+    summary="Recompute a scorecard over scenario multipliers without persisting (R1, R2).",
+)
+async def what_if_valuation(
+    title_id: uuid.UUID,
+    body: WhatIfRequest,
+    actor: CurrentUser,
+    session: SessionDep,
+    engine: GuardrailsEngineDep,
+) -> ValuationScorecardResponse:
+    """Return a freshly computed scorecard under scenario multipliers, read-only.
+
+    Delegates to the engine's non-persisting ``evaluate_scenario``; writes
+    nothing and records no audit entry (R2). A missing title raises
+    ``404 TITLE_NOT_FOUND`` (R1.3); out-of-bounds multipliers are rejected by the
+    request model as ``422`` before this handler runs (R4).
+    """
+    result = await engine.evaluate_scenario(
+        title_id,
+        cost_multiplier=body.cost_multiplier,
+        viewership_multiplier=body.viewership_multiplier,
+        churn_multiplier=body.churn_multiplier,
+    )
+
+    explanation = result["explanation"]
+    checks = explanation["checks"] if isinstance(explanation, dict) else []
+    cost = result["normalized_cost_usd"]
+    ceiling = negotiation.target_purchase_ceiling(cost, checks)
+    discount = negotiation.implied_discount_pct(cost, ceiling)
+    levers = [
+        CounterProposalLeverOut(name=lv["name"], correctable=lv["correctable"], message=lv["message"])
+        for lv in negotiation.counter_proposal_levers(checks)
+    ]
+    ltv_attr = None
+    if result["ltv_to_cost_multiple"] is not None:
+        ltv_attr = LtvAttributionOut(
+            subscription_value=result.get("ltv_subscription_value"),
+            advertising_value=result.get("ltv_advertising_value"),
+            total_modeled_value=result.get("ltv_total_modeled_value"),
+            normalized_cost_usd=cost,
+            multiple=result["ltv_to_cost_multiple"],
+        )
+    churn_cohort = ChurnCohortOut(
+        churn_reduction_pct=result.get("churn_reduction_pct"),
+        modeled_cohort_size=result.get("modeled_cohort_size"),
+        retained_subscribers=result.get("retained_subscribers"),
+        derived=True,
+    )
+
+    # No session.commit(): the scenario path is strictly read-only (R2).
+    return ValuationScorecardResponse(
+        title_id=title_id,
+        calculated_cpvh=result["calculated_cpvh"],
+        ltv_to_cost_multiple=result["ltv_to_cost_multiple"],
+        churn_reduction_pct=result["churn_reduction_pct"],
+        payback_horizon_months=result["payback_horizon_months"],
+        recommendation_status=result["recommendation_status"],
+        normalized_cost_usd=cost,
+        model_version_id=result["model_version_id"],
+        explanation=explanation if isinstance(explanation, dict) else None,
+        metadata_breakdown=await _metadata_breakdown(session, title_id),
+        target_purchase_ceiling_usd=ceiling,
+        implied_discount_pct=discount,
+        counter_proposal_levers=levers,
+        ltv_attribution=ltv_attr,
+        churn_cohort=churn_cohort,
+    )
 
 
 __all__ = ["router"]

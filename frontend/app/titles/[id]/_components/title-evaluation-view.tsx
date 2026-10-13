@@ -25,6 +25,7 @@ import { ApiError, api } from "@/lib/api-client";
 import type { ValuationScorecard } from "@/lib/types";
 import { RecommendationBadge } from "@/components/recommendation-badge";
 import { GreenlightMemo } from "./greenlight-memo";
+import { SensitivityPanel } from "./sensitivity-panel";
 import { AppShell } from "@/components/layout/top-nav";
 
 import { ExplanationPanel } from "./explanation-panel";
@@ -143,6 +144,9 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
           </div>
           <div className="lg:col-span-2">
             <ExplanationPanel explanation={state.scorecard.explanation} />
+          </div>
+          <div className="lg:col-span-2">
+            <SensitivityPanel titleId={titleId} />
           </div>
           <GreenlightMemo titleId={titleId} scorecard={state.scorecard} />
         </div>

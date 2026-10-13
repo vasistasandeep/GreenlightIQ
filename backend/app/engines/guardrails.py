@@ -342,16 +342,65 @@ class Guardrails_Engine:
 
         # 4. Territory-weighted CPM / LTV across target territories (R21.3).
         weighting = await self._territory_weighting(title)
-        weighted_cpm = (inputs.cpm * weighting.cpm_weight)
-        weighted_ltv = (inputs.ltv * weighting.ltv_weight)
 
-        # 5. Build each guardrail check from the pure domain functions.
-        cpvh_check, calculated_cpvh = self._cpvh_check(title, normalized.amount_usd)
+        # 5. The payback check reads license terms (async I/O), so it is computed
+        # here and threaded into the pure compute core.
+        payback_check, payback_months = await self._payback_check(title, inputs)
+
+        # 5-6. Run the guardrail checks, recommendation, and deal-support block
+        # through the shared pure compute core (no I/O).
+        result = self._compute(
+            title, inputs, normalized, exchange_rate_id, stamp, weighting,
+            payback_check, payback_months,
+        )
+        explanation = result["explanation"]
+
+        # 7. Persist with retries, preserving prior value (R8.6, R8.7).
+        await self._persist(title_id, result, explanation)
+
+        # 8. Append-only audit entry stamped with the model version (R25.1, R25.3).
+        await self._audit.record(
+            actor,
+            "valuation",
+            None,
+            self._audit_after(result),
+            model_version_id=stamp,
+            subject_id=title_id,
+        )
+
+        return result
+
+    # -- shared pure compute core + stateless scenario path ---------------- #
+
+    def _compute(
+        self,
+        title: Any,
+        inputs: ValuationInputs,
+        normalized: NormalizedCost,
+        exchange_rate_id: uuid.UUID | None,
+        stamp: uuid.UUID,
+        weighting: TerritoryWeights,
+        payback_check: GuardrailCheck,
+        payback_months: int,
+        *,
+        cpvh_hours_override: Decimal | None = None,
+    ) -> ValuationResult:
+        """Run the four guardrail checks, the recommendation, and the deal-support
+        block, returning a :class:`ValuationResult`. Performs NO I/O, NO
+        persistence, and NO audit, so it is shared verbatim by the persisting
+        ``evaluate`` path and the stateless ``evaluate_scenario`` path (identical
+        math; no threshold or recommendation forking).
+        """
+        weighted_cpm = inputs.cpm * weighting.cpm_weight
+        weighted_ltv = inputs.ltv * weighting.ltv_weight
+
+        cpvh_check, calculated_cpvh = self._cpvh_check(
+            title, normalized.amount_usd, cpvh_hours_override
+        )
         ltv_check, ltv_multiple = self._ltv_check(
             inputs, normalized.amount_usd, weighted_cpm, weighted_ltv
         )
         churn_check = self._churn_check(inputs.churn_reduction_pct)
-        payback_check, payback_months = await self._payback_check(title, inputs)
 
         checks: list[GuardrailCheck] = [
             cpvh_check,
@@ -360,14 +409,8 @@ class Guardrails_Engine:
             payback_check,
         ]
 
-        # 6. Recommendation + explanation (R8, R30.4).
         status, explanation = determine_recommendation(checks)
 
-        # Deal Decision Support (additive, labeled, non-persisted). Derive the LTV
-        # attribution split from the SAME territory-weighted operands used for the
-        # multiple, and the absolute churn cohort from inputs or a labeled
-        # derivation. Any failure degrades these to None without blocking the
-        # core valuation.
         ltv_sub = ltv_adv = ltv_total = cohort_size = retained = None
         try:
             if normalized.amount_usd and normalized.amount_usd != 0:
@@ -391,8 +434,8 @@ class Guardrails_Engine:
         except (ArithmeticError, TypeError, ValueError):
             ltv_sub = ltv_adv = ltv_total = cohort_size = retained = None
 
-        result: ValuationResult = {
-            "title_id": title_id,
+        return {
+            "title_id": title.title_id,
             "calculated_cpvh": calculated_cpvh,
             "ltv_to_cost_multiple": ltv_multiple,
             "churn_reduction_pct": inputs.churn_reduction_pct,
@@ -409,20 +452,67 @@ class Guardrails_Engine:
             "retained_subscribers": retained,
         }
 
-        # 7. Persist with retries, preserving prior value (R8.6, R8.7).
-        await self._persist(title_id, result, explanation)
+    async def evaluate_scenario(
+        self,
+        title_id: uuid.UUID,
+        *,
+        cost_multiplier: Decimal,
+        viewership_multiplier: Decimal,
+        churn_multiplier: Decimal,
+    ) -> ValuationResult:
+        """Recompute a scorecard over scaled inputs WITHOUT persisting (R1, R2).
 
-        # 8. Append-only audit entry stamped with the model version (R25.1, R25.3).
-        await self._audit.record(
-            actor,
-            "valuation",
-            None,
-            self._audit_after(result),
-            model_version_id=stamp,
-            subject_id=title_id,
+        Loads the title and its base inputs, normalizes cost to USD, scales the
+        normalized cost by ``cost_multiplier`` and the remaining inputs via
+        :func:`app.domain.sensitivity.scale_inputs`, and runs the shared
+        :meth:`_compute` core. NEVER calls ``_persist`` or the audit service, and
+        resolves the active model-version stamp read-only (R2.3).
+
+        Raises:
+            TitleNotFoundError: The title does not exist (R1.3).
+            ExchangeRateUnavailableError: No rate to normalize a non-USD cost.
+        """
+        import dataclasses as _dc
+
+        from app.domain.sensitivity import scale_inputs
+
+        title = await self._titles.get(title_id)
+        if title is None:
+            raise TitleNotFoundError(
+                f"No title exists for id {title_id!r}.",
+                details={"title_id": str(title_id)},
+            )
+
+        inputs = await self._inputs.get_inputs(title_id)
+        normalized, exchange_rate_id = await self._normalize_cost(title, inputs)
+        stamp = await self._versioning.stamp()
+        weighting = await self._territory_weighting(title)
+
+        payback_check, payback_months = await self._payback_check(title, inputs)
+
+        base_hours = getattr(title, "projected_viewing_hours", None)
+        scaled = scale_inputs(
+            inputs,
+            None if base_hours is None else Decimal(base_hours),
+            cost_multiplier=cost_multiplier,
+            viewership_multiplier=viewership_multiplier,
+            churn_multiplier=churn_multiplier,
+        )
+        scaled_cost = _dc.replace(
+            normalized, amount_usd=normalized.amount_usd * Decimal(cost_multiplier)
         )
 
-        return result
+        return self._compute(
+            title,
+            scaled.inputs,
+            scaled_cost,
+            exchange_rate_id,
+            stamp,
+            weighting,
+            payback_check,
+            payback_months,
+            cpvh_hours_override=scaled.viewing_hours,
+        )
 
     # -- currency normalization (R21.2, R21.5) ----------------------------- #
 
@@ -559,7 +649,10 @@ class Guardrails_Engine:
     # -- CPVH check (R4) --------------------------------------------------- #
 
     def _cpvh_check(
-        self, title: Any, cost_usd: Decimal
+        self,
+        title: Any,
+        cost_usd: Decimal,
+        viewing_hours_override: Decimal | None = None,
     ) -> tuple[GuardrailCheck, Decimal | None]:
         """Build the CPVH guardrail check (R4).
 
@@ -572,7 +665,11 @@ class Guardrails_Engine:
           (R4.6), pass when ``<=`` (R4.7). A breach is correctable because a lower
           cost lowers CPVH back under the ceiling.
         """
-        viewing_hours = getattr(title, "projected_viewing_hours", None)
+        viewing_hours = (
+            viewing_hours_override
+            if viewing_hours_override is not None
+            else getattr(title, "projected_viewing_hours", None)
+        )
         asset_type = self._as_asset_type(getattr(title, "asset_type", None))
         ceiling = cpvh_ceiling(asset_type) if asset_type is not None else None
 

@@ -22,6 +22,7 @@ import type {
   QuickEvaluateResponse,
   SessionInfo,
   TitleDecision,
+  WhatIfRequest,
   ValuationScorecard,
 } from "./types";
 
@@ -186,6 +187,18 @@ export const api = {
   getTitleDecision(titleId: string, options?: RequestOptions) {
     return apiFetch<TitleDecision>(`/valuation/${titleId}/decision`, {
       method: "GET",
+      ...options,
+    });
+  },
+
+  /**
+   * POST /api/v1/valuation/{titleId}/what-if - recompute a scorecard under
+   * scenario multipliers WITHOUT persisting (read-only sensitivity analysis).
+   */
+  whatIf(titleId: string, body: WhatIfRequest, options?: RequestOptions) {
+    return apiFetch<ValuationScorecard>(`/valuation/${titleId}/what-if`, {
+      method: "POST",
+      body,
       ...options,
     });
   },

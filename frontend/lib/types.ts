@@ -224,6 +224,16 @@ export interface CalibrationApplyResponse {
   offsets: Record<string, number | string> | null;
 }
 
+/** Scenario multipliers for the stateless what-if recompute. */
+export interface WhatIfRequest {
+  cost_multiplier: number;
+  viewership_multiplier: number;
+  churn_multiplier?: number;
+}
+
+/** Inclusive slider bounds for what-if multipliers (include 1.0). */
+export const MULTIPLIER_BOUNDS = { min: 0.5, max: 2.0 } as const;
+
 /** A plain-language negotiation lever keyed to a breached guardrail (R3). */
 export interface CounterProposalLever {
   name: string;
