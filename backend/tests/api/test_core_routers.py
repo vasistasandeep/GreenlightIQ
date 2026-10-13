@@ -144,9 +144,22 @@ class FakeGuardrailsEngine:
         }
 
 
+class _FakeSession:
+    """Minimal session stub exposing the commit() the audit handler calls."""
+
+    def __init__(self) -> None:
+        self.commits = 0
+
+    async def commit(self) -> None:
+        self.commits += 1
+
+
 class FakeBacktestingModule:
     def __init__(self) -> None:
         self.persisted: list[dict] = []
+        # The audit handler commits the persisted ground truth through the
+        # module's session; mirror the real module's attribute here.
+        self.session = _FakeSession()
 
     async def persist_ground_truth(self, record: dict) -> uuid.UUID:
         self.persisted.append(record)
@@ -466,6 +479,9 @@ def test_backtest_audit_returns_scorecard(
     assert body["mape"] == "25.00"
     assert body["metrics"][0]["metric"] == "cpvh"
     assert len(backtesting.persisted) == 1
+    # The handler must durably commit the ground truth so a later request (e.g.
+    # calibration, which re-audits the title in its own session) can read it.
+    assert backtesting.session.commits == 1
 
 
 # --------------------------------------------------------------------------- #

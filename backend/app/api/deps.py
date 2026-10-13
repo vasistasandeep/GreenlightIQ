@@ -151,10 +151,16 @@ async def get_current_user(
         if settings.demo_auth_bypass and not settings.is_production:
             from app.core.security import UserRole
 
+            # The synthetic demo principal is a CFO so a single demo session can
+            # exercise the whole app: valuation/audit, model calibration
+            # (CALIBRATE is reserved for DATA_ANALYST / CHIEF_CONTENT_OFFICER /
+            # CFO), recommendation overrides, executive sign-off, and
+            # confidential reads. Still DEV/DEMO ONLY and hard-blocked in prod by
+            # production_safety_errors().
             return UserContext(
-                user_id=uuid.uuid5(uuid.NAMESPACE_URL, "demo:content-buyer"),
-                display_name="Demo Content Buyer",
-                role=UserRole.CONTENT_BUYER,
+                user_id=uuid.uuid5(uuid.NAMESPACE_URL, "demo:cfo"),
+                display_name="Demo CFO",
+                role=UserRole.CFO,
                 authorized_territories=(),
             )
         raise UnauthenticatedError("Authentication is required.")

@@ -57,6 +57,10 @@ async def backtest_audit(
         ],
     }
     await module.persist_ground_truth(record)
+    # Durably commit the ground truth so a later request (e.g. calibration, which
+    # re-audits the title in its own session) can read it; engines flush but do
+    # not commit, and this handler owns the transaction boundary (R11.1).
+    await module.session.commit()
 
     scorecard = await module.audit(body.title_id)
     return BacktestAuditResponse(

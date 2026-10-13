@@ -146,6 +146,11 @@ export default function BacktestStudioPage() {
     }
   }
 
+  // The predicted CPVH is only known once the audit returns; surface it to the
+  // form so the read-only "Predicted" CPVH field can fill in after Run audit.
+  const predictedCpvh =
+    audit?.metrics.find((m) => m.metric === "cpvh")?.predicted ?? null;
+
   return (
     <AppShell>
       <header className="mb-6">
@@ -162,6 +167,7 @@ export default function BacktestStudioPage() {
           <GroundTruthForm
             titles={titles}
             titlesStatus={titlesStatus}
+            predictedCpvh={predictedCpvh}
             onSubmit={handleAudit}
             submitting={auditing}
           />

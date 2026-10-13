@@ -57,6 +57,7 @@ describe("selectAuditableTitles (Property 1)", () => {
           expect(result[index]).toEqual({
             title_id: title.title_id,
             title_name: title.title_name,
+            ltv_to_cost_multiple: title.ltv_to_cost_multiple,
           });
         });
 

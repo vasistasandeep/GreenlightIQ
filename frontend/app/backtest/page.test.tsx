@@ -111,10 +111,10 @@ describe("BacktestStudioPage", () => {
 
     await waitFor(() => expect(getDashboardSummary).toHaveBeenCalledTimes(1));
     expect(
-      await screen.findByRole("option", { name: "Maharani" }),
+      await screen.findByRole("option", { name: /Maharani/ }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("option", { name: "Pending Title" }),
+      screen.queryByRole("option", { name: /Pending Title/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -141,7 +141,7 @@ describe("BacktestStudioPage", () => {
     const user = userEvent.setup();
     render(<BacktestStudioPage />);
 
-    await screen.findByRole("option", { name: "Maharani" });
+    await screen.findByRole("option", { name: /Maharani/ });
     await user.selectOptions(screen.getByLabelText("Historical title"), "t-pred");
     await user.type(screen.getByLabelText("Actual CPVH"), "0.12");
     await user.click(screen.getByRole("button", { name: /Run audit/i }));
@@ -172,7 +172,7 @@ describe("BacktestStudioPage", () => {
     const user = userEvent.setup();
     render(<BacktestStudioPage />);
 
-    await screen.findByRole("option", { name: "Maharani" });
+    await screen.findByRole("option", { name: /Maharani/ });
     await user.selectOptions(screen.getByLabelText("Historical title"), "t-pred");
     await user.type(screen.getByLabelText("Actual CPVH"), "0.12");
     await user.click(screen.getByRole("button", { name: /Run audit/i }));

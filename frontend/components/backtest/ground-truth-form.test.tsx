@@ -20,8 +20,8 @@ import type { AuditableTitleOption } from "@/lib/backtest/select-auditable-title
  */
 
 const TITLES: AuditableTitleOption[] = [
-  { title_id: "title-123", title_name: "Maharani" },
-  { title_id: "title-456", title_name: "The Long Road" },
+  { title_id: "title-123", title_name: "Maharani", ltv_to_cost_multiple: 3.1 },
+  { title_id: "title-456", title_name: "The Long Road", ltv_to_cost_multiple: 2.4 },
 ];
 
 /** Capture the request the form hands to its parent on a valid submit. */
@@ -44,10 +44,10 @@ describe("GroundTruthForm (R16.1)", () => {
     const selector = screen.getByLabelText("Historical title");
     expect(selector).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: "Maharani" }),
+      screen.getByRole("option", { name: /Maharani/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: "The Long Road" }),
+      screen.getByRole("option", { name: /The Long Road/ }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Actual CPVH")).toBeInTheDocument();
     expect(
@@ -74,7 +74,7 @@ describe("GroundTruthForm (R16.1)", () => {
       title_id: "title-123",
       metrics: [
         { metric_name: "cpvh", actual_value: 0.12 },
-        { metric_name: "ltv_to_cost_multiple", actual_value: 3.4 },
+        { metric_name: "ltv_to_cost", actual_value: 3.4 },
       ],
     });
   });
