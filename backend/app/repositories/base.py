@@ -145,9 +145,16 @@ class BaseRepository(Generic[ModelT]):
         values.pop("row_version", None)
 
         version_col = self.model.row_version  # type: ignore[attr-defined]
+        # Resolve the primary-key column from the MODEL CLASS, not ``self.pk``.
+        # ``pk`` is a class attribute holding an ORM ``InstrumentedAttribute``;
+        # reading it as ``self.pk`` (off a repository *instance*) re-invokes the
+        # attribute descriptor with the repository as the target, which is not a
+        # mapped object and raises ``UnmappedInstanceError``. Accessing it via the
+        # class (``type(self).pk``) returns the column expression unchanged.
+        pk_col = type(self).pk
         stmt = (
             update(self.model)
-            .where(self.pk == entity_id, version_col == expected_version)
+            .where(pk_col == entity_id, version_col == expected_version)
             .values(**values, row_version=version_col + 1)
             .execution_options(synchronize_session=False)
         )

@@ -124,12 +124,12 @@ TITLES = [
     (
         "title-ledger", "The Ledger", "ORIGINAL_FILM", "9500000.00", "USD",
         ["US"], "thriller", "40000000.00", False,
-        "0.2375", "2.90", "1.20", 15, "NEGOTIATE_HARD",
+        "0.2375", "2.90", "1.60", 15, "NEGOTIATE_HARD",
     ),
     (
         "title-reruns", "Vintage Reruns Vol. 7", "LICENSED_LIBRARY", "1200000.00", "EUR",
         ["DE", "FR"], "comedy", "60000000.00", False,
-        "0.0200", "4.10", "0.90", 8, "NEGOTIATE_HARD",
+        "0.0200", "4.10", "0.90", 8, "PASS",
     ),
     (
         "title-echoes", "Echoes of 2019", "ORIGINAL_SERIES", "30000000.00", "USD",
@@ -393,12 +393,18 @@ def render() -> str:
             "cpm": cpm,
             "ad_impressions": ad_impressions,
             "churn_reduction_pct": float(churn),
-            "monthly_margin": round(normalized / float(payback), 2),
-            # Two equal milestones as STRING amounts (the engine's _to_decimal
-            # rejects floats); keeps payback computable on a live recompute.
+            # Payback is milestone-based (R7.1, R22.2): the engine walks the
+            # schedule month by month and returns the first month where
+            # margin*month exceeds the cumulative outflow. With the full cost
+            # disbursed at month 1, break-even is the first m with
+            # margin*m > normalized. Setting margin = normalized/(payback-0.5)
+            # makes that first month land EXACTLY on the intended payback, so a
+            # live recompute reproduces the seeded payback_horizon_months (a
+            # split schedule front-loads outflow and shifts break-even, which is
+            # why the single milestone is used for the payback input here).
+            "monthly_margin": round(normalized / (float(payback) - 0.5), 2),
             "milestone_schedule": [
-                {"month": 0, "amount": f"{normalized / 2:.2f}", "currency": "USD"},
-                {"month": 6, "amount": f"{normalized / 2:.2f}", "currency": "USD"},
+                {"month": 1, "amount": f"{normalized:.2f}", "currency": "USD"},
             ],
         }
         rows.append(
