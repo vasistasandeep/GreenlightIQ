@@ -28,6 +28,7 @@ import type {
   OverrideRequest,
   OverrideResult,
   ParsedPitch,
+  ComparableTitles,
   TitleDecision,
   WhatIfRequest,
   ValuationScorecard,
@@ -193,6 +194,16 @@ export const api = {
    */
   getTitleDecision(titleId: string, options?: RequestOptions) {
     return apiFetch<TitleDecision>(`/valuation/${titleId}/decision`, {
+      method: "GET",
+      ...options,
+    });
+  },
+  /**
+   * GET /api/v1/valuation/{titleId}/comps - the Top-3 titles most similar to
+   * this one by Narrative_DNA cosine similarity (R2.6).
+   */
+  getComps(titleId: string, options?: RequestOptions) {
+    return apiFetch<ComparableTitles>(`/valuation/${titleId}/comps`, {
       method: "GET",
       ...options,
     });

@@ -33,6 +33,7 @@ import { AppShell } from "@/components/layout/top-nav";
 import { ExplanationPanel } from "./explanation-panel";
 import { FinancialAccordion } from "./financial-accordion";
 import { MetadataRadar } from "./metadata-radar";
+import { ComparableTitlesPanel } from "./comparable-titles";
 import { NegotiationLeverage } from "./negotiation-leverage";
 import { PendingValuationState } from "./pending-state";
 
@@ -141,6 +142,9 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <MetadataRadar breakdown={state.scorecard.metadata_breakdown} />
           <NegotiationLeverage scorecard={state.scorecard} />
+          <div className="lg:col-span-2">
+            <ComparableTitlesPanel titleId={titleId} />
+          </div>
           <div className="lg:col-span-2">
             <FinancialAccordion scorecard={state.scorecard} />
           </div>

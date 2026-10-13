@@ -168,6 +168,35 @@ class ValuationScorecardResponse(BaseModel):
     churn_cohort: ChurnCohortOut | None = None
 
 
+class TitleCompOut(BaseModel):
+    """One nearest-neighbour title in the Top-3 comps surface (R2.6, R17.6).
+
+    A comp is the result of a title-to-title Narrative_DNA cosine-similarity
+    lookup over ``metadata_vectors``. ``cosine_similarity`` is in ``[-1.0, 1.0]``
+    (1.0 == identical direction); ``recommendation_status`` is ``null`` when the
+    neighbour has no computed valuation yet.
+    """
+
+    title_id: uuid.UUID
+    title_name: str
+    genre_tag: str | None = None
+    recommendation_status: str | None = None
+    cosine_similarity: float
+
+
+class ComparableTitlesResponse(BaseModel):
+    """The ``GET /valuation/{title_id}/comps`` payload (R2.6).
+
+    ``found`` is false when the query title has no stored embedding (comps cannot
+    be computed); ``comps`` is then empty. An empty ``comps`` with ``found`` true
+    means the title has an embedding but no other title does yet.
+    """
+
+    title_id: uuid.UUID
+    found: bool
+    comps: list[TitleCompOut] = Field(default_factory=list)
+
+
 # --------------------------------------------------------------------------- #
 # POST /backtest/audit
 # --------------------------------------------------------------------------- #

@@ -458,6 +458,142 @@ def test_get_valuation_missing_title_maps_to_404(client: TestClient) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# GET /valuation/{title_id}/comps
+# --------------------------------------------------------------------------- #
+
+
+def test_get_comps_returns_top_neighbours(client: TestClient) -> None:
+    title_id = uuid.uuid4()
+    neighbour_a = uuid.uuid4()
+    neighbour_b = uuid.uuid4()
+
+    @dataclass
+    class FakeTitle:
+        title_id: uuid.UUID
+
+    @dataclass
+    class FakeVector:
+        narrative_dna: list = field(default_factory=lambda: [0.1] * 1536)
+        created_at: datetime = field(
+            default_factory=lambda: datetime.now(timezone.utc)
+        )
+
+    import app.api.valuation as val_mod
+    import app.repositories.metadata_vectors as mv
+
+    class _Titles:
+        def __init__(self, session: Any) -> None: ...
+
+        async def get(self, tid: uuid.UUID) -> Any:
+            return FakeTitle(title_id=title_id) if tid == title_id else None
+
+    class _Vectors:
+        def __init__(self, session: Any) -> None: ...
+
+        async def list_for_title(self, tid: uuid.UUID) -> list[Any]:
+            return [FakeVector()]
+
+        async def rank_similar_titles(
+            self, title_vector: list, exclude_title_id: uuid.UUID, limit: int = 3
+        ) -> list[Any]:
+            assert exclude_title_id == title_id
+            return [
+                mv.SimilarTitle(
+                    title_id=neighbour_a,
+                    title_name="Neighbour A",
+                    genre_tag="DRAMA",
+                    recommendation_status="GREENLIGHT",
+                    cosine_similarity=0.9123,
+                ),
+                mv.SimilarTitle(
+                    title_id=neighbour_b,
+                    title_name="Neighbour B",
+                    genre_tag="THRILLER",
+                    recommendation_status=None,
+                    cosine_similarity=0.8011,
+                ),
+            ]
+
+    val_mod.TitleRepository = _Titles  # type: ignore[assignment]
+    val_mod.MetadataVectorRepository = _Vectors  # type: ignore[assignment]
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}/comps")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["found"] is True
+        assert body["title_id"] == str(title_id)
+        assert len(body["comps"]) == 2
+        first = body["comps"][0]
+        assert first["title_id"] == str(neighbour_a)
+        assert first["title_name"] == "Neighbour A"
+        assert first["recommendation_status"] == "GREENLIGHT"
+        assert first["cosine_similarity"] == 0.9123
+        # A neighbour without a computed valuation surfaces a null status.
+        assert body["comps"][1]["recommendation_status"] is None
+    finally:
+        import app.repositories.titles as tr
+
+        val_mod.TitleRepository = tr.TitleRepository
+        val_mod.MetadataVectorRepository = mv.MetadataVectorRepository
+
+
+def test_get_comps_no_embedding_returns_found_false(client: TestClient) -> None:
+    title_id = uuid.uuid4()
+
+    @dataclass
+    class FakeTitle:
+        title_id: uuid.UUID
+
+    import app.api.valuation as val_mod
+    import app.repositories.metadata_vectors as mv
+
+    class _Titles:
+        def __init__(self, session: Any) -> None: ...
+
+        async def get(self, tid: uuid.UUID) -> Any:
+            return FakeTitle(title_id=title_id)
+
+    class _Vectors:
+        def __init__(self, session: Any) -> None: ...
+
+        async def list_for_title(self, tid: uuid.UUID) -> list[Any]:
+            return []
+
+    val_mod.TitleRepository = _Titles  # type: ignore[assignment]
+    val_mod.MetadataVectorRepository = _Vectors  # type: ignore[assignment]
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}/comps")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["found"] is False
+        assert body["comps"] == []
+    finally:
+        import app.repositories.titles as tr
+
+        val_mod.TitleRepository = tr.TitleRepository
+        val_mod.MetadataVectorRepository = mv.MetadataVectorRepository
+
+
+def test_get_comps_missing_title_maps_to_404(client: TestClient) -> None:
+    import app.api.valuation as val_mod
+
+    class _Titles:
+        def __init__(self, session: Any) -> None: ...
+
+        async def get(self, tid: uuid.UUID) -> Any:
+            return None
+
+    original = val_mod.TitleRepository
+    val_mod.TitleRepository = _Titles  # type: ignore[assignment]
+    try:
+        resp = client.get(f"/api/v1/valuation/{uuid.uuid4()}/comps")
+        assert resp.status_code == 404
+        assert resp.json()["error_code"] == "TITLE_NOT_FOUND"
+    finally:
+        val_mod.TitleRepository = original
+
+
+# --------------------------------------------------------------------------- #
 # POST /backtest/audit
 # --------------------------------------------------------------------------- #
 

@@ -38,9 +38,11 @@ from app.repositories.metadata_vectors import MetadataVectorRepository
 from app.repositories.titles import TitleRepository
 from app.schemas.api import (
     ChurnCohortOut,
+    ComparableTitlesResponse,
     CounterProposalLeverOut,
     LtvAttributionOut,
     MetadataBreakdown,
+    TitleCompOut,
     ValuationCalculateRequest,
     ValuationScorecardResponse,
     ValuationSummaryResponse,
@@ -169,6 +171,57 @@ async def get_valuation(
         ltv_attribution=ltv_attr,
         churn_cohort=churn_cohort,
     )
+
+
+@router.get(
+    "/{title_id}/comps",
+    response_model=ComparableTitlesResponse,
+    dependencies=[Depends(require_operation(Operation.VALUATION))],
+    summary="Return the Top-3 most similar titles by Narrative_DNA (R2.6).",
+)
+async def get_comparable_titles(
+    title_id: uuid.UUID,
+    actor: CurrentUser,
+    session: SessionDep,
+) -> ComparableTitlesResponse:
+    """Return the title's nearest neighbours by Narrative_DNA cosine similarity.
+
+    Resolves the title's latest stored embedding, then ranks every other title's
+    ``narrative_dna`` against it with pgvector's cosine-distance operator and
+    returns the three most similar (R2.6). A missing title raises
+    ``404 TITLE_NOT_FOUND`` (R10.3). A title with no stored embedding returns
+    ``found=False`` with an empty list rather than a 404, so the UI can render a
+    graceful empty state.
+    """
+    titles = TitleRepository(session)
+    title = await titles.get(title_id)
+    if title is None:
+        raise TitleNotFoundError(
+            f"No title exists for id {title_id!r}.",
+            details={"title_id": str(title_id)},
+        )
+
+    vectors_repo = MetadataVectorRepository(session)
+    vectors = await vectors_repo.list_for_title(title_id)
+    if not vectors:
+        return ComparableTitlesResponse(title_id=title_id, found=False, comps=[])
+
+    # Rank against the most recent extraction, matching GET /valuation.
+    vector = max(vectors, key=lambda v: v.created_at)
+    neighbours = await vectors_repo.rank_similar_titles(
+        vector.narrative_dna, exclude_title_id=title_id, limit=3
+    )
+    comps = [
+        TitleCompOut(
+            title_id=n.title_id,
+            title_name=n.title_name,
+            genre_tag=n.genre_tag,
+            recommendation_status=n.recommendation_status,
+            cosine_similarity=round(n.cosine_similarity, 4),
+        )
+        for n in neighbours
+    ]
+    return ComparableTitlesResponse(title_id=title_id, found=True, comps=comps)
 
 
 class TitleDecisionResponse(BaseModel):

@@ -267,6 +267,29 @@ export interface TitleDecision {
   decision_id: string;
 }
 
+/**
+ * One nearest-neighbour title in the Top-3 comps surface (R2.6). A comp is the
+ * result of a title-to-title Narrative_DNA cosine-similarity lookup;
+ * `recommendation_status` is null when the neighbour has no computed valuation.
+ */
+export interface TitleComp {
+  title_id: string;
+  title_name: string;
+  genre_tag: string | null;
+  recommendation_status: string | null;
+  cosine_similarity: number;
+}
+
+/**
+ * GET /valuation/{titleId}/comps payload (R2.6). `found` is false when the
+ * query title has no stored embedding, in which case `comps` is empty.
+ */
+export interface ComparableTitles {
+  title_id: string;
+  found: boolean;
+  comps: TitleComp[];
+}
+
 /** Best-effort Asset Studio fields parsed from an uploaded pitch PDF. */
 export interface ParsedPitch {
   title_name: string | null;
