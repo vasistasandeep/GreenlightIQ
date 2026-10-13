@@ -267,6 +267,17 @@ export interface TitleDecision {
   decision_id: string;
 }
 
+/** One immutable model version in the catalog (R26.1, R26.3). */
+export interface ModelVersion {
+  model_version_id: string;
+  talent_pedigree_weight: number | string;
+  narrative_trope_weight: number | string;
+  guardrail_params: Record<string, unknown>;
+  supersedes_id: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
 /** Request to override a decision's recommendation (R20.2). */
 export interface OverrideRequest {
   recommendation_status: RecommendationStatus;

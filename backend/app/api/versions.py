@@ -25,9 +25,11 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_audit_service, get_current_user, get_rbac_service
 from app.core.db import get_db_session
 from app.core.errors import NotFoundError, TitleNotFoundError
+from app.engines.audit import AuditLogService
+from app.engines.rbac import Operation, RBACService
 from app.core.security import UserContext
 from app.repositories.model_versions import ModelVersionRepository
 from app.repositories.titles import TitleRepository, TitleVersionRepository
@@ -126,3 +128,52 @@ async def list_title_versions(
         )
         for row in rows
     ]
+
+
+@router.post(
+    "/models/versions/{model_version_id}/activate",
+    response_model=ModelVersionResponse,
+)
+async def activate_model_version(
+    model_version_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db_session),
+    actor: UserContext = Depends(get_current_user),
+    rbac: RBACService = Depends(get_rbac_service),
+    audit: AuditLogService = Depends(get_audit_service),
+) -> ModelVersionResponse:
+    """Roll back to a prior model version by making it the active one (R26.3).
+
+    Deactivates the currently active version and activates the target, recording
+    the change in the append-only audit log. Gated to the CALIBRATE operation
+    (data-science / executive governance). Model-version rows are never mutated
+    beyond the ``is_active`` flag, preserving the immutable weight history.
+    """
+    rbac.authorize(actor, Operation.CALIBRATE, resource=model_version_id)
+
+    repo = ModelVersionRepository(session)
+    target = await repo.get(model_version_id)
+    if target is None:
+        raise NotFoundError(
+            "The requested model version was not found.",
+            details={"model_version_id": str(model_version_id)},
+        )
+
+    current = await repo.get_active()
+    previous_id = current.model_version_id if current is not None else None
+    if current is not None and current.model_version_id != target.model_version_id:
+        await repo.update(current, is_active=False)
+    if not target.is_active:
+        await repo.update(target, is_active=True)
+
+    await audit.record(
+        actor=actor.user_id,
+        action="model_version_rollback",
+        before={"active_model_version_id": str(previous_id) if previous_id else None},
+        after={"active_model_version_id": str(target.model_version_id)},
+        subject_id=target.model_version_id,
+        model_version_id=target.model_version_id,
+    )
+    await session.commit()
+
+    refreshed = await repo.get(model_version_id)
+    return _to_model_version(refreshed if refreshed is not None else target)

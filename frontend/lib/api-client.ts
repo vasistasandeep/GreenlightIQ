@@ -22,6 +22,7 @@ import type {
   QuickEvaluateResponse,
   SessionInfo,
   Lineage,
+  ModelVersion,
   OverrideRequest,
   OverrideResult,
   TitleDecision,
@@ -226,6 +227,25 @@ export const api = {
   getLineage(subjectId: string, options?: RequestOptions) {
     return apiFetch<Lineage>(`/audit/lineage/${subjectId}`, {
       method: "GET",
+      ...options,
+    });
+  },
+
+  /** GET /api/v1/models/versions - the immutable model-version catalog (R26.3). */
+  listModelVersions(options?: RequestOptions) {
+    return apiFetch<ModelVersion[]>("/models/versions", {
+      method: "GET",
+      ...options,
+    });
+  },
+
+  /**
+   * POST /api/v1/models/versions/{id}/activate - roll back to a prior model
+   * version by making it active (R26.3). Gated to CALIBRATE roles server-side.
+   */
+  activateModelVersion(modelVersionId: string, options?: RequestOptions) {
+    return apiFetch<ModelVersion>(`/models/versions/${modelVersionId}/activate`, {
+      method: "POST",
       ...options,
     });
   },

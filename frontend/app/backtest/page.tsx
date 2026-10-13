@@ -17,6 +17,7 @@ import {
 } from "@/lib/backtest/select-auditable-titles";
 import { mapAuditError } from "@/lib/backtest/map-audit-error";
 import { CalibrationController } from "@/components/backtest/calibration-controller";
+import { ModelVersionCatalog } from "@/components/backtest/model-version-catalog";
 import { GroundTruthForm } from "@/components/backtest/ground-truth-form";
 import { SignOffPanel } from "@/components/backtest/sign-off-panel";
 import { VarianceChart } from "@/components/backtest/variance-chart";
@@ -256,6 +257,8 @@ export default function BacktestStudioPage() {
             result={calibration}
             error={calibrationError}
           />
+
+          <ModelVersionCatalog />
 
           <SignOffPanel
             status={finalization}
