@@ -90,6 +90,7 @@ export function SensitivityPanel({ titleId }: SensitivityPanelProps) {
           </span>
           <input
             type="range"
+            className="h-6 w-full cursor-pointer accent-emerald-500 touch-none"
             aria-label="Cost multiplier"
             min={MULTIPLIER_BOUNDS.min}
             max={MULTIPLIER_BOUNDS.max}
@@ -107,6 +108,7 @@ export function SensitivityPanel({ titleId }: SensitivityPanelProps) {
           </span>
           <input
             type="range"
+            className="h-6 w-full cursor-pointer accent-emerald-500 touch-none"
             aria-label="Viewership multiplier"
             min={MULTIPLIER_BOUNDS.min}
             max={MULTIPLIER_BOUNDS.max}
@@ -128,6 +130,7 @@ export function SensitivityPanel({ titleId }: SensitivityPanelProps) {
           </span>
           <input
             type="range"
+            className="h-6 w-full cursor-pointer accent-emerald-500 touch-none"
             aria-label="Churn multiplier"
             min={MULTIPLIER_BOUNDS.min}
             max={MULTIPLIER_BOUNDS.max}

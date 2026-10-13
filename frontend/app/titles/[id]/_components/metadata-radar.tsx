@@ -113,7 +113,7 @@ export function MetadataRadar({ breakdown }: MetadataRadarProps) {
         <>
           <div className="h-72 w-full" role="img" aria-label="Metadata profile radar chart">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data} outerRadius="72%">
+              <RadarChart data={data} outerRadius="65%">
                 <PolarGrid />
                 <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 12 }} />
                 <PolarRadiusAxis domain={[0, AXIS_MAX]} tick={{ fontSize: 10 }} />
