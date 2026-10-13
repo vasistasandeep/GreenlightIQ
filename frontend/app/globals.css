@@ -26,3 +26,39 @@
     color: hsl(var(--foreground));
   }
 }
+
+
+/* --- Print: Greenlight Memo one-pager (Deal Decision Support export) --- */
+@media print {
+  /* Hide everything except the memo, then show it as light, paper-friendly. */
+  body * {
+    visibility: hidden;
+  }
+  #greenlight-memo,
+  #greenlight-memo * {
+    visibility: visible;
+  }
+  #greenlight-memo {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 24px;
+    width: 100%;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  /* Force readable dark-on-white for the memo regardless of app theme. */
+  #greenlight-memo * {
+    background: transparent !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border-color: #cbd5e1 !important;
+  }
+  /* Elements explicitly marked no-print never appear on paper. */
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    margin: 12mm;
+  }
+}

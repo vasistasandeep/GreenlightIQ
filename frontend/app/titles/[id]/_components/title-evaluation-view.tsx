@@ -24,6 +24,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api-client";
 import type { ValuationScorecard } from "@/lib/types";
 import { RecommendationBadge } from "@/components/recommendation-badge";
+import { GreenlightMemo } from "./greenlight-memo";
 import { AppShell } from "@/components/layout/top-nav";
 
 import { ExplanationPanel } from "./explanation-panel";
@@ -87,10 +88,19 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
           <p className="text-sm text-slate-400">Title {titleId}</p>
         </div>
         {state.status === "ready" ? (
-          <RecommendationBadge
-            status={state.scorecard.recommendation_status}
-            className="text-sm"
-          />
+          <div className="flex items-center gap-3">
+            <RecommendationBadge
+              status={state.scorecard.recommendation_status}
+              className="text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="no-print inline-flex items-center rounded-md border border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+            >
+              Export Greenlight Memo (PDF)
+            </button>
+          </div>
         ) : null}
       </header>
 
@@ -134,6 +144,7 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
           <div className="lg:col-span-2">
             <ExplanationPanel explanation={state.scorecard.explanation} />
           </div>
+          <GreenlightMemo titleId={titleId} scorecard={state.scorecard} />
         </div>
       ) : null}
     </AppShell>
