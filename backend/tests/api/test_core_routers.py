@@ -594,6 +594,166 @@ def test_get_comps_missing_title_maps_to_404(client: TestClient) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Deal-stage lifecycle: GET/PATCH /titles/{id}/deal-stage
+# --------------------------------------------------------------------------- #
+
+
+def _buyer() -> UserContext:
+    """A CONTENT_BUYER - a role permitted the OVERRIDE operation."""
+    return UserContext(
+        user_id=uuid.uuid4(),
+        display_name="Test Buyer",
+        role=UserRole.CONTENT_BUYER,
+        authorized_territories=(),
+    )
+
+
+class _FakeAuditService:
+    """Captures audit.record(...) calls without touching a session."""
+
+    def __init__(self) -> None:
+        self.records: list[dict] = []
+
+    async def record(self, **kwargs: Any) -> None:
+        self.records.append(kwargs)
+
+
+def _patch_titles_repo(title_id: uuid.UUID, stage: str):
+    """Patch TitleRepository on the titles module with an in-memory fake.
+
+    Returns the fake instance so a test can read back the stored deal_stage.
+    """
+    import app.api.titles as titles_mod
+
+    @dataclass
+    class FakeTitle:
+        title_id: uuid.UUID
+        deal_stage: str
+
+    class _Repo:
+        instance: Any = None
+
+        def __init__(self, session: Any) -> None:
+            self.title = FakeTitle(title_id=title_id, deal_stage=stage)
+            _Repo.instance = self
+
+        async def get(self, tid: uuid.UUID) -> Any:
+            return self.title if tid == title_id else None
+
+        async def update(self, instance: Any, **values: Any) -> Any:
+            for key, value in values.items():
+                setattr(instance, key, value)
+            return instance
+
+    titles_mod.TitleRepository = _Repo  # type: ignore[assignment]
+    return titles_mod, _Repo
+
+
+def test_get_deal_stage_returns_stage_and_allowed_moves(client: TestClient) -> None:
+    title_id = uuid.uuid4()
+    titles_mod, repo = _patch_titles_repo(title_id, "EVALUATED")
+    try:
+        resp = client.get(f"/api/v1/titles/{title_id}/deal-stage")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["deal_stage"] == "EVALUATED"
+        assert body["allowed_next_stages"] == ["IN_NEGOTIATION", "PASSED"]
+    finally:
+        import app.repositories.titles as tr
+
+        titles_mod.TitleRepository = tr.TitleRepository
+
+
+def test_get_deal_stage_missing_title_maps_to_404(client: TestClient) -> None:
+    titles_mod, _repo = _patch_titles_repo(uuid.uuid4(), "SCREENING")
+    try:
+        resp = client.get(f"/api/v1/titles/{uuid.uuid4()}/deal-stage")
+        assert resp.status_code == 404
+        assert resp.json()["error_code"] == "TITLE_NOT_FOUND"
+    finally:
+        import app.repositories.titles as tr
+
+        titles_mod.TitleRepository = tr.TitleRepository
+
+
+def test_patch_deal_stage_advances_on_legal_transition() -> None:
+    title_id = uuid.uuid4()
+    app = create_app()
+    audit = _FakeAuditService()
+    app.dependency_overrides[deps.get_current_user] = _buyer
+    app.dependency_overrides[deps.get_db_session] = lambda: FakeSession()
+    app.dependency_overrides[deps.get_audit_service] = lambda: audit
+    titles_mod, repo = _patch_titles_repo(title_id, "EVALUATED")
+    try:
+        resp = TestClient(app).patch(
+            f"/api/v1/titles/{title_id}/deal-stage",
+            json={"deal_stage": "IN_NEGOTIATION"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["deal_stage"] == "IN_NEGOTIATION"
+        assert body["allowed_next_stages"] == ["APPROVED", "PASSED"]
+        # The transition was persisted and audited.
+        assert repo.instance.title.deal_stage == "IN_NEGOTIATION"
+        assert len(audit.records) == 1
+        assert audit.records[0]["before"] == {"deal_stage": "EVALUATED"}
+        assert audit.records[0]["after"] == {"deal_stage": "IN_NEGOTIATION"}
+    finally:
+        import app.repositories.titles as tr
+
+        titles_mod.TitleRepository = tr.TitleRepository
+
+
+def test_patch_deal_stage_rejects_illegal_transition_with_422() -> None:
+    title_id = uuid.uuid4()
+    app = create_app()
+    audit = _FakeAuditService()
+    app.dependency_overrides[deps.get_current_user] = _buyer
+    app.dependency_overrides[deps.get_db_session] = lambda: FakeSession()
+    app.dependency_overrides[deps.get_audit_service] = lambda: audit
+    titles_mod, repo = _patch_titles_repo(title_id, "SCREENING")
+    try:
+        resp = TestClient(app).patch(
+            f"/api/v1/titles/{title_id}/deal-stage",
+            json={"deal_stage": "CLOSED_WON"},
+        )
+        assert resp.status_code == 422
+        assert resp.json()["error_code"] == "VALIDATION_FAILED"
+        # Nothing was persisted or audited on a rejected move.
+        assert repo.instance.title.deal_stage == "SCREENING"
+        assert audit.records == []
+    finally:
+        import app.repositories.titles as tr
+
+        titles_mod.TitleRepository = tr.TitleRepository
+
+
+def test_patch_deal_stage_denies_unauthorized_role_with_403() -> None:
+    # The default DATA_ANALYST is not permitted the OVERRIDE operation.
+    title_id = uuid.uuid4()
+    titles_mod, _repo = _patch_titles_repo(title_id, "EVALUATED")
+    try:
+        resp = client_fixture_patch(title_id)
+        assert resp.status_code == 403
+    finally:
+        import app.repositories.titles as tr
+
+        titles_mod.TitleRepository = tr.TitleRepository
+
+
+def client_fixture_patch(title_id: uuid.UUID):
+    """PATCH as the default DATA_ANALYST (no OVERRIDE) to assert the 403 gate."""
+    app = create_app()
+    app.dependency_overrides[deps.get_current_user] = _analyst
+    app.dependency_overrides[deps.get_db_session] = lambda: FakeSession()
+    app.dependency_overrides[deps.get_audit_service] = lambda: _FakeAuditService()
+    return TestClient(app).patch(
+        f"/api/v1/titles/{title_id}/deal-stage",
+        json={"deal_stage": "IN_NEGOTIATION"},
+    )
+
+
+# --------------------------------------------------------------------------- #
 # POST /backtest/audit
 # --------------------------------------------------------------------------- #
 

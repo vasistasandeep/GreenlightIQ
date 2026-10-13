@@ -29,6 +29,8 @@ import type {
   OverrideResult,
   ParsedPitch,
   ComparableTitles,
+  DealStageInfo,
+  DealStage,
   MarketTelemetry,
   TitleDecision,
   WhatIfRequest,
@@ -217,6 +219,27 @@ export const api = {
     const query = new URLSearchParams({ genre, territory }).toString();
     return apiFetch<MarketTelemetry>(`/market/telemetry?${query}`, {
       method: "GET",
+      ...options,
+    });
+  },
+  /**
+   * GET /api/v1/titles/{titleId}/deal-stage - the title's acquisition deal stage
+   * and its allowed next transitions (deal-stage lifecycle).
+   */
+  getDealStage(titleId: string, options?: RequestOptions) {
+    return apiFetch<DealStageInfo>(`/titles/${titleId}/deal-stage`, {
+      method: "GET",
+      ...options,
+    });
+  },
+  /**
+   * PATCH /api/v1/titles/{titleId}/deal-stage - advance the title to a new stage.
+   * The transition is guarded server-side; an illegal move returns 422.
+   */
+  setDealStage(titleId: string, dealStage: DealStage, options?: RequestOptions) {
+    return apiFetch<DealStageInfo>(`/titles/${titleId}/deal-stage`, {
+      method: "PATCH",
+      body: { deal_stage: dealStage },
       ...options,
     });
   },

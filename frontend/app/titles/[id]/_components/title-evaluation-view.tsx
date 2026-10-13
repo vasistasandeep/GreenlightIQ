@@ -35,6 +35,7 @@ import { FinancialAccordion } from "./financial-accordion";
 import { MetadataRadar } from "./metadata-radar";
 import { ComparableTitlesPanel } from "./comparable-titles";
 import { MarketTelemetryCard } from "./market-telemetry-card";
+import { DealStageControl } from "./deal-stage-control";
 import { NegotiationLeverage } from "./negotiation-leverage";
 import { PendingValuationState } from "./pending-state";
 
@@ -141,6 +142,9 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
 
       {state.status === "ready" ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="lg:col-span-2">
+            <DealStageControl titleId={titleId} />
+          </div>
           <MetadataRadar breakdown={state.scorecard.metadata_breakdown} />
           <NegotiationLeverage scorecard={state.scorecard} />
           <div className="lg:col-span-2">

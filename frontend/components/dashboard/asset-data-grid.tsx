@@ -17,8 +17,9 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { CpvhStatus, RecommendationStatus, TitleSummary } from "@/lib/types";
+import type { CpvhStatus, DealStage, RecommendationStatus, TitleSummary } from "@/lib/types";
 import { RecommendationBadge, recommendationLabel } from "@/components/recommendation-badge";
+import { DealStageBadge, dealStageLabel } from "@/components/deal-stage-badge";
 
 /**
  * AssetDataGrid (R14.2, R14.4, R14.5).
@@ -40,7 +41,8 @@ type SortableColumn =
   | "asset_type"
   | "asking_price"
   | "cpvh_status"
-  | "ltv_to_cost_multiple";
+  | "ltv_to_cost_multiple"
+  | "deal_stage";
 
 type SortDirection = "asc" | "desc";
 
@@ -55,7 +57,30 @@ const SORTABLE_COLUMNS: readonly SortableColumn[] = [
   "asking_price",
   "cpvh_status",
   "ltv_to_cost_multiple",
+  "deal_stage",
 ] as const;
+
+/** Deal stages in pipeline order, used for the filter dropdown and sort key. */
+const DEAL_STAGES: readonly DealStage[] = [
+  "SCREENING",
+  "EVALUATED",
+  "IN_NEGOTIATION",
+  "APPROVED",
+  "CLOSED_WON",
+  "CLOSED_LOST",
+  "PASSED",
+] as const;
+
+/** Rank deal stages by pipeline position so sorting follows the lifecycle. */
+const DEAL_STAGE_ORDER: Record<DealStage, number> = {
+  SCREENING: 0,
+  EVALUATED: 1,
+  IN_NEGOTIATION: 2,
+  APPROVED: 3,
+  CLOSED_WON: 4,
+  CLOSED_LOST: 5,
+  PASSED: 6,
+};
 
 const RECOMMENDATION_FILTERS: readonly RecommendationStatus[] = [
   "GREENLIGHT",
@@ -103,6 +128,8 @@ function sortKey(row: TitleSummary, column: SortableColumn): number | string {
       return CPVH_STATUS_ORDER[row.cpvh_status];
     case "ltv_to_cost_multiple":
       return row.ltv_to_cost_multiple ?? Number.NEGATIVE_INFINITY;
+    case "deal_stage":
+      return DEAL_STAGE_ORDER[row.deal_stage ?? "SCREENING"];
   }
 }
 
@@ -150,6 +177,7 @@ const COLUMNS: ColumnDef[] = [
   { key: "asking_price", label: "Asking Price", numeric: true },
   { key: "cpvh_status", label: "CPVH Status" },
   { key: "ltv_to_cost_multiple", label: "LTV Multiple", numeric: true },
+  { key: "deal_stage", label: "Deal Stage" },
 ];
 
 function SortIcon({ active, direction }: { active: boolean; direction: SortDirection }) {
@@ -177,6 +205,13 @@ function parseRecFilter(raw: string | null): RecommendationStatus | null {
     : null;
 }
 
+/** Parse a deal-stage filter from the URL, or null for "all". */
+function parseStageFilter(raw: string | null): DealStage | null {
+  return (DEAL_STAGES as readonly string[]).includes(raw ?? "")
+    ? (raw as DealStage)
+    : null;
+}
+
 export interface AssetDataGridProps {
   titles: TitleSummary[];
   className?: string;
@@ -188,6 +223,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
 
   const query = searchParams.get("q") ?? "";
   const recFilter = parseRecFilter(searchParams.get("rec"));
+  const stageFilter = parseStageFilter(searchParams.get("stage"));
   const sortParam = searchParams.get("sort");
   const dirParam = searchParams.get("dir");
   const sort: SortState = useMemo(
@@ -221,10 +257,11 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
     const filtered = titles.filter((t) => {
       if (needle && !t.title_name.toLowerCase().includes(needle)) return false;
       if (recFilter && t.recommendation_status !== recFilter) return false;
+      if (stageFilter && (t.deal_stage ?? "SCREENING") !== stageFilter) return false;
       return true;
     });
     return filtered.sort((a, b) => compareRows(a, b, sort));
-  }, [titles, query, recFilter, sort]);
+  }, [titles, query, recFilter, stageFilter, sort]);
 
   function toggleSort(column: SortableColumn) {
     if (sort.column === column) {
@@ -238,7 +275,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
     router.push(`/titles/${titleId}`);
   }
 
-  const hasActiveFilters = query.trim() !== "" || recFilter !== null;
+  const hasActiveFilters = query.trim() !== "" || recFilter !== null || stageFilter !== null;
 
   // Empty *pipeline* (no titles at all) keeps the original onboarding state.
   if (titles.length === 0) {
@@ -316,10 +353,29 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
           </select>
         </div>
 
+        <div className="flex items-center gap-2">
+          <label htmlFor="stage-filter" className="text-sm text-muted-foreground">
+            Deal stage
+          </label>
+          <select
+            id="stage-filter"
+            value={stageFilter ?? ""}
+            onChange={(e) => updateParams({ stage: e.target.value || null })}
+            className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <option value="">All</option>
+            {DEAL_STAGES.map((stage) => (
+              <option key={stage} value={stage}>
+                {dealStageLabel(stage)}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {hasActiveFilters ? (
           <button
             type="button"
-            onClick={() => updateParams({ q: null, rec: null })}
+            onClick={() => updateParams({ q: null, rec: null, stage: null })}
             className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             <X className="h-3.5 w-3.5" aria-hidden />
@@ -337,7 +393,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
           <p className="text-sm font-medium text-slate-200">No titles match your filters.</p>
           <button
             type="button"
-            onClick={() => updateParams({ q: null, rec: null })}
+            onClick={() => updateParams({ q: null, rec: null, stage: null })}
             className="mt-3 inline-flex items-center gap-1 rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             <X className="h-3.5 w-3.5" aria-hidden />
@@ -418,6 +474,9 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {formatMultiple(title.ltv_to_cost_multiple)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <DealStageBadge stage={title.deal_stage ?? "SCREENING"} />
                     </td>
                     <td className="px-4 py-3">
                       <RecommendationBadge status={title.recommendation_status} />

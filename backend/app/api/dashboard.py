@@ -47,6 +47,7 @@ class TitleSummary(BaseModel):
     cpvh_status: str
     ltv_to_cost_multiple: float | None = None
     recommendation_status: str | None = None
+    deal_stage: str = "SCREENING"
 
 
 class DashboardSummaryResponse(BaseModel):
@@ -115,6 +116,7 @@ async def dashboard_summary(session: SessionDep) -> DashboardSummaryResponse:
                 cpvh_status=_cpvh_status(title.asset_type, cpvh),
                 ltv_to_cost_multiple=float(ltv) if ltv is not None else None,
                 recommendation_status=recommendation,
+                deal_stage=getattr(title, "deal_stage", None) or "SCREENING",
             )
         )
 

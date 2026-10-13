@@ -22,6 +22,18 @@ from app.models.base import Base, created_at_column, uuid_pk
 
 ASSET_TYPES = ("ORIGINAL_SERIES", "ORIGINAL_FILM", "LICENSED_LIBRARY", "CO_PRODUCTION")
 
+# Human-managed acquisition pipeline stages (deal-stage lifecycle). Mirrors
+# app.domain.deal_stage.DealStage; the CHECK constraint below enforces the set.
+DEAL_STAGES = (
+    "SCREENING",
+    "EVALUATED",
+    "IN_NEGOTIATION",
+    "APPROVED",
+    "CLOSED_WON",
+    "CLOSED_LOST",
+    "PASSED",
+)
+
 
 class Title(Base):
     """A candidate content title in the acquisition pipeline."""
@@ -37,6 +49,11 @@ class Title(Base):
             "acquisition_cost_or_budget BETWEEN 0.01 AND 999999999.99",
             name="ck_titles_acquisition_cost_range",
         ),
+        CheckConstraint(
+            "deal_stage IN ('SCREENING', 'EVALUATED', 'IN_NEGOTIATION', "
+            "'APPROVED', 'CLOSED_WON', 'CLOSED_LOST', 'PASSED')",
+            name="ck_titles_deal_stage",
+        ),
     )
 
     title_id: Mapped[uuid.UUID] = uuid_pk()
@@ -48,6 +65,11 @@ class Title(Base):
     native_currency: Mapped[str] = mapped_column(String(3), nullable=False)
     target_territories: Mapped[dict | list] = mapped_column(JSONB, nullable=False)
     genre_tag: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Human acquisition pipeline stage (deal-stage lifecycle). Defaults to
+    # SCREENING for a freshly ingested title.
+    deal_stage: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default="SCREENING"
+    )
     projected_viewing_hours: Mapped[Decimal | None] = mapped_column(
         Numeric(16, 2), nullable=True
     )

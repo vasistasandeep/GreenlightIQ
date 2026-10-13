@@ -188,6 +188,24 @@ class TitleCompOut(BaseModel):
     cosine_similarity: float
 
 
+class DealStageResponse(BaseModel):
+    """A title's current deal stage and the stages it may move to next.
+
+    ``allowed_next_stages`` is empty for a terminal stage (CLOSED_WON /
+    CLOSED_LOST / PASSED), signalling the lifecycle is complete.
+    """
+
+    title_id: uuid.UUID
+    deal_stage: str
+    allowed_next_stages: list[str] = Field(default_factory=list)
+
+
+class DealStageTransitionRequest(BaseModel):
+    """Request to advance a title to a new deal stage (guarded transition)."""
+
+    deal_stage: str = Field(description="Target stage; must be an allowed transition.")
+
+
 class ComparableTitlesResponse(BaseModel):
     """The ``GET /valuation/{title_id}/comps`` payload (R2.6).
 

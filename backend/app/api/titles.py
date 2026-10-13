@@ -27,13 +27,34 @@ from app.api.deps import (
     CurrentUser,
     SessionDep,
     TaskDispatcherDep,
+    get_audit_service,
+    get_rbac_service,
     require_operation,
 )
-from app.core.errors import RowLimitExceededError, UnsupportedFormatError
-from app.engines.rbac import Operation
+from app.core.errors import (
+    RowLimitExceededError,
+    TitleNotFoundError,
+    UnsupportedFormatError,
+    ValidationFailedError,
+)
+from app.domain.deal_stage import (
+    DealStage,
+    IllegalStageTransition,
+    allowed_next_stages,
+    coerce_stage,
+    validate_transition,
+)
+from app.engines.audit import AuditLogService
+from app.engines.rbac import Operation, RBACService
 from app.models.job import Job
 from app.repositories.jobs import JobRepository
-from app.schemas.api import IngestAcceptedResponse, RejectionItem
+from app.repositories.titles import TitleRepository
+from app.schemas.api import (
+    DealStageResponse,
+    DealStageTransitionRequest,
+    IngestAcceptedResponse,
+    RejectionItem,
+)
 
 router = APIRouter(prefix="/titles", tags=["titles"])
 
@@ -166,6 +187,112 @@ def _response_from_job(job: Job) -> IngestAcceptedResponse:
         accepted_count=result.get("accepted_count"),
         rejected_count=result.get("rejected_count"),
         rejections=rejections or None,
+    )
+
+
+@router.get(
+    "/{title_id}/deal-stage",
+    response_model=DealStageResponse,
+    dependencies=[Depends(require_operation(Operation.VALUATION))],
+    summary="Return a title's deal stage and its allowed next stages.",
+)
+async def get_deal_stage(
+    title_id: uuid.UUID,
+    actor: CurrentUser,
+    session: SessionDep,
+) -> DealStageResponse:
+    """Return the title's current acquisition deal stage and legal next moves.
+
+    A missing title maps to ``404 TITLE_NOT_FOUND``. A title persisted before the
+    stage column existed reads as the initial ``SCREENING`` stage.
+    """
+    titles = TitleRepository(session)
+    title = await titles.get(title_id)
+    if title is None:
+        raise TitleNotFoundError(
+            f"No title exists for id {title_id!r}.",
+            details={"title_id": str(title_id)},
+        )
+    current = coerce_stage(getattr(title, "deal_stage", None))
+    return DealStageResponse(
+        title_id=title_id,
+        deal_stage=current.value,
+        allowed_next_stages=[s.value for s in allowed_next_stages(current)],
+    )
+
+
+@router.patch(
+    "/{title_id}/deal-stage",
+    response_model=DealStageResponse,
+    summary="Advance a title to a new deal stage (guarded transition).",
+)
+async def transition_deal_stage(
+    title_id: uuid.UUID,
+    body: DealStageTransitionRequest,
+    actor: CurrentUser,
+    session: SessionDep,
+    rbac: RBACService = Depends(get_rbac_service),
+    audit: AuditLogService = Depends(get_audit_service),
+) -> DealStageResponse:
+    """Move a title to ``body.deal_stage`` if the transition is allowed (R20.2, R25.1).
+
+    Managing where a title sits in the acquisition pipeline is a decision-making
+    action, so it is gated to the same roles as a recommendation override
+    (CONTENT_BUYER / CHIEF_CONTENT_OFFICER / CFO) via ``Operation.OVERRIDE``; any
+    other role is rejected ``403``. The target must be a legal next stage from the
+    current one (the pure state machine decides) - an illegal move or an unknown
+    stage is a ``422``. The change is persisted under the title's optimistic lock
+    and recorded as an append-only audit entry with its before/after stage (R25.1).
+    """
+    # Authorize before touching the record (mirrors the override path, R20.2).
+    rbac.authorize(actor, Operation.OVERRIDE, resource=title_id)
+
+    try:
+        target = DealStage(body.deal_stage)
+    except ValueError:
+        raise ValidationFailedError(
+            "Unknown deal stage.",
+            details={
+                "deal_stage": body.deal_stage,
+                "allowed": [s.value for s in DealStage],
+            },
+        )
+
+    titles = TitleRepository(session)
+    title = await titles.get(title_id)
+    if title is None:
+        raise TitleNotFoundError(
+            f"No title exists for id {title_id!r}.",
+            details={"title_id": str(title_id)},
+        )
+
+    current = coerce_stage(getattr(title, "deal_stage", None))
+    try:
+        validate_transition(current, target)
+    except IllegalStageTransition as exc:
+        raise ValidationFailedError(
+            str(exc),
+            details={
+                "from": current.value,
+                "to": target.value,
+                "allowed_next_stages": [s.value for s in allowed_next_stages(current)],
+            },
+        )
+
+    await titles.update(title, deal_stage=target.value)
+    await audit.record(
+        actor=actor.user_id,
+        action="deal_stage_transition",
+        before={"deal_stage": current.value},
+        after={"deal_stage": target.value},
+        subject_id=title_id,
+    )
+    await session.commit()
+
+    return DealStageResponse(
+        title_id=title_id,
+        deal_stage=target.value,
+        allowed_next_stages=[s.value for s in allowed_next_stages(target)],
     )
 
 

@@ -161,6 +161,7 @@ export interface TitleSummary {
   cpvh_status: CpvhStatus;
   ltv_to_cost_multiple: number | null;
   recommendation_status: RecommendationStatus | null;
+  deal_stage?: DealStage;
 }
 
 /** Aggregate payload backing the dashboard: KPI figures + the grid rows (R14). */
@@ -307,6 +308,26 @@ export interface MarketTelemetry {
   licensing_inflation_multiplier: number | string | null;
   source_available: boolean;
   found: boolean;
+}
+
+/** The human acquisition pipeline stages (deal-stage lifecycle). */
+export type DealStage =
+  | "SCREENING"
+  | "EVALUATED"
+  | "IN_NEGOTIATION"
+  | "APPROVED"
+  | "CLOSED_WON"
+  | "CLOSED_LOST"
+  | "PASSED";
+
+/**
+ * A title's current deal stage and the stages it may advance to next. An empty
+ * `allowed_next_stages` means the lifecycle has reached a terminal stage.
+ */
+export interface DealStageInfo {
+  title_id: string;
+  deal_stage: DealStage;
+  allowed_next_stages: DealStage[];
 }
 
 /** Best-effort Asset Studio fields parsed from an uploaded pitch PDF. */

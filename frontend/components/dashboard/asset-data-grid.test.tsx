@@ -44,6 +44,7 @@ const TITLES: TitleSummary[] = [
     cpvh_status: "PASS",
     ltv_to_cost_multiple: 3.5,
     recommendation_status: "GREENLIGHT",
+    deal_stage: "APPROVED",
   },
   {
     title_id: "t-alpha",
@@ -54,6 +55,7 @@ const TITLES: TitleSummary[] = [
     cpvh_status: "BREACH",
     ltv_to_cost_multiple: 1.2,
     recommendation_status: "PASS",
+    deal_stage: "SCREENING",
   },
   {
     title_id: "t-bravo",
@@ -64,6 +66,7 @@ const TITLES: TitleSummary[] = [
     cpvh_status: "NO_CEILING",
     ltv_to_cost_multiple: null,
     recommendation_status: "NEGOTIATE_HARD",
+    deal_stage: "IN_NEGOTIATION",
   },
 ];
 
@@ -183,6 +186,19 @@ describe("AssetDataGrid", () => {
 
       expect(rowTitleOrder()).toEqual(["Charlie's Saga"]);
       expect(currentParams.get("rec")).toBe("GREENLIGHT");
+    });
+
+    it("filters rows by the deal-stage dropdown", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+
+      await user.selectOptions(
+        screen.getByLabelText(/Deal stage/i),
+        "IN_NEGOTIATION",
+      );
+
+      expect(rowTitleOrder()).toEqual(["Bravo Nights"]);
+      expect(currentParams.get("stage")).toBe("IN_NEGOTIATION");
     });
 
     it("hydrates initial state from the URL params", () => {

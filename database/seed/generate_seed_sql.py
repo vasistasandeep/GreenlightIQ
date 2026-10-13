@@ -138,6 +138,17 @@ TITLES = [
     ),
 ]
 
+# Seeded acquisition deal stage per title (deal-stage lifecycle). Chosen to span
+# the pipeline so the dashboard shows a realistic mix of stages.
+DEAL_STAGE_BY_TITLE = {
+    "title-aurora": "APPROVED",       # strong GREENLIGHT, deal approved
+    "title-monsoon": "IN_NEGOTIATION",
+    "title-ledger": "EVALUATED",      # NEGOTIATE_HARD, still being worked
+    "title-reruns": "SCREENING",
+    "title-echoes": "CLOSED_WON",     # historical, deal done
+}
+
+
 LICENSE_TERMS = [
     # title_label, duration_months, exclusive, windowing_rules, milestones
     ("title-aurora", 36, True,
@@ -320,17 +331,19 @@ def render() -> str:
     w("")
 
     # --- titles ---------------------------------------------------------------
-    w("-- Candidate titles spanning every asset_type (R17.4).")
+    w("-- Candidate titles spanning every asset_type (R17.4). deal_stage seeds")
+    w("-- the acquisition pipeline across a realistic mix of lifecycle stages.")
     w("INSERT INTO titles (title_id, title_name, asset_type, "
       "acquisition_cost_or_budget, native_currency, target_territories, genre_tag, "
-      "projected_viewing_hours, is_historical, created_by) VALUES")
+      "projected_viewing_hours, is_historical, deal_stage, created_by) VALUES")
     rows = []
     for t in TITLES:
         (label, name, atype, cost, cur, terrs, genre, vh, hist, *_rest) = t
+        stage = DEAL_STAGE_BY_TITLE.get(label, "SCREENING")
         rows.append(
             f"  ('{det_uuid(label)}', {q(name)}, {q(atype)}, {cost}, {q(cur)}, "
             f"{_json(terrs)}::jsonb, {q(genre)}, {vh}, "
-            f"{'TRUE' if hist else 'FALSE'}, '{det_uuid('user-buyer')}')"
+            f"{'TRUE' if hist else 'FALSE'}, {q(stage)}, '{det_uuid('user-buyer')}')"
         )
     w(",\n".join(rows))
     w("ON CONFLICT (title_id) DO NOTHING;")

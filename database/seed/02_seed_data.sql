@@ -54,13 +54,14 @@ INSERT INTO market_telemetry_cache (telemetry_id, genre_tag, territory, social_s
   ('b2d858f0-3ba0-5984-8d6e-eac369b41e93', 'comedy', 'FR', 0.55, 2.5, 1.02, TRUE)
 ON CONFLICT (genre_tag, territory) DO NOTHING;
 
--- Candidate titles spanning every asset_type (R17.4).
-INSERT INTO titles (title_id, title_name, asset_type, acquisition_cost_or_budget, native_currency, target_territories, genre_tag, projected_viewing_hours, is_historical, created_by) VALUES
-  ('bfbad645-391f-5544-9e72-45bc9bbafb1c', 'Aurora Protocol', 'ORIGINAL_SERIES', 42000000.00, 'USD', '["US","GB","DE"]'::jsonb, 'sci-fi', 250000000.00, FALSE, '57dd8615-a6f8-561c-ace1-76c2116bc392'),
-  ('5a6f491d-07be-5a21-83f5-eb104e8bd355', 'Monsoon Lanes', 'CO_PRODUCTION', 18000000.00, 'INR', '["IN","GB"]'::jsonb, 'drama', 140000000.00, FALSE, '57dd8615-a6f8-561c-ace1-76c2116bc392'),
-  ('d8abfba9-df50-5925-8adc-e212cb324b4d', 'The Ledger', 'ORIGINAL_FILM', 9500000.00, 'USD', '["US"]'::jsonb, 'thriller', 40000000.00, FALSE, '57dd8615-a6f8-561c-ace1-76c2116bc392'),
-  ('0343ecc1-2eb1-5f2c-9ee6-989a88ae4a5a', 'Vintage Reruns Vol. 7', 'LICENSED_LIBRARY', 1200000.00, 'EUR', '["DE","FR"]'::jsonb, 'comedy', 60000000.00, FALSE, '57dd8615-a6f8-561c-ace1-76c2116bc392'),
-  ('7b1c3771-86fc-5ac3-aa53-84d4c969135c', 'Echoes of 2019', 'ORIGINAL_SERIES', 30000000.00, 'USD', '["US","GB"]'::jsonb, 'drama', 180000000.00, TRUE, '57dd8615-a6f8-561c-ace1-76c2116bc392')
+-- Candidate titles spanning every asset_type (R17.4). deal_stage seeds
+-- the acquisition pipeline across a realistic mix of lifecycle stages.
+INSERT INTO titles (title_id, title_name, asset_type, acquisition_cost_or_budget, native_currency, target_territories, genre_tag, projected_viewing_hours, is_historical, deal_stage, created_by) VALUES
+  ('bfbad645-391f-5544-9e72-45bc9bbafb1c', 'Aurora Protocol', 'ORIGINAL_SERIES', 42000000.00, 'USD', '["US","GB","DE"]'::jsonb, 'sci-fi', 250000000.00, FALSE, 'APPROVED', '57dd8615-a6f8-561c-ace1-76c2116bc392'),
+  ('5a6f491d-07be-5a21-83f5-eb104e8bd355', 'Monsoon Lanes', 'CO_PRODUCTION', 18000000.00, 'INR', '["IN","GB"]'::jsonb, 'drama', 140000000.00, FALSE, 'IN_NEGOTIATION', '57dd8615-a6f8-561c-ace1-76c2116bc392'),
+  ('d8abfba9-df50-5925-8adc-e212cb324b4d', 'The Ledger', 'ORIGINAL_FILM', 9500000.00, 'USD', '["US"]'::jsonb, 'thriller', 40000000.00, FALSE, 'EVALUATED', '57dd8615-a6f8-561c-ace1-76c2116bc392'),
+  ('0343ecc1-2eb1-5f2c-9ee6-989a88ae4a5a', 'Vintage Reruns Vol. 7', 'LICENSED_LIBRARY', 1200000.00, 'EUR', '["DE","FR"]'::jsonb, 'comedy', 60000000.00, FALSE, 'SCREENING', '57dd8615-a6f8-561c-ace1-76c2116bc392'),
+  ('7b1c3771-86fc-5ac3-aa53-84d4c969135c', 'Echoes of 2019', 'ORIGINAL_SERIES', 30000000.00, 'USD', '["US","GB"]'::jsonb, 'drama', 180000000.00, TRUE, 'CLOSED_WON', '57dd8615-a6f8-561c-ace1-76c2116bc392')
 ON CONFLICT (title_id) DO NOTHING;
 
 -- One active title_version per title (R24.2, R24.4).
