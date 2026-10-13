@@ -14,10 +14,11 @@ import { TopNav } from "@/components/layout/top-nav";
  * reached. Client component for the tab interaction; all content is static.
  */
 
-type TabId = "overview" | "guardrails" | "examples" | "glossary";
+type TabId = "overview" | "features" | "guardrails" | "examples" | "glossary";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "features", label: "Features & How-To" },
   { id: "guardrails", label: "The 4 Guardrails" },
   { id: "examples", label: "Worked Examples" },
   { id: "glossary", label: "Glossary" },
@@ -204,6 +205,25 @@ const GLOSSARY: GlossaryGroup[] = [
       { term: "Idempotency Key", def: "A key that makes a repeated ingestion request return the original result instead of creating duplicates." },
     ],
   },
+  {
+    group: "Decision-Support Features",
+    items: [
+      { term: "Negotiation Playbook", def: "On a NEGOTIATE HARD / PASS title, the panel that gives a target purchase ceiling, the implied discount vs the ask, and per-guardrail counter-proposal talking points." },
+      { term: "Target Purchase Ceiling", def: "The highest price at which every cost-correctable guardrail would pass - the number to negotiate the seller down to." },
+      { term: "Implied Discount", def: "How far below the current ask the target ceiling sits, as a percentage - the size of the cut to ask for." },
+      { term: "Counter-Proposal Lever", def: "A plain-language negotiation suggestion tied to a specific breached guardrail, marked correctable (fixable by price) or structural (needs a terms change)." },
+      { term: "LTV Attribution", def: "The split of the LTV-to-Cost numerator into SVOD subscription value (retention) vs AVOD ad-yield value (advertising), so the multiple is not a black box." },
+      { term: "Retained Subscribers", def: "The absolute churn impact - roughly how many subscribers a title keeps - shown next to the churn percentage. A modeled estimate." },
+      { term: "What-If Sensitivity", def: "Sliders on the title page that recompute the verdict under alternate cost / viewership / churn assumptions. A preview only - never saved." },
+      { term: "Scenario Preview", def: "A what-if result; clearly labeled 'not saved' because it never changes the stored record." },
+      { term: "Greenlight Memo", def: "A one-page printable executive brief (scorecard, checks, playbook, sign-off block) exported from the title page via the browser's Save-as-PDF." },
+      { term: "Model Version Catalog", def: "The Backtest Studio list of every immutable model version with its weights and date, where an authorized user can roll back to a prior version." },
+      { term: "Rollback", def: "Re-activating a previous model version. Versions are immutable, so rollback just flips which one is active; recorded in the audit log." },
+      { term: "Batch Slate Ingestion", def: "Uploading a CSV/JSON catalog of titles in one go via the Asset Studio's Batch Slate tab, processed asynchronously with an accepted/rejected summary." },
+      { term: "Pitch Auto-Fill", def: "Dropping a pitch/script PDF on the Asset Studio form to pre-fill the title, synopsis, genre, and budget for review - best-effort, never auto-submitted." },
+      { term: "Shorthand Amount", def: "Analyst budget shorthand the cost field accepts: 12 Cr, 3 Lakh, 1.5M, 500k - expanded to a full number with a live preview." },
+    ],
+  },
 ];
 
 const GLOSSARY_COUNT = GLOSSARY.reduce((n, g) => n + g.items.length, 0);
@@ -225,7 +245,7 @@ function OverviewTab() {
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">The journey of one title</h3>
         <ol className="ml-4 list-decimal space-y-2 text-sm text-slate-300 marker:text-emerald-400">
-          <li><span className="font-medium text-slate-100">Ingest</span> - a title comes in, in bulk (CSV/JSON/PDF) or one at a time in the Asset Studio.</li>
+          <li><span className="font-medium text-slate-100">Ingest</span> - a title comes in: one at a time in the Asset Studio, a whole slate via CSV/JSON, or by dropping a pitch PDF that auto-fills the form.</li>
           <li><span className="font-medium text-slate-100">Understand it</span> - the system reads the material into a numeric profile: Narrative DNA, emotional tone, talent pedigree, production scale.</li>
           <li><span className="font-medium text-slate-100">Match the audience</span> - it compares the title to what subscriber groups actually like.</li>
           <li><span className="font-medium text-slate-100">Run the money checks</span> - four financial guardrails (next tab), all in USD.</li>
@@ -256,10 +276,13 @@ function OverviewTab() {
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Where you do things in the portal</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Card title="Dashboard">Portfolio at a glance - KPIs and a sortable grid of every title with its badge.</Card>
-          <Card title="Asset Studio">Type in one title and get an instant scorecard. Best place to see the whole thing work.</Card>
-          <Card title="Title Evaluation">Deep dive on a single title: radar, financial breakdown, and the full explanation.</Card>
-          <Card title="Backtest Studio">Feed in real outcomes, see how accurate past predictions were, and re-tune the model.</Card>
+          <Card title="Asset Studio">Evaluate titles: one at a time, a whole slate (CSV/JSON), or by dropping a pitch PDF. Shorthand budgets (12 Cr, 1.5M) welcome.</Card>
+          <Card title="Title Evaluation">Deep dive on a title: radar, LTV attribution, negotiation playbook, what-if sliders, override, audit history, and a PDF memo export.</Card>
+          <Card title="Backtest Studio">Audit predictions vs reality, re-tune (calibrate) the model, roll back versions, and clear executive sign-off gates.</Card>
         </div>
+        <p className="mt-3 text-xs text-slate-500">
+          New here? The <span className="text-emerald-400">Features &amp; How-To</span> tab has a step-by-step recipe for every one of these.
+        </p>
       </div>
 
       <div>
@@ -273,6 +296,11 @@ function OverviewTab() {
             ["I left Viewing Hours blank - is that OK?", "Yes. The engine estimates viewing hours from the budget and pedigree so CPVH can still be computed."],
             ["Are the numbers real?", "The guardrail math, recommendation logic, backtesting, and governance are the real engine. In demo mode the Narrative DNA embedding and some modeled financial drivers are deterministic placeholders so the stack runs with no external services."],
             ["Can thresholds be changed?", "They're set by the active Model Version (feature weights + guardrail parameters). Calibration forks a new immutable version rather than editing values in place, so every past decision stays reproducible."],
+            ["How do I know the price to negotiate to?", "Open a NEGOTIATE HARD / PASS title and read the Negotiation Playbook: it gives a target purchase ceiling and the implied discount versus the current ask, plus talking points per failing check."],
+            ["Can I see what happens if viewership or cost changes?", "Yes - the What-if sliders on the title page recompute the verdict live under different assumptions. It's a preview only and never changes the saved record (set all sliders to 100% to reproduce the official result)."],
+            ["Can I upload a whole catalog instead of typing titles?", "Yes - the Asset Studio's Batch Slate tab ingests a CSV or JSON slate in one go, or you can drop a single pitch PDF to auto-fill the form."],
+            ["How do I get a one-pager for a committee meeting?", "On the title page, click Export Greenlight Memo (PDF) - it opens a print-ready executive brief you can save as PDF."],
+            ["Who can override a recommendation, and is it tracked?", "Only decision-making roles (Content Buyer / CCO / CFO). Every override needs a written justification and is recorded in the append-only audit log, visible in the title's Audit history."],
           ].map(([q, a]) => (
             <details key={q} className="group rounded-lg border border-slate-800 bg-slate-900/60 p-4">
               <summary className="cursor-pointer list-none font-medium text-slate-100 marker:content-none">
@@ -394,7 +422,7 @@ function ExamplesTab() {
 
       <ExampleBlock
         title="The Bengaluru Syndicate"
-        subtitle="Original Series &bull; $1.25M &bull; pedigree 7.5"
+        subtitle="Original Series - $1.25M - pedigree 7.5"
         verdict="GREENLIGHT"
         cost="$1,250,000"
         checks={[
@@ -408,7 +436,7 @@ function ExamplesTab() {
 
       <ExampleBlock
         title="Vintage Reruns Vol. 7"
-        subtitle="Licensed Library &bull; EUR 1.2M (-> $1.308M) &bull; pedigree 4.0"
+        subtitle="Licensed Library - EUR 1.2M (-> $1.308M) - pedigree 4.0"
         verdict="NEGOTIATE HARD"
         cost="$1,308,000 (converted from EUR)"
         checks={[
@@ -423,7 +451,7 @@ function ExamplesTab() {
 
       <ExampleBlock
         title="Overpriced Epic"
-        subtitle="Original Film &bull; $80M &bull; pedigree 2.0"
+        subtitle="Original Film - $80M - pedigree 2.0"
         verdict="PASS"
         cost="$80,000,000"
         checks={[
@@ -440,6 +468,274 @@ function ExamplesTab() {
         open the <Link href="/studio" className="text-emerald-400 underline">Asset Studio</Link>,
         click a preset (Bengaluru, Apex Horizon, or Vintage Reruns), and press
         &quot;RUN ROI VALUATION&quot; to watch these numbers appear on the scorecard.
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// Features & How-To tab
+// --------------------------------------------------------------------------- //
+
+/** A numbered how-to with a heading, "when to use it", and ordered steps. */
+function HowTo({
+  title,
+  where,
+  what,
+  steps,
+  tip,
+}: {
+  title: string;
+  where: string;
+  what: string;
+  steps: React.ReactNode[];
+  tip?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+        <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-400">
+          {where}
+        </span>
+      </div>
+      <p className="mb-3 text-sm text-slate-400">{what}</p>
+      <ol className="ml-4 list-decimal space-y-1.5 text-sm text-slate-300 marker:text-emerald-400">
+        {steps.map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ol>
+      {tip ? (
+        <p className="mt-3 rounded-md border border-emerald-800/40 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-200">
+          <span className="font-semibold">Tip: </span>
+          {tip}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SectionHead({ children, note }: { children: React.ReactNode; note?: string }) {
+  return (
+    <div className="pt-2">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-emerald-400">
+        {children}
+      </h2>
+      {note ? <p className="mt-1 text-sm text-slate-400">{note}</p> : null}
+    </div>
+  );
+}
+
+function FeaturesTab() {
+  return (
+    <div className="space-y-6">
+      <p className="text-sm leading-relaxed text-slate-300">
+        Every feature in the portal, as a simple &quot;I want to... here is how&quot;
+        recipe. Four areas: the <span className="text-slate-100">Dashboard</span>,
+        the <span className="text-slate-100">Asset Studio</span> (evaluate titles),
+        the <span className="text-slate-100">Title page</span> (deep dive +
+        decisions), and the <span className="text-slate-100">Backtest Studio</span>
+        (accuracy + the model). You can start anywhere from the top navigation
+        bar; the logo always returns to Home.
+      </p>
+
+      <SectionHead note="Your portfolio at a glance.">On the Dashboard</SectionHead>
+      <HowTo
+        title="See every title and its verdict"
+        where="Dashboard"
+        what="The command dashboard shows four KPI cards and a sortable grid of every title with its recommendation badge."
+        steps={[
+          <>Open <Link href="/dashboard" className="text-emerald-400 underline">Dashboard</Link> from the top nav.</>,
+          <>Read the KPI cards: pipeline value, average LTV-to-Cost, risk exposure, and model accuracy.</>,
+          <>Click any column header to sort (e.g. by LTV multiple or CPVH status).</>,
+          <>Click a row to open that title&apos;s full evaluation.</>,
+        ]}
+        tip={<>Status badges use an icon + color + border (check / scale / X), so the verdict is readable even if you are color-blind.</>}
+      />
+
+      <SectionHead note="Turn a title and its deal terms into an instant executive scorecard.">
+        In the Asset Studio
+      </SectionHead>
+      <HowTo
+        title="Evaluate a single title"
+        where="Asset Studio - Single Asset tab"
+        what="Type one title's details and get a full scorecard - recommendation, four checks, radar, and payback - in seconds."
+        steps={[
+          <>Open <Link href="/studio" className="text-emerald-400 underline">Asset Studio</Link>; the Single Asset tab is selected by default.</>,
+          <>Fill in Title, Asset Type, Cost &amp; Currency, and a Synopsis (the rest is optional).</>,
+          <>Press <span className="font-medium text-slate-100">RUN ROI VALUATION</span>. The scorecard appears on the right.</>,
+          <>Click <span className="font-medium text-slate-100">View Full Deep-Dive Analysis</span> to open the title page.</>,
+        ]}
+        tip={<>Not sure what to type? Click a Quick Preset to fill the whole form with a sample title and run it instantly.</>}
+      />
+      <HowTo
+        title="Enter the budget in shorthand (Cr / Lakh / M / k)"
+        where="Asset Studio - Cost field"
+        what="The cost box understands analyst shorthand, so you never miscount zeros."
+        steps={[
+          <>In the Cost field, type amounts like <code className="text-emerald-300">12 Cr</code>, <code className="text-emerald-300">1.5M</code>, <code className="text-emerald-300">500k</code>, or <code className="text-emerald-300">3 Lakh</code>.</>,
+          <>A live preview under the box shows the full number (e.g. &quot;120,000,000 USD&quot;) so you can confirm it.</>,
+          <>Pick the matching currency (USD / INR / EUR / GBP); everything is normalized to USD before any check.</>,
+        ]}
+        tip={<>Plain numbers with commas work too - &quot;1,200,000&quot; is fine.</>}
+      />
+      <HowTo
+        title="Auto-fill the form from a pitch / script PDF"
+        where="Asset Studio - Drop-zone"
+        what="Drop a pitch deck and the system reads the title, synopsis, genre, and budget for you to review."
+        steps={[
+          <>At the top of the Single Asset form, click the <span className="font-medium text-slate-100">&quot;Drop a script / pitch PDF&quot;</span> box and choose a PDF.</>,
+          <>Wait a moment while it reads the document; recognized fields pre-fill automatically.</>,
+          <>Review and edit every pre-filled field - nothing is submitted for you.</>,
+          <>Press RUN ROI VALUATION when it looks right.</>,
+        ]}
+        tip={<>It is best-effort: a messy deck may fill only some fields. A short note tells you exactly what was pre-filled.</>}
+      />
+      <HowTo
+        title="Ingest a whole slate at once (CSV / JSON)"
+        where="Asset Studio - Batch Slate tab"
+        what="Bring in a catalog of titles from a festival or a studio in one upload instead of typing them one by one."
+        steps={[
+          <>In the Asset Studio, switch to the <span className="font-medium text-slate-100">Batch Slate</span> tab.</>,
+          <>Choose the format (CSV or JSON), then upload a file or paste the contents. Each row needs at least a title name and a cost.</>,
+          <>Press <span className="font-medium text-slate-100">Ingest slate</span>. A live indicator tracks the background job.</>,
+          <>When it finishes, read the summary: how many rows were accepted vs rejected, with a reason per rejected row.</>,
+        ]}
+        tip={<>Rejected rows never block the batch - accepted + rejected always equals what you submitted.</>}
+      />
+
+      <SectionHead note="Everything you can do on a single title's page.">
+        On the Title page
+      </SectionHead>
+      <HowTo
+        title="Read the full breakdown"
+        where="Title page"
+        what="The deep-dive page lays out the verdict, the metadata radar, the financial breakdown, and the plain-English explanation."
+        steps={[
+          <>Open a title from the Dashboard grid or the Studio&apos;s &quot;deep-dive&quot; link.</>,
+          <>See the recommendation badge up top, then the radar (narrative / tone / pedigree / scale).</>,
+          <>Expand the Financial Breakdown for CPVH, the LTV-to-Cost attribution split, churn, and the payback chart.</>,
+          <>Read the Explanation panel for the dominant factor behind the verdict.</>,
+        ]}
+      />
+      <HowTo
+        title="Understand WHY the LTV multiple is what it is"
+        where="Title page - Financial Breakdown"
+        what="The opaque multiple is broken into the two value drivers behind it."
+        steps={[
+          <>Open the Financial Breakdown section.</>,
+          <>Under LTV-to-Cost, read the attribution: <span className="text-slate-100">SVOD subscription value</span> (retention) vs <span className="text-slate-100">AVOD ad-yield value</span> (advertising).</>,
+          <>The two add up to the total modeled value, divided by cost to give the multiple.</>,
+        ]}
+      />
+      <HowTo
+        title="Get a concrete negotiation target"
+        where="Title page - Negotiation Playbook"
+        what="When a title is NEGOTIATE HARD or PASS, the playbook tells you the exact price to aim for and gives talking points."
+        steps={[
+          <>Scroll to the <span className="font-medium text-slate-100">Negotiation Playbook</span> panel (shown for non-GREENLIGHT titles).</>,
+          <>Read the <span className="text-slate-100">target purchase ceiling</span> (the price at which the deal clears) and the implied discount vs the current ask.</>,
+          <>Use the per-guardrail counter-proposal levers as talking points, labeled correctable (price) or structural.</>,
+        ]}
+      />
+      <HowTo
+        title="Stress-test with What-If sliders"
+        where="Title page - What-if sensitivity"
+        what="Drag sliders to see how the verdict would change under different cost, viewership, or churn assumptions - without saving anything."
+        steps={[
+          <>Find the <span className="font-medium text-slate-100">What-if sensitivity</span> panel.</>,
+          <>Drag the Cost, Viewership (bear/base/bull), or Churn sliders.</>,
+          <>Watch the recommendation badge and the four metrics recompute live after you stop dragging.</>,
+          <>Everything here is a <span className="text-slate-100">scenario preview - not saved</span>; the real record is untouched.</>,
+        ]}
+        tip={<>Set every slider to 100% to reproduce the official saved scorecard exactly.</>}
+      />
+      <HowTo
+        title="Override the recommendation (with a reason)"
+        where="Title page - Override"
+        what="An authorized executive can change the verdict when judgment should trump the model - the reason is logged forever."
+        steps={[
+          <>Click <span className="font-medium text-slate-100">Override recommendation</span>.</>,
+          <>Pick the new status and type a mandatory business justification.</>,
+          <>Press <span className="font-medium text-slate-100">Record override</span>. The verdict updates and the change is written to the audit log.</>,
+        ]}
+        tip={<>Only decision-making roles may override; others get a clear &quot;not permitted&quot; message.</>}
+      />
+      <HowTo
+        title="Trace the full history (Audit Lineage)"
+        where="Title page - Audit history"
+        what="Compliance and legal can see every action taken on a decision, in order."
+        steps={[
+          <>Expand the <span className="font-medium text-slate-100">Audit history &amp; lineage</span> section.</>,
+          <>Read the chronological timeline: valuation runs, overrides, and sign-offs, each with a before to after change where relevant.</>,
+        ]}
+      />
+      <HowTo
+        title="Export a Greenlight Memo (PDF)"
+        where="Title page - Export"
+        what="Produce a clean one-pager to take into an Investment / Greenlight Committee meeting."
+        steps={[
+          <>Click <span className="font-medium text-slate-100">Export Greenlight Memo (PDF)</span>.</>,
+          <>Your browser&apos;s print dialog opens with a paper-friendly brief: financial summary, guardrail checks, negotiation playbook, and a sign-off block.</>,
+          <>Choose &quot;Save as PDF&quot; (or print). The app chrome is hidden - only the memo prints.</>,
+        ]}
+      />
+
+      <SectionHead note="High-budget greenlights need two executives to sign off.">
+        Executive sign-off
+      </SectionHead>
+      <HowTo
+        title="Clear a high-budget sign-off gate"
+        where="Backtest Studio - Executive Sign-Off"
+        what="A GREENLIGHT above $25M requires both the Chief Content Officer and the CFO to approve before it is final."
+        steps={[
+          <>Run an audit on a title in the <Link href="/backtest" className="text-emerald-400 underline">Backtest Studio</Link>; the Executive Sign-Off panel shows the required roles.</>,
+          <>If sign-off is required, each outstanding role shows an <span className="font-medium text-slate-100">Approve as...</span> button.</>,
+          <>Record each approval; once both CCO and CFO are in, the gate flips to <span className="text-emerald-300">Ready to finalize</span>.</>,
+        ]}
+        tip={<>Non-high-budget decisions show &quot;No sign-off required&quot; and are clear to finalize immediately.</>}
+      />
+
+      <SectionHead note="Measure the model's accuracy and keep it honest.">
+        In the Backtest Studio
+      </SectionHead>
+      <HowTo
+        title="Audit a prediction against reality"
+        where="Backtest Studio"
+        what="Enter what actually happened for a historical title and see how close the prediction was."
+        steps={[
+          <>Open <Link href="/backtest" className="text-emerald-400 underline">Backtest Studio</Link>.</>,
+          <>Pick a title from the <span className="font-medium text-slate-100">Historical title</span> dropdown (titles with a stored prediction; the ID is shown to tell duplicates apart).</>,
+          <>Enter the actual CPVH and LTV-to-Cost; the predicted values show read-only beside them.</>,
+          <>Press <span className="font-medium text-slate-100">Run audit</span> to see Predicted vs Actual and the overall Prediction Error (MAPE - lower is better).</>,
+        ]}
+      />
+      <HowTo
+        title="Re-tune the model (calibration)"
+        where="Backtest Studio - Model Calibration"
+        what="When accuracy drifts, auto-tune the feature weights - which forks a new immutable model version."
+        steps={[
+          <>After an audit, press <span className="font-medium text-slate-100">Request auto-tuning</span>.</>,
+          <>If the error is above tolerance, the engine applies weight offsets and activates a new model version; otherwise it reports no change needed.</>,
+          <>Read the applied offsets and the new version id in the result.</>,
+        ]}
+      />
+      <HowTo
+        title="Roll back to a prior model version"
+        where="Backtest Studio - Model Version Catalog"
+        what="If a calibration underperforms, re-activate a previous version. History is immutable, so nothing is lost."
+        steps={[
+          <>Find the <span className="font-medium text-slate-100">Model Version Catalog</span> panel: the active version plus every prior one with its weights and date.</>,
+          <>On any non-active version, click <span className="font-medium text-slate-100">Roll back to this</span>.</>,
+          <>The catalog refreshes with that version now active; the change is recorded in the audit log.</>,
+        ]}
+      />
+
+      <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
+        <span className="font-medium text-emerald-300">Fastest way to learn the app: </span>
+        open the <Link href="/studio" className="text-emerald-400 underline">Asset Studio</Link>,
+        click a preset, run a valuation, then click into the title&apos;s deep-dive
+        and try the What-if sliders and the Greenlight Memo export.
       </div>
     </div>
   );
@@ -542,6 +838,7 @@ export default function GuidePage() {
 
         <div role="tabpanel">
           {tab === "overview" ? <OverviewTab /> : null}
+          {tab === "features" ? <FeaturesTab /> : null}
           {tab === "guardrails" ? <GuardrailsTab /> : null}
           {tab === "examples" ? <ExamplesTab /> : null}
           {tab === "glossary" ? <GlossaryTab /> : null}
