@@ -25,7 +25,13 @@ import {
 
 import type { Explanation, ValuationScorecard } from "@/lib/types";
 import { PaybackTimeline } from "./payback-timeline";
-import { formatMultiple, formatNumber, formatPercent, toNumber } from "./format";
+import {
+  formatMultiple,
+  formatNumber,
+  formatPercent,
+  formatUsd,
+  toNumber,
+} from "./format";
 
 function findCheck(explanation: Explanation | null, name: string) {
   return explanation?.checks.find((c) => c.name === name) ?? null;
@@ -146,6 +152,46 @@ export function FinancialAccordion({ scorecard }: FinancialAccordionProps) {
               </dd>
             </div>
           </dl>
+
+          {scorecard.ltv_attribution ? (
+            <div className="mt-4 rounded-md border bg-muted/30 p-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                LTV-to-cost attribution
+              </p>
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-3">
+                <div>
+                  <dt className="text-muted-foreground">SVOD subscription value</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatUsd(scorecard.ltv_attribution.subscription_value)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">AVOD ad-yield value</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatUsd(scorecard.ltv_attribution.advertising_value)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Total modeled value</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatUsd(scorecard.ltv_attribution.total_modeled_value)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Normalized cost</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatUsd(scorecard.ltv_attribution.normalized_cost_usd)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Multiple</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatMultiple(scorecard.ltv_attribution.multiple)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : null}
         </AccordionSection>
 
         <AccordionSection
@@ -195,6 +241,21 @@ export function FinancialAccordion({ scorecard }: FinancialAccordionProps) {
               </ResponsiveContainer>
             </div>
           )}
+          {scorecard.churn_cohort &&
+          toNumber(scorecard.churn_cohort.retained_subscribers) !== null ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Approx.{" "}
+              <span className="font-semibold text-foreground tabular-nums">
+                {new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
+                  Math.round(toNumber(scorecard.churn_cohort.retained_subscribers)!),
+                )}
+              </span>{" "}
+              retained subscribers
+              {scorecard.churn_cohort.derived ? (
+                <span className="text-xs"> (modeled estimate)</span>
+              ) : null}
+            </p>
+          ) : null}
         </AccordionSection>
 
         <AccordionSection

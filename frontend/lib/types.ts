@@ -107,8 +107,13 @@ export interface ValuationScorecard {
   normalized_cost_usd: number | string | null;
   model_version_id: string | null;
   explanation: Explanation | null;
-  metadata_breakdown: MetadataBreakdown | null;
-}
+  metadata_breakdown: MetadataBreakdown | null;  /** Deal Decision Support (R4, R6, R8). Decimals arrive as JSON strings. */
+  target_purchase_ceiling_usd?: number | string | null;
+  implied_discount_pct?: number | string | null;
+  counter_proposal_levers?: CounterProposalLever[];
+  ltv_attribution?: LtvAttribution | null;
+  churn_cohort?: ChurnCohort | null;}
+
 
 /**
  * CPVH guardrail outcome for a title, as surfaced in the dashboard grid (R14.2).
@@ -219,6 +224,30 @@ export interface CalibrationApplyResponse {
   offsets: Record<string, number | string> | null;
 }
 
+/** A plain-language negotiation lever keyed to a breached guardrail (R3). */
+export interface CounterProposalLever {
+  name: string;
+  correctable: boolean | null;
+  message: string;
+}
+
+/** LTV-to-Cost numerator decomposition (R6). Decimals arrive as JSON strings. */
+export interface LtvAttribution {
+  subscription_value: number | string | null;
+  advertising_value: number | string | null;
+  total_modeled_value: number | string | null;
+  normalized_cost_usd: number | string | null;
+  multiple: number | string | null;
+}
+
+/** Absolute churn-cohort figures (R8); `derived` flags a modeled figure. */
+export interface ChurnCohort {
+  churn_reduction_pct: number | string | null;
+  modeled_cohort_size: number | string | null;
+  retained_subscribers: number | string | null;
+  derived: boolean;
+}
+
 /**
  * Resolves a title to its latest decision (financial projection) id, which the
  * sign-off / finalization endpoints key on (R20.5).
@@ -297,6 +326,10 @@ export interface QuickEvaluateResponse {
   normalized_cost_usd: number | string | null;
   /** Derived renegotiation guidance, not a persisted engine output. */
   target_purchase_ceiling_usd: number | string | null;
+  implied_discount_pct?: number | string | null;
+  counter_proposal_levers?: CounterProposalLever[];
+  ltv_attribution?: LtvAttribution | null;
+  churn_cohort?: ChurnCohort | null;
   explanation: Explanation;
   governance: Governance;
   metadata_profile: MetadataProfile;

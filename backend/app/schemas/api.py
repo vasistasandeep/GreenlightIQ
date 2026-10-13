@@ -116,6 +116,33 @@ class MetadataBreakdown(BaseModel):
     extraction_status: str | None = None
 
 
+class CounterProposalLeverOut(BaseModel):
+    """A plain-language negotiation lever keyed to a breached guardrail (R3)."""
+
+    name: str
+    correctable: bool | None = None
+    message: str
+
+
+class LtvAttributionOut(BaseModel):
+    """The LTV-to-Cost numerator decomposition (R6). Decimals serialize as strings."""
+
+    subscription_value: Decimal | None = None
+    advertising_value: Decimal | None = None
+    total_modeled_value: Decimal | None = None
+    normalized_cost_usd: Decimal | None = None
+    multiple: Decimal | None = None
+
+
+class ChurnCohortOut(BaseModel):
+    """Absolute churn-cohort figures (R8). ``derived`` flags a modeled figure."""
+
+    churn_reduction_pct: Decimal | None = None
+    modeled_cohort_size: Decimal | None = None
+    retained_subscribers: Decimal | None = None
+    derived: bool = True
+
+
 class ValuationScorecardResponse(BaseModel):
     """The full valuation scorecard returned by ``GET /valuation/{title_id}`` (R10, R30.4).
 
@@ -133,6 +160,12 @@ class ValuationScorecardResponse(BaseModel):
     model_version_id: uuid.UUID | None
     explanation: dict[str, Any] | None
     metadata_breakdown: MetadataBreakdown | None
+    # Deal Decision Support (R4, R6, R8). Decimals serialize as JSON strings.
+    target_purchase_ceiling_usd: Decimal | None = None
+    implied_discount_pct: Decimal | None = None
+    counter_proposal_levers: list[CounterProposalLeverOut] = Field(default_factory=list)
+    ltv_attribution: LtvAttributionOut | None = None
+    churn_cohort: ChurnCohortOut | None = None
 
 
 # --------------------------------------------------------------------------- #

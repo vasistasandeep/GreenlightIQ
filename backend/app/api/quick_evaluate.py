@@ -36,7 +36,13 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field, field_validator
 
 from app.api.deps import GuardrailsEngineDep, SessionDep, require_operation
+from app.domain import negotiation
 from app.engines.rbac import Operation
+from app.schemas.api import (
+    ChurnCohortOut,
+    CounterProposalLeverOut,
+    LtvAttributionOut,
+)
 from app.models.title import ASSET_TYPES, Title
 from app.models.title_version import TitleVersion
 from app.repositories.titles import TitleRepository, TitleVersionRepository
@@ -132,6 +138,10 @@ class QuickEvaluateResponse(BaseModel):
     normalized_cost_usd: Decimal | None = None
     #: Derived renegotiation guidance (not a persisted engine output).
     target_purchase_ceiling_usd: Decimal | None = None
+    implied_discount_pct: Decimal | None = None
+    counter_proposal_levers: list[CounterProposalLeverOut] = Field(default_factory=list)
+    ltv_attribution: LtvAttributionOut | None = None
+    churn_cohort: ChurnCohortOut | None = None
     explanation: ExplanationOut
     governance: GovernanceOut
     metadata_profile: MetadataProfileOut
@@ -356,6 +366,29 @@ async def quick_evaluate(
         ),
     )
 
+    checks = _raw_checks(result)
+    ceiling = negotiation.target_purchase_ceiling(normalized, checks)
+    discount = negotiation.implied_discount_pct(normalized, ceiling)
+    levers = [
+        CounterProposalLeverOut(name=lv["name"], correctable=lv["correctable"], message=lv["message"])
+        for lv in negotiation.counter_proposal_levers(checks)
+    ]
+    ltv_attr = None
+    if result.get("ltv_to_cost_multiple") is not None:
+        ltv_attr = LtvAttributionOut(
+            subscription_value=result.get("ltv_subscription_value"),
+            advertising_value=result.get("ltv_advertising_value"),
+            total_modeled_value=result.get("ltv_total_modeled_value"),
+            normalized_cost_usd=normalized,
+            multiple=result.get("ltv_to_cost_multiple"),
+        )
+    churn_cohort = ChurnCohortOut(
+        churn_reduction_pct=result.get("churn_reduction_pct"),
+        modeled_cohort_size=result.get("modeled_cohort_size"),
+        retained_subscribers=result.get("retained_subscribers"),
+        derived=True,
+    )
+
     return QuickEvaluateResponse(
         title_id=title.title_id,
         title_name=title.title_name,
@@ -365,7 +398,11 @@ async def quick_evaluate(
         churn_reduction_pct=result["churn_reduction_pct"],
         payback_horizon_months=result["payback_horizon_months"],
         normalized_cost_usd=normalized,
-        target_purchase_ceiling_usd=_target_ceiling(result),
+        target_purchase_ceiling_usd=ceiling,
+        implied_discount_pct=discount,
+        counter_proposal_levers=levers,
+        ltv_attribution=ltv_attr,
+        churn_cohort=churn_cohort,
         explanation=ExplanationOut(
             checks=_explanation_checks(explanation),
             dominant_factor=_attr(explanation, "dominant_factor"),

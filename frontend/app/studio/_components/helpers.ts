@@ -34,6 +34,15 @@ export function decimals(value: number | string | null | undefined, digits = 3):
   return n === null ? "—" : n.toFixed(digits);
 }
 
+/** Format an integer subscriber count with grouping, em dash when null. */
+export function subscribers(value: number | string | null | undefined): string {
+  const n = num(value);
+  if (n === null) return "—";
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
+    Math.round(n),
+  );
+}
+
 export const GUARDRAIL_LABELS: Record<string, string> = {
   CPVH: "CPVH Check",
   LTV_TO_COST: "LTV-to-Cost",

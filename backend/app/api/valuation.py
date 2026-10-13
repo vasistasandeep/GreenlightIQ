@@ -29,12 +29,16 @@ from app.api.deps import (
     require_operation,
 )
 from app.core.errors import TitleNotFoundError
+from app.domain import cohort, negotiation
 from app.engines.rbac import Operation
 from app.models.metadata_vector import NARRATIVE_DNA_DIMENSIONS
 from app.repositories.financial_projections import FinancialProjectionRepository
 from app.repositories.metadata_vectors import MetadataVectorRepository
 from app.repositories.titles import TitleRepository
 from app.schemas.api import (
+    ChurnCohortOut,
+    CounterProposalLeverOut,
+    LtvAttributionOut,
     MetadataBreakdown,
     ValuationCalculateRequest,
     ValuationScorecardResponse,
@@ -112,6 +116,41 @@ async def get_valuation(
 
     breakdown = await _metadata_breakdown(session, title_id)
 
+    # Deal Decision Support, reconstructed from the persisted projection + its
+    # stored explanation (GET /valuation does not re-run the engine). The LTV
+    # attribution split is not persisted, so this path carries only the total /
+    # cost / multiple (subscription vs advertising split is null here); the
+    # quick-evaluate path, which has the raw inputs, carries the full split.
+    checks = (projection.explanation or {}).get("checks", []) if isinstance(
+        projection.explanation, dict
+    ) else []
+    cost = projection.normalized_cost_usd
+    ceiling = negotiation.target_purchase_ceiling(cost, checks)
+    discount = negotiation.implied_discount_pct(cost, ceiling)
+    levers = [
+        CounterProposalLeverOut(name=lv["name"], correctable=lv["correctable"], message=lv["message"])
+        for lv in negotiation.counter_proposal_levers(checks)
+    ]
+    ltv_attr = None
+    multiple = projection.ltv_to_cost_multiple
+    if multiple is not None and cost is not None:
+        ltv_attr = LtvAttributionOut(
+            subscription_value=None,
+            advertising_value=None,
+            total_modeled_value=multiple * cost,
+            normalized_cost_usd=cost,
+            multiple=multiple,
+        )
+    cohort_size = cohort.derive_modeled_cohort_size(cost)
+    churn_cohort = ChurnCohortOut(
+        churn_reduction_pct=projection.churn_reduction_pct,
+        modeled_cohort_size=cohort_size,
+        retained_subscribers=cohort.retained_subscribers(
+            cohort_size, projection.churn_reduction_pct
+        ),
+        derived=True,
+    )
+
     return ValuationScorecardResponse(
         title_id=title_id,
         calculated_cpvh=projection.calculated_cpvh,
@@ -123,6 +162,11 @@ async def get_valuation(
         model_version_id=projection.model_version_id,
         explanation=projection.explanation,
         metadata_breakdown=breakdown,
+        target_purchase_ceiling_usd=ceiling,
+        implied_discount_pct=discount,
+        counter_proposal_levers=levers,
+        ltv_attribution=ltv_attr,
+        churn_cohort=churn_cohort,
     )
 
 

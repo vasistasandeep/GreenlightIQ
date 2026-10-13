@@ -71,6 +71,11 @@ from app.domain.currency import (
     NormalizedCost,
     normalize_to_usd,
 )
+from app.domain.attribution import ltv_attribution
+from app.domain.cohort import (
+    derive_modeled_cohort_size,
+    retained_subscribers,
+)
 from app.domain.ltv import (
     LTV_TO_COST_THRESHOLD,
     compute_ltv_to_cost,
@@ -173,6 +178,9 @@ class ValuationInputs:
     monthly_margin: Decimal
     milestone_schedule: Sequence[dict[str, Any]] | None = None
     rate_date: Optional[date] = None
+    #: Optional modeled addressable cohort size for absolute churn numbers; when
+    #: absent the engine derives a labeled placeholder. Never a guardrail input.
+    modeled_cohort_size: Decimal | None = None
 
 
 class ValuationInputProvider(Protocol):
@@ -212,6 +220,12 @@ class ValuationResult(TypedDict):
     exchange_rate_id: uuid.UUID | None
     model_version_id: uuid.UUID
     explanation: Explanation
+    # Deal Decision Support (additive; response-composition only, not persisted).
+    ltv_subscription_value: Decimal | None
+    ltv_advertising_value: Decimal | None
+    ltv_total_modeled_value: Decimal | None
+    modeled_cohort_size: Decimal | None
+    retained_subscribers: Decimal | None
 
 
 class GuardrailPersistenceError(RuntimeError):
@@ -349,6 +363,34 @@ class Guardrails_Engine:
         # 6. Recommendation + explanation (R8, R30.4).
         status, explanation = determine_recommendation(checks)
 
+        # Deal Decision Support (additive, labeled, non-persisted). Derive the LTV
+        # attribution split from the SAME territory-weighted operands used for the
+        # multiple, and the absolute churn cohort from inputs or a labeled
+        # derivation. Any failure degrades these to None without blocking the
+        # core valuation.
+        ltv_sub = ltv_adv = ltv_total = cohort_size = retained = None
+        try:
+            if normalized.amount_usd and normalized.amount_usd != 0:
+                attribution = ltv_attribution(
+                    inputs.churn_reduction_value,
+                    weighted_ltv,
+                    inputs.watch_time_elasticity,
+                    weighted_cpm,
+                    inputs.ad_impressions,
+                    normalized.amount_usd,
+                )
+                ltv_sub = attribution["subscription_value"]
+                ltv_adv = attribution["advertising_value"]
+                ltv_total = attribution["total_modeled_value"]
+            cohort_size = (
+                inputs.modeled_cohort_size
+                if inputs.modeled_cohort_size is not None
+                else derive_modeled_cohort_size(normalized.amount_usd)
+            )
+            retained = retained_subscribers(cohort_size, inputs.churn_reduction_pct)
+        except (ArithmeticError, TypeError, ValueError):
+            ltv_sub = ltv_adv = ltv_total = cohort_size = retained = None
+
         result: ValuationResult = {
             "title_id": title_id,
             "calculated_cpvh": calculated_cpvh,
@@ -360,6 +402,11 @@ class Guardrails_Engine:
             "exchange_rate_id": exchange_rate_id,
             "model_version_id": stamp,
             "explanation": explanation,
+            "ltv_subscription_value": ltv_sub,
+            "ltv_advertising_value": ltv_adv,
+            "ltv_total_modeled_value": ltv_total,
+            "modeled_cohort_size": cohort_size,
+            "retained_subscribers": retained,
         }
 
         # 7. Persist with retries, preserving prior value (R8.6, R8.7).

@@ -127,7 +127,7 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
       {state.status === "ready" ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <MetadataRadar breakdown={state.scorecard.metadata_breakdown} />
-          <NegotiationLeverage explanation={state.scorecard.explanation} />
+          <NegotiationLeverage scorecard={state.scorecard} />
           <div className="lg:col-span-2">
             <FinancialAccordion scorecard={state.scorecard} />
           </div>

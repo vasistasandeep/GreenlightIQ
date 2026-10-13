@@ -6,7 +6,15 @@ import { cn } from "@/lib/utils";
 import type { GuardrailCheck, QuickEvaluateResponse } from "@/lib/types";
 import { StudioPayback } from "./studio-payback";
 import { StudioRadar } from "./studio-radar";
-import { decimals, guardrailLabel, multiple, num, pct, usd } from "./helpers";
+import {
+  decimals,
+  guardrailLabel,
+  multiple,
+  num,
+  pct,
+  subscribers,
+  usd,
+} from "./helpers";
 
 const BANNER: Record<string, { label: string; cls: string }> = {
   GREENLIGHT: {
@@ -109,9 +117,13 @@ export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
         )}
       >
         <span>[ {banner.label} ]</span>
-        {result.target_purchase_ceiling_usd !== null ? (
+        {result.recommendation_status !== "GREENLIGHT" &&
+        num(result.target_purchase_ceiling_usd) !== null ? (
           <span className="text-base font-semibold">
             &bull; Target Purchase Ceiling: {usd(result.target_purchase_ceiling_usd)}
+            {num(result.implied_discount_pct) !== null ? (
+              <> &bull; Discount: {pct(result.implied_discount_pct)}</>
+            ) : null}
           </span>
         ) : null}
       </div>
@@ -183,6 +195,75 @@ export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
             </p>
           ) : null}
         </Panel>
+
+        {/* LTV-to-Cost attribution */}
+        {result.ltv_attribution ? (
+          <Panel title="LTV-to-Cost Attribution">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              <dt className="text-slate-400">SVOD subscription value</dt>
+              <dd className="text-right font-semibold text-slate-200">
+                {usd(result.ltv_attribution.subscription_value)}
+              </dd>
+              <dt className="text-slate-400">AVOD ad-yield value</dt>
+              <dd className="text-right font-semibold text-slate-200">
+                {usd(result.ltv_attribution.advertising_value)}
+              </dd>
+              <dt className="text-slate-400">Total modeled value</dt>
+              <dd className="text-right font-semibold text-slate-200">
+                {usd(result.ltv_attribution.total_modeled_value)}
+              </dd>
+              <dt className="text-slate-400">Normalized cost</dt>
+              <dd className="text-right font-semibold text-slate-200">
+                {usd(result.ltv_attribution.normalized_cost_usd)}
+              </dd>
+              <dt className="text-slate-400">Multiple</dt>
+              <dd className="text-right font-semibold text-emerald-300">
+                {multiple(result.ltv_attribution.multiple)}
+              </dd>
+            </dl>
+          </Panel>
+        ) : null}
+
+        {/* Negotiation playbook: counter-proposal levers + retained subscribers */}
+        {result.recommendation_status !== "GREENLIGHT" &&
+        (result.counter_proposal_levers?.length ||
+          num(result.churn_cohort?.retained_subscribers) !== null) ? (
+          <Panel title="Negotiation Playbook">
+            {result.churn_cohort &&
+            num(result.churn_cohort.retained_subscribers) !== null ? (
+              <p className="mb-3 text-sm text-slate-300">
+                Approx.{" "}
+                <span className="font-semibold text-slate-100">
+                  {subscribers(result.churn_cohort.retained_subscribers)}
+                </span>{" "}
+                retained subscribers
+                {result.churn_cohort.derived ? (
+                  <span className="text-[11px] text-slate-500"> (modeled estimate)</span>
+                ) : null}
+              </p>
+            ) : null}
+            {result.counter_proposal_levers?.length ? (
+              <ul className="space-y-2">
+                {result.counter_proposal_levers.map((lv) => (
+                  <li
+                    key={lv.name}
+                    className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-amber-200">
+                        {guardrailLabel(lv.name)}
+                      </span>
+                      <span className="text-[11px] uppercase text-amber-400/80">
+                        {lv.correctable === true ? "Correctable" : "Structural"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-slate-300">{lv.message}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </Panel>
+        ) : null}
       </div>
     </div>
   );
