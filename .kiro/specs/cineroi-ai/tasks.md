@@ -258,6 +258,106 @@ The pure financial and determinism core lives in `backend/app/domain/` and is va
 - [x] 23. Final checkpoint - full stack verified
   - Ensure all backend and frontend tests pass and the deployment smoke test succeeds, ask the user if questions arise.
 
+## Post-Launch Enhancements (Requirements 31-37)
+
+The following capabilities were implemented and shipped after the core plan (tasks 1-23). They are recorded here, marked complete, for a single source of truth. All reuse existing engine outputs, repository/error conventions, and frontend patterns; none change the four guardrail thresholds or the recommendation logic. Each sub-task ends by wiring new code into the existing structure.
+
+- [x] 24. Comparable Titles - Top 3 historical comps (R31)
+  - [x] 24.1 Add title-to-title similarity to the data access layer and valuation API
+    - `MetadataVectorRepository.rank_similar_titles(title_vector, exclude_title_id, limit=3)` using pgvector cosine over `narrative_dna`, joined to `titles` for name/genre, with a correlated subquery for each neighbour's latest `recommendation_status`; order by the derived `1 - distance` similarity (forcing an exact scan so the IVFFlat index does not return zero rows at demo scale) and de-dupe to one row per neighbour; add `ComparableTitles`/`TitleComp` schemas and `GET /valuation/{title_id}/comps` (VALUATION-gated, 404 on missing title, `found=false` on no embedding).
+    - _Requirements: 31.1, 31.2, 31.3, 31.4, 31.5_
+  - [x] 24.2 Build the comps panel on the title page
+    - `getComps` typed client method + types; `ComparableTitlesPanel` on `/titles/[id]` linking each comp with a `RecommendationBadge` and similarity, with loading/empty/error states.
+    - _Requirements: 31.6_
+  - [x]* 24.3 Tests for comparable titles
+    - Backend example tests (ranked / `found=false` / 404); frontend `comparable-titles.test.tsx` (ranked, pending-badge, empty, error).
+    - **Property 43: Comparable-titles ranking and self-exclusion**
+    - _Requirements: 31.1, 31.2, 31.3, 31.5, 31.6_
+
+- [x] 25. Market Telemetry Card (R32)
+  - [x] 25.1 Expose genre and primary territory on the valuation scorecard
+    - Add `genre_tag` and `primary_territory` (first of `target_territories`) to `ValuationScorecardResponse` and populate them in `GET /valuation/{title_id}`.
+    - _Requirements: 32.1_
+  - [x] 25.2 Build the Market Telemetry card
+    - `getTelemetry` client method + `MarketTelemetry` type; `MarketTelemetryCard` on `/titles/[id]` consuming `GET /market/telemetry`, with data / stale-source / never-polled / absent-genre-territory states.
+    - _Requirements: 32.2, 32.3, 32.4, 32.5_
+  - [x] 25.3 Seed the telemetry cache consistently with territory weighting
+    - Seed `market_telemetry_cache` for every genre/territory pair the seeded titles target; back-fill each title's modeled inputs by dividing out the resulting CPM/LTV weights so stored scorecards are unchanged and a live recompute still reproduces them; add the cache to the demo-reset truncation set.
+    - _Requirements: 13.2, 32.2, 36.1_
+  - [x]* 25.4 Tests for the telemetry card
+    - Backend example test for scorecard genre/territory; frontend `market-telemetry-card.test.tsx` (four states).
+    - _Requirements: 32.1, 32.2, 32.3, 32.4, 32.5_
+
+- [x] 26. Dashboard filtering, search, and shareable view state (R33)
+  - [x] 26.1 Make the asset grid a pure function of the URL
+    - Read search (`q`), recommendation filter (`rec`), deal-stage filter (`stage`), and sort (`sort`,`dir`) from `useSearchParams`; write via `router.replace` (history-replacing, scroll-preserving); add the search box, filter dropdowns, clear control, and a visible result count with a no-match state; wrap the grid in a `<Suspense>` boundary on the dashboard page.
+    - _Requirements: 33.1, 33.2, 33.3, 33.4, 33.5, 33.6_
+  - [x]* 26.2 Tests for dashboard view state
+    - `asset-data-grid.test.tsx` with a stateful `next/navigation` mock: search, both filters, URL hydration, no-match, and query-string writes.
+    - **Property 47: Dashboard view state is a pure function of the URL**
+    - _Requirements: 33.1, 33.2, 33.3, 33.4, 33.5_
+
+- [x] 27. Deal-stage acquisition lifecycle (R34)
+  - [x] 27.1 Implement the pure deal-stage state machine in `app/domain/deal_stage.py`
+    - `DealStage` enum, `ALLOWED_TRANSITIONS` matrix (one forward step; abandon-to-PASSED from any live stage; APPROVED to CLOSED_WON/CLOSED_LOST), `validate_transition`, `allowed_next_stages`, `coerce_stage` (null -> SCREENING), and terminal-stage handling. No I/O.
+    - _Requirements: 34.1, 34.4, 34.8_
+  - [x] 27.2 Add the deal_stage column and migration
+    - `titles.deal_stage` TEXT NOT NULL DEFAULT 'SCREENING' with a CHECK on the enumerated set; Alembic migration `0004_deal_stage` back-filling existing rows; seed each title with a stage spanning the pipeline.
+    - _Requirements: 34.1_
+  - [x] 27.3 Implement the deal-stage endpoints
+    - `GET /titles/{id}/deal-stage` (VALUATION-gated: current + allowed next); `PATCH /titles/{id}/deal-stage` (OVERRIDE-gated; validate via the state machine - illegal 422 with allowed set, unauthorized 403; persist under optimistic lock; write a `deal_stage_transition` audit entry).
+    - _Requirements: 34.2, 34.3, 34.4, 34.5_
+  - [x] 27.4 Surface deal stage in the frontend
+    - Shared `DealStageBadge`; `DealStageControl` on `/titles/[id]` (legal next stages only; read-only on 403; message on 422); a sortable Deal Stage column and a stage filter on the dashboard grid; `deal_stage` on the dashboard summary row.
+    - _Requirements: 34.6, 34.7_
+  - [x]* 27.5 Tests for the deal-stage lifecycle
+    - `test_deal_stage.py` (example + Hypothesis properties 41, 42); API example tests (advance / illegal 422 / unauthorized 403 / audit); frontend `deal-stage-control.test.tsx` (advance / terminal / 403 / 422) and the grid stage-filter test.
+    - **Property 41: Deal-stage transition legality**, **Property 42: Allowed-next-stages matches the matrix**
+    - _Requirements: 34.2, 34.3, 34.4, 34.5, 34.6, 34.7, 34.8_
+
+- [x] 28. Responsive tablet layout (R35)
+  - [x] 28.1 Tablet/iPad refinements
+    - Confirm the `width=device-width` viewport and mobile-first breakpoints; give the what-if sliders a taller touch hit area with `touch-none`; reduce the metadata radar `outerRadius` (72% -> 65%) so axis labels do not clip in the half-width column.
+    - _Requirements: 35.1, 35.2, 35.3, 35.4_
+
+- [x] 29. Demo and operational integrity (R36)
+  - [x] 29.1 Fix the optimistic-locked update
+    - `BaseRepository.update_with_version` resolves the pk column from the model class (`type(self).pk`) instead of the repository instance, repairing recompute of a title that already has a persisted projection.
+    - _Requirements: 27.2, 36.3_
+  - [x] 29.2 Exchange-rate latest-date fallback
+    - `Guardrails_Engine._normalize_cost` falls back to the latest available dated rate when the exact rate date is missing, rejecting only when the currency pair has no rate at all.
+    - _Requirements: 21.5, 36.2_
+  - [x] 29.3 Self-consistent seed data
+    - Milestone-based payback back-fill (`monthly_margin = normalized / (payback - 0.5)`, single month-1 milestone) so a recompute lands on the seeded payback; correct seeded churn and verdict labels so every seeded title recomputes to its stored verdict.
+    - _Requirements: 36.1_
+  - [x] 29.4 Demo reset script
+    - `scripts/demo-reset.ps1` / `.sh` truncate the demo-mutable tables (including `market_telemetry_cache`) and re-apply the generated seed via `docker compose cp` + `psql -f`.
+    - _Requirements: 36.4_
+  - [x] 29.5 How It Works guide
+    - `/guide` page explaining each guardrail in plain language with worked arithmetic from the seeded titles and a step-by-step walkthrough from raw deal to verdict to negotiation target.
+    - _Requirements: 36.5_
+  - [x] 29.6 Decision resolution + demo sign-off endpoints
+    - `GET /valuation/{title_id}/decision` (resolve title to its latest decision id); `POST /decisions/{id}/demo-sign-off` (dev/demo-only, attributes an approval to the seeded role-holder so a single-identity demo clears the two-role gate; absent in production).
+    - _Requirements: 36.6, 36.7_
+  - [x]* 29.7 Tests for operational integrity
+    - DB-less regression `test_base_update_with_version.py` (Property 44); FX fallback test (Property 45); seed recompute consistency verified against the running engine (Property 46); generator `--check` sync guard.
+    - **Property 44: Optimistic-locked update builds against the model class**, **Property 45: Exchange-rate latest-date fallback**, **Property 46: Seed recompute consistency**
+    - _Requirements: 21.5, 36.1, 36.2, 36.3_
+
+- [x] 30. Asset Studio - instant evaluation and intake (R37)
+  - [x] 30.1 Instant single-title evaluation endpoint
+    - `POST /titles/quick-evaluate` (INGEST-gated): create title + active version, estimate viewing hours from budget/pedigree when blank, normalize non-USD cost with the latest-rate fallback, run the engine inline, return the full `QuickEvaluateResponse` scorecard.
+    - _Requirements: 37.1, 37.2, 37.3_
+  - [x] 30.2 Pitch PDF auto-fill endpoint
+    - `POST /titles/parse-pitch`: best-effort extraction of title/synopsis/genre/budget/currency for review; never creates a title or runs a valuation.
+    - _Requirements: 37.4_
+  - [x] 30.3 Asset Studio UI
+    - `/studio` with the Single Asset form (shorthand cost preview + quick presets), the Batch Slate tab (async ingest with accepted/rejected summary), the pitch-PDF drop zone, and the instant scorecard with a deep-dive link.
+    - _Requirements: 37.5, 37.6, 37.7_
+  - [x]* 30.4 Tests for the Asset Studio
+    - Shorthand-expansion unit tests (`_components/helpers.test.ts`) and the studio component/interaction tests.
+    - _Requirements: 37.5, 37.6, 37.7_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for a faster MVP; they are test-related (property, unit, integration, component, smoke) sub-tasks. Core implementation sub-tasks are never optional.

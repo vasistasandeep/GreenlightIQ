@@ -6,7 +6,7 @@ CineROI AI (formally "The OTT Enterprise High-ROI Content Acquisition, Licensing
 
 The platform is delivered as a monorepo containing a FastAPI backend, a Next.js frontend, PostgreSQL 16+ with the pgvector extension, migration scripts, and Docker-based deployment orchestration.
 
-This document captures the functional and non-functional requirements for the system in EARS format, organized by capability area: data ingestion and feature extraction, financial guardrails valuation, historical backtesting and calibration, market telemetry, REST API surface, frontend experiences, data persistence, and deployment.
+This document captures the functional and non-functional requirements for the system in EARS format, organized by capability area: data ingestion and feature extraction, financial guardrails valuation, historical backtesting and calibration, market telemetry, REST API surface, frontend experiences, data persistence, and deployment. Requirements 1-30 define the core platform. Requirements 31-36 capture the decision-support and operational enhancements added after the core platform shipped: title-to-title comparable-titles matching, the market-telemetry card on the title page, dashboard filtering/search with shareable view state, the human-managed deal-stage acquisition lifecycle, responsive tablet layout, and demo/operational integrity (self-consistent seed data, exchange-rate fallback, and a one-command demo reset). (Three earlier enhancement waves - Deal Decision Support, What-If Sensitivity, and the demo-friendly Backtest Studio - are specified in their own sibling spec folders and are not duplicated here.)
 
 ## Glossary
 
@@ -44,6 +44,18 @@ This document captures the functional and non-functional requirements for the sy
 - **Model_Version**: An identifier capturing the active feature-extraction weight set and guardrail parameters at the time a valuation is produced.
 - **License_Terms**: The contract structure for a title, including license duration, exclusivity, windowing rules, and milestone payment schedule.
 - **Base_Currency**: The system's canonical reporting currency (United States dollars) into which all territorial costs are normalized.
+- **Comparable_Titles**: The ranked set of titles most similar to a given title by Narrative_DNA cosine similarity (title-to-title, as opposed to the title-to-subscriber-cluster match of the Vector_Search_Engine). Surfaced as the "Top 3 historical comps" on the Title_Evaluation_UI.
+- **Market_Telemetry_Card**: The Title_Evaluation_UI panel that surfaces the cached Market_Telemetry (social sentiment, chart velocity, licensing inflation) for the title's genre and primary target territory.
+- **Primary_Territory**: The first entry of a title's target_territories list, used as the territory key for the Market_Telemetry_Card lookup.
+- **Deal_Stage**: The human-managed position of a title in the acquisition pipeline, one of {SCREENING, EVALUATED, IN_NEGOTIATION, APPROVED, CLOSED_WON, CLOSED_LOST, PASSED}, independent of the AI Recommendation_Status.
+- **Deal_Stage_Lifecycle**: The state machine governing legal Deal_Stage transitions (forward one step along the pipeline, an abandon-to-PASSED escape from any live stage, and APPROVED to CLOSED_WON/CLOSED_LOST), with terminal stages that admit no further transition.
+- **Terminal_Deal_Stage**: A Deal_Stage with no outgoing transitions: CLOSED_WON, CLOSED_LOST, or PASSED.
+- **Dashboard_View_State**: The dashboard grid's free-text title search, recommendation filter, deal-stage filter, and sort column/direction, mirrored into the URL query string so the view is shareable and survives reload.
+- **Demo_Reset**: The one-command script that truncates the demo-mutable tables and re-applies the pristine seed so a demo can be re-run from a clean slate.
+- **Asset_Studio_UI**: The Next.js title-intake and instant-evaluation surface at `/studio`, with a Single Asset tab, a Batch Slate tab, and a pitch-PDF drop zone.
+- **Instant_Evaluation**: The synchronous single-title path `POST /api/v1/titles/quick-evaluate` that creates a title plus its active version, runs the Guardrails_Engine inline, and returns a full scorecard without the async ingest job.
+- **Pitch_Auto_Fill**: The best-effort extraction path `POST /api/v1/titles/parse-pitch` that reads a pitch/script PDF and returns candidate Asset_Studio_UI field values for the user to review before submission.
+- **Shorthand_Amount**: Analyst budget shorthand the cost field accepts (for example `12 Cr`, `3 Lakh`, `1.5M`, `500k`), expanded to a full number with a live preview before submission.
 
 ## Requirements
 
@@ -406,3 +418,94 @@ This document captures the functional and non-functional requirements for the sy
 2. WHEN a guardrail check is breached, THE Guardrails_Engine SHALL report the computed value, the applicable threshold, and the magnitude of the shortfall for that check.
 3. WHEN the Recommendation_Status is PASS or NEGOTIATE_HARD, THE Guardrails_Engine SHALL identify the dominant contributing factor driving the status.
 4. WHEN a valuation is retrieved through `GET /api/v1/valuation/{title_id}`, THE API_Service SHALL include the recommendation explanation in the response and THE Title_Evaluation_UI SHALL surface the explanation.
+
+### Requirement 31: Comparable Titles (Top 3 Historical Comps)
+
+**User Story:** As a content buyer, I want to see the titles most similar to the one I am evaluating, so that I can sanity-check a valuation against the closest precedents in the catalog.
+
+#### Acceptance Criteria
+
+1. WHEN a request to `GET /api/v1/valuation/{title_id}/comps` is received for a title that has a persisted Narrative_DNA vector, THE API_Service SHALL return up to three other titles ranked in descending order of Narrative_DNA cosine similarity to that title, excluding the title itself.
+2. WHEN comparable titles are returned, THE API_Service SHALL include, for each comparable, its title identifier, title name, genre tag, latest Recommendation_Status (null when the comparable has no computed valuation), and the cosine similarity score.
+3. IF the requested title has no persisted Narrative_DNA vector, THEN THE API_Service SHALL return a result indicating comparables could not be computed (found = false) with an empty comparables list, rather than an error.
+4. IF the requested title_id does not exist, THEN THE API_Service SHALL return a not-found error identifying the missing title_id.
+5. WHEN a title has more than one persisted Narrative_DNA vector (re-extractions), THE API_Service SHALL rank each other title by its single closest vector so no comparable title appears more than once.
+6. WHEN the Title_Evaluation_UI loads for a title, THE Title_Evaluation_UI SHALL render a "Top 3 historical comps" panel listing each comparable with its name, recommendation badge, and similarity, linking each to that comparable's evaluation; AND SHALL render a graceful empty state when no comparable is available.
+
+### Requirement 32: Market Telemetry Card on Title Evaluation
+
+**User Story:** As a programming executive, I want the live market signals for a title's genre and territory shown on its evaluation, so that I can see the external context the valuation's territory weighting reflects.
+
+#### Acceptance Criteria
+
+1. WHEN a request to `GET /api/v1/valuation/{title_id}` is received, THE API_Service SHALL include the title's genre tag and Primary_Territory in the scorecard response.
+2. WHEN the Title_Evaluation_UI has loaded a title's scorecard with a genre tag and Primary_Territory, THE Title_Evaluation_UI SHALL request `GET /api/v1/market/telemetry` for that genre and territory and render a Market_Telemetry_Card showing the social sentiment index, chart velocity score, and licensing inflation multiplier.
+3. IF the telemetry source for the pair was unavailable on its most recent poll (source_available = false), THEN THE Market_Telemetry_Card SHALL display the retained values together with a staleness indication.
+4. IF no telemetry has ever been cached for the pair (found = false), THEN THE Market_Telemetry_Card SHALL display a "not yet polled" empty state rather than an error.
+5. IF the title has no genre tag or no Primary_Territory, THEN THE Title_Evaluation_UI SHALL omit the Market_Telemetry_Card rather than issue a telemetry request.
+
+### Requirement 33: Dashboard Filtering, Search, and Shareable View State
+
+**User Story:** As a programming executive, I want to search and filter the pipeline grid and share or bookmark a filtered view, so that I can quickly find titles and send a colleague the exact same view.
+
+#### Acceptance Criteria
+
+1. WHEN a user types in the dashboard title search box, THE Dashboard_UI SHALL restrict the grid to titles whose name contains the entered text, case-insensitively.
+2. WHEN a user selects a recommendation filter or a deal-stage filter, THE Dashboard_UI SHALL restrict the grid to titles matching the selected Recommendation_Status or Deal_Stage respectively.
+3. WHEN a user changes the search text, either filter, or the sort column/direction, THE Dashboard_UI SHALL reflect the resulting Dashboard_View_State in the page URL query string.
+4. WHEN the dashboard is opened with a URL carrying view-state query parameters, THE Dashboard_UI SHALL initialize the grid's search, filters, and sort from those parameters so the same filtered, sorted view is reproduced.
+5. WHEN the active filters match no titles, THE Dashboard_UI SHALL display a no-match state with a control to clear the filters, while leaving the underlying pipeline unchanged.
+6. WHEN view-state query parameters change, THE Dashboard_UI SHALL replace rather than append browser history so repeated filtering does not flood the back button.
+
+### Requirement 34: Deal-Stage Acquisition Lifecycle
+
+**User Story:** As a content buyer, I want to track where each title sits in our acquisition pipeline, independent of the AI's recommendation, so that the portfolio reflects the real state of each deal.
+
+#### Acceptance Criteria
+
+1. THE CineROI_System SHALL store a Deal_Stage for every title, constrained to the set {SCREENING, EVALUATED, IN_NEGOTIATION, APPROVED, CLOSED_WON, CLOSED_LOST, PASSED}, defaulting a newly ingested title to SCREENING.
+2. WHEN a request to `GET /api/v1/titles/{title_id}/deal-stage` is received, THE API_Service SHALL return the title's current Deal_Stage and the set of stages it may legally transition to next.
+3. WHEN a request to `PATCH /api/v1/titles/{title_id}/deal-stage` proposes a target stage that is a legal transition from the current stage, THE API_Service SHALL update the title's Deal_Stage, record an append-only audit entry capturing the before and after stage, and return the new stage with its allowed next stages.
+4. IF a PATCH proposes a stage that is not a legal transition from the current stage (including a transition out of a Terminal_Deal_Stage or a no-op to the same stage), THEN THE API_Service SHALL reject the request without changing the Deal_Stage and return an error identifying the current stage and the allowed next stages.
+5. IF a user whose User_Role is not CONTENT_BUYER, CHIEF_CONTENT_OFFICER, or CFO attempts a Deal_Stage transition, THEN THE RBAC_Service SHALL reject the request with an authorization error and leave the Deal_Stage unchanged.
+6. WHEN the Dashboard_UI renders the master asset data grid, THE Dashboard_UI SHALL show each title's Deal_Stage as a sortable column and allow filtering the grid by Deal_Stage.
+7. WHEN the Title_Evaluation_UI loads for a title, THE Title_Evaluation_UI SHALL render a deal-stage control showing the current stage and offering only the legal next stages; a title in a Terminal_Deal_Stage SHALL offer no transitions; and a user without permission SHALL see the stage read-only.
+8. THE Deal_Stage_Lifecycle SHALL permit, from any live (non-terminal) stage, a transition to PASSED; a single forward step along SCREENING to EVALUATED to IN_NEGOTIATION to APPROVED; and from APPROVED a transition to CLOSED_WON or CLOSED_LOST.
+
+### Requirement 35: Responsive Tablet Layout
+
+**User Story:** As an executive reviewing deals on a tablet, I want the portal to be usable at tablet screen widths, so that I can review and act on titles away from my desk.
+
+#### Acceptance Criteria
+
+1. THE CineROI_System frontend SHALL declare a responsive viewport so pages scale to the device width.
+2. WHERE a page is viewed at a tablet-class width (approximately 768 to 1024 pixels), THE Dashboard_UI, Title_Evaluation_UI, and Backtest_Studio_UI SHALL present their primary content without horizontal clipping of controls, stacking multi-column layouts as needed and allowing the data grid to scroll horizontally within its container.
+3. WHEN interactive controls (the what-if sliders) are presented on a touch device, THE Title_Evaluation_UI SHALL render them with a touch-friendly hit area and SHALL NOT scroll the page while a slider is being dragged.
+4. WHEN the metadata radar is rendered within a constrained (half-width) column, THE Title_Evaluation_UI SHALL keep the axis labels within the chart bounds (no clipping).
+
+### Requirement 36: Demo and Operational Integrity
+
+**User Story:** As a platform operator running demonstrations, I want the seeded data to be internally consistent, the valuation to tolerate a missing exact-date rate, and a one-command reset, so that demos are reproducible and recomputing a seeded title never contradicts its stored verdict.
+
+#### Acceptance Criteria
+
+1. THE CineROI_System seed data SHALL be internally consistent such that recomputing any seeded title through the Guardrails_Engine reproduces that title's stored Recommendation_Status and the stored payback_horizon_months.
+2. WHEN the Guardrails_Engine normalizes a cost and no exchange rate exists for the exact required rate date, THE Guardrails_Engine SHALL fall back to the latest available dated rate for that currency pair rather than rejecting the valuation, and SHALL reject only when no rate for the currency pair exists at all (R21.5).
+3. WHEN a valuation is recomputed for a title that already has a persisted financial projection, THE Guardrails_Engine SHALL update the existing projection under optimistic locking without error (an optimistic-locked update SHALL resolve the primary-key column from the model class, not from the repository instance), persisting the recomputed scorecard.
+4. WHEN the Demo_Reset script is run against a running stack, THE CineROI_System SHALL truncate the demo-mutable tables (including the market telemetry cache) and re-apply the pristine seed, leaving exactly the seeded titles in the pipeline.
+5. THE CineROI_System SHALL provide an in-portal "How It Works" guide that explains, in plain non-technical language with worked arithmetic drawn from the seeded titles, what each guardrail computes and how a Recommendation_Status is reached.
+6. WHEN a request to `GET /api/v1/valuation/{title_id}/decision` is received, THE API_Service SHALL resolve the title to its latest decision (financial-projection) identifier that the sign-off and finalization endpoints key on, or return a not-found error when the title has no computed valuation.
+7. WHERE the demo authentication bypass is enabled and the environment is not production, THE API_Service SHALL expose `POST /api/v1/decisions/{decision_id}/demo-sign-off` that records an executive approval attributed to the seeded user holding the requested role (CHIEF_CONTENT_OFFICER or CFO), so a single-identity demo session can clear a two-role high-budget sign-off gate; outside dev/demo this route SHALL be absent (return not-found).
+### Requirement 37: Asset Studio - Instant Evaluation and Intake
+
+**User Story:** As a content buyer, I want to evaluate a title the moment I enter it, bring in a whole slate at once, or let a pitch PDF fill the form, so that I can get a verdict without waiting on the batch pipeline or retyping a deck.
+
+#### Acceptance Criteria
+
+1. WHEN a request to `POST /api/v1/titles/quick-evaluate` is received with a title's details, THE API_Service SHALL create the title and its active version, invoke the Guardrails_Engine inline, and return a full scorecard (recommendation, the four guardrail outputs, explanation, metadata profile, and the Deal Decision Support fields) in the same response.
+2. IF a quick-evaluate request omits projected viewing hours or supplies a non-positive value, THEN THE API_Service SHALL estimate projected viewing hours from the title's budget and pedigree so CPVH can still be computed.
+3. WHEN a quick-evaluate request supplies a non-USD native currency, THE Guardrails_Engine SHALL normalize the cost using the dated exchange rate for the rate date, falling back to the latest available rate for that currency pair when the exact date is absent (R21.5, R36.2).
+4. WHEN a request to `POST /api/v1/titles/parse-pitch` is received with a PDF, THE API_Service SHALL return best-effort candidate values for the title name, synopsis, genre, budget, and currency for the user to review, and SHALL NOT create a title or submit a valuation from the parse step.
+5. WHEN the Asset_Studio_UI cost field receives a Shorthand_Amount, THE Asset_Studio_UI SHALL display a live preview of the fully expanded numeric amount before the valuation is run.
+6. WHEN the Asset_Studio_UI Batch Slate tab is used to upload or paste a CSV or JSON slate, THE Asset_Studio_UI SHALL submit it through the asynchronous batch ingestion path (R1, R23) and report the accepted and rejected counts with a reason per rejected row.
+7. WHEN the Asset_Studio_UI runs an Instant_Evaluation, THE Asset_Studio_UI SHALL render the returned scorecard and offer a link to the title's full deep-dive evaluation.

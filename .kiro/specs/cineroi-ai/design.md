@@ -2,7 +2,7 @@
 
 ## Overview
 
-CineROI AI is an internal decision-support platform that ingests multi-format content manifests, extracts semantic metadata vectors, evaluates each title against quantitative financial guardrails, produces greenlight recommendations, and backtests predictions against historical ground truth to auto-calibrate the model. This design translates the 30 approved requirements into an implementation-ready technical blueprint.
+CineROI AI is an internal decision-support platform that ingests multi-format content manifests, extracts semantic metadata vectors, evaluates each title against quantitative financial guardrails, produces greenlight recommendations, and backtests predictions against historical ground truth to auto-calibrate the model. This design translates the approved requirements into an implementation-ready technical blueprint. Requirements 1-30 define the core platform; Requirements 31-37 add the post-launch decision-support and operational enhancements (comparable titles, the market-telemetry card, dashboard filtering with shareable view state, the deal-stage acquisition lifecycle, responsive tablet layout, demo/operational integrity, and the Asset Studio instant-evaluation and intake surface). The `Enhancements (R31-R37)` section near the end of this document details those additions; the three earlier enhancement waves (Deal Decision Support, What-If Sensitivity, demo-friendly Backtest Studio) live in their own sibling spec folders.
 
 The platform is a Docker Compose monorepo with three deployable units — a Next.js (App Router) frontend, a FastAPI (async) backend, and a PostgreSQL 16+ database with the pgvector extension — plus a Celery worker fleet backed by a Redis/RabbitMQ broker. Heavy operations (batch ingestion, feature extraction, backtest audits, telemetry polling) run asynchronously; interactive reads and single-title valuations run synchronously.
 
@@ -35,6 +35,12 @@ The platform is a Docker Compose monorepo with three deployable units — a Next
 | Async jobs | 23, 29 | Task_Queue (Celery) |
 | Audit + lineage | 25 | Audit_Log_Service |
 | Concurrency/idempotency | 27 | API_Service / DB constraints |
+| Comparable titles (Top 3 comps) | 31 | MetadataVectorRepository.rank_similar_titles / valuation router / `ComparableTitlesPanel` |
+| Market telemetry card | 32 | API_Service (scorecard genre/territory) / `MarketTelemetryCard` |
+| Dashboard filter/search/shareable state | 33 | `AssetDataGrid` (URL-synced view state) |
+| Deal-stage lifecycle | 34 | `app/domain/deal_stage.py` / titles router / `DealStageControl` + grid column |
+| Responsive tablet layout | 35 | Frontend layout (Tailwind breakpoints) |
+| Demo/operational integrity | 36 | Seed generator / currency fallback / `BaseRepository.update_with_version` / `demo-reset` |
 
 ## Architecture
 
@@ -703,6 +709,58 @@ Next.js App Router + TypeScript + Tailwind + Shadcn UI + Recharts. Server Compon
 ### Approval workflow in the UI
 High-budget GREENLIGHT decisions surface a sign-off panel showing required roles and outstanding approvals (R20.5); override and approve/reject actions post to the decision endpoints and reflect finalization gating.
 
+## Enhancements (R31-R37)
+
+These capabilities were added after the core platform shipped. Each reuses the existing engine outputs, repository/error conventions, and frontend patterns; none change the four guardrail thresholds or the recommendation logic.
+
+### Comparable Titles - Top 3 historical comps (R31)
+
+A new repository method ranks title-to-title Narrative_DNA similarity, distinct from the Vector_Search_Engine's title-to-subscriber-cluster match (R3).
+
+- `MetadataVectorRepository.rank_similar_titles(title_vector, exclude_title_id, limit=3)` computes cosine similarity as `1 - (narrative_dna <=> title_vector)` over `metadata_vectors`, joins `titles` for name/genre, excludes the query title, and resolves each neighbour's latest `recommendation_status` via a correlated scalar subquery over `financial_projections` (newest by `created_at`), so a comparable without a computed valuation surfaces a null status rather than being dropped.
+- **pgvector / IVFFlat note:** at demo data volumes the IVFFlat index has near-empty inverted lists, and ordering by the bare `<=>` operator makes the planner pick that index and return zero candidates. The query therefore orders by the derived `1 - distance` similarity expression (forcing an exact sequential scan), and over-fetches (`limit * 5`) then de-duplicates to the single closest row per neighbour in Python so a title with multiple re-extraction vectors appears once.
+- Endpoint `GET /valuation/{title_id}/comps` (Operation.VALUATION): 404 for a missing title; `{title_id, found, comps: []}` with `found = false` when the title has no embedding; otherwise `found = true` with up to three `{title_id, title_name, genre_tag, recommendation_status, cosine_similarity}` comps.
+- Frontend `ComparableTitlesPanel` (self-fetching) on `/titles/[id]` renders a ranked list linking each comp to its own evaluation with a `RecommendationBadge` and an affinity percentage, plus loading/empty/error states.
+
+### Market Telemetry Card (R32)
+
+Surfaces the existing `market_telemetry_cache` (R13) on the title page. The valuation scorecard response (`GET /valuation/{title_id}`) gains `genre_tag` and `primary_territory` (first of `target_territories`) so the client can look telemetry up without an extra round trip. A self-fetching `MarketTelemetryCard` calls `GET /market/telemetry?genre=&territory=` and renders social sentiment, chart velocity, and licensing inflation, with a stale-source note when `source_available` is false, a "not yet polled" state when `found` is false, and nothing at all when the title lacks a genre or territory.
+
+Because the demo poller does not run, the seed now populates `market_telemetry_cache` for every genre/territory pair the seeded titles target. Those values feed the engine's territory weighting (R21.3), so the seed back-fills each title's modeled inputs by dividing out the resulting CPM/LTV weights - keeping the stored scorecards identical while a live recompute still reproduces them.
+
+### Dashboard Filtering, Search, and Shareable View State (R33)
+
+The `AssetDataGrid` becomes a pure function of the URL. Search (`q`), recommendation filter (`rec`), deal-stage filter (`stage`), and sort (`sort`, `dir`) are read from `useSearchParams` and written with `router.replace` (history-replacing, scroll-preserving). The grid is wrapped in a `<Suspense>` boundary on the dashboard page as required for `useSearchParams`. A no-match state offers a clear-filters control; a visible "N of M" count reflects the active filters.
+
+### Deal-Stage Acquisition Lifecycle (R34)
+
+A human-managed pipeline stage orthogonal to the AI `recommendation_status`.
+
+- Pure state machine `app/domain/deal_stage.py`: the `DealStage` enum, an `ALLOWED_TRANSITIONS` matrix (one forward step; abandon-to-PASSED from any live stage; APPROVED to CLOSED_WON/CLOSED_LOST), `validate_transition`, `allowed_next_stages`, and `coerce_stage` (null -> SCREENING). No I/O; exhaustively unit- and property-tested.
+- Schema: `titles.deal_stage` TEXT NOT NULL DEFAULT 'SCREENING' with a CHECK constraint on the enumerated set, added by Alembic migration `0004_deal_stage` (back-fills existing rows to SCREENING).
+- Endpoints on the titles router: `GET /titles/{id}/deal-stage` (VALUATION-gated) returns current stage + legal next stages; `PATCH /titles/{id}/deal-stage` is gated to the OVERRIDE roles (CONTENT_BUYER / CCO / CFO), validates the transition via the pure state machine (illegal -> 422 with the allowed set; unauthorized -> 403), persists via the title's optimistic-locked update, and writes an append-only `deal_stage_transition` audit entry with before/after.
+- Frontend: a shared `DealStageBadge`; a self-fetching `DealStageControl` on `/titles/[id]` that offers only server-sanctioned next stages and degrades to read-only on 403 / surfaces the message on 422; and a sortable Deal Stage column plus a stage filter on the dashboard grid. `deal_stage` is carried on the dashboard summary row.
+
+### Responsive Tablet Layout (R35)
+
+A responsive-design pass confirmed the app is mobile-first (Tailwind `sm`/`lg` breakpoints throughout, `overflow-x-auto` on the data grid, Recharts `ResponsiveContainer`, a responsive top nav, and a `width=device-width` viewport). Two touch/clipping refinements: the what-if sliders get a taller hit area with `touch-none` (dragging does not scroll the page), and the metadata radar `outerRadius` is reduced (72% -> 65%) so axis labels do not clip in the half-width column.
+
+### Demo and Operational Integrity (R36)
+
+- **Optimistic-lock fix (R36.3):** `BaseRepository.update_with_version` resolved the primary-key column as `self.pk` off the repository *instance*; because `pk` holds an ORM `InstrumentedAttribute`, instance access re-invoked the descriptor against the unmapped repository and raised `UnmappedInstanceError` before any SQL ran, breaking every optimistic-locked update (so recomputing a title that already had a projection 500'd). Fixed by resolving the column from the model class (`type(self).pk`).
+- **Exchange-rate fallback (R36.2):** `Guardrails_Engine._normalize_cost` falls back to the latest available dated rate (`get_latest_rate`) when no rate exists for the exact required date, rejecting only when the currency pair has no rate at all.
+- **Self-consistent seed (R36.1):** payback is milestone-based, so the seed uses a single month-1 milestone with `monthly_margin = normalized / (payback - 0.5)` so a live recompute lands exactly on the seeded `payback_horizon_months`; the seeded churn and verdict labels were corrected so every seeded title recomputes to its stored verdict (spread: 3 GREENLIGHT, 1 NEGOTIATE_HARD, 1 PASS).
+- **Demo reset (R36.4):** `scripts/demo-reset.ps1` / `.sh` truncate the demo-mutable tables (including `market_telemetry_cache`) and re-apply the generated seed via `docker compose cp` + `psql -f`.
+- **How It Works guide (R36.5):** the `/guide` page explains each guardrail in plain language with worked arithmetic from the seeded titles and a step-by-step walkthrough from raw deal to verdict to negotiation target.
+
+### Asset Studio - Instant Evaluation and Intake (R37)
+
+The Asset Studio (`/studio`) is the title-intake surface. It predates the R31-R36 wave but is documented here for completeness.
+
+- `POST /titles/quick-evaluate` (INGEST-gated) creates a title + active version, estimates projected viewing hours from budget/pedigree when they are blank or non-positive, normalizes a non-USD cost via the dated rate with the latest-rate fallback (R21.5/R36.2), runs the engine inline, and returns a `QuickEvaluateResponse` carrying the full scorecard including the Deal Decision Support fields (target ceiling, LTV attribution split, churn cohort - see the deal-decision-support sibling spec).
+- `POST /titles/parse-pitch` reads a pitch/script PDF and returns best-effort candidate field values; it never creates a title or runs a valuation.
+- Frontend components under `frontend/app/studio/_components/`: `asset-form` (single-asset form with the `Shorthand_Amount` cost preview and quick presets), `batch-ingest` (the Batch Slate tab submitting through the async ingest path), `valuation-report` + `studio-radar` + `studio-payback` (the instant scorecard), and a pitch-PDF drop zone. Shorthand expansion lives in `_components/helpers.ts`.
+
 ## Correctness Properties
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
@@ -949,6 +1007,48 @@ CineROI AI is strongly suited to property-based testing: its financial core (CPV
 
 **Validates: Requirements 30.3**
 
+### Property 41: Deal-stage transition legality
+
+*For any* current Deal_Stage and proposed target stage, `validate_transition` returns the target when the move is in the allowed set and raises an illegal-transition error otherwise; a Terminal_Deal_Stage has no legal next stage, and no stage transitions to itself.
+
+**Validates: Requirements 34.4, 34.8**
+
+### Property 42: Allowed-next-stages matches the matrix
+
+*For any* Deal_Stage, `allowed_next_stages` returns exactly the stages in that stage's transition set, in a stable order.
+
+**Validates: Requirements 34.2, 34.8**
+
+### Property 43: Comparable-titles ranking and self-exclusion
+
+*For any* set of titles with Narrative_DNA vectors, the comparables for a query title are ordered by non-increasing cosine similarity, never include the query title, and contain each other title at most once.
+
+**Validates: Requirements 31.1, 31.5**
+
+### Property 44: Optimistic-locked update builds against the model class
+
+*For any* optimistic-locked repository, `update_with_version` builds and issues its guarded UPDATE (pk column resolved from the model class) without raising an attribute/descriptor error, updating the row on a version match and raising a conflict on a stale version.
+
+**Validates: Requirements 27.2, 36.3**
+
+### Property 45: Exchange-rate latest-date fallback
+
+*For any* valuation whose required exact rate date is absent but whose currency pair has at least one dated rate, normalization uses the latest available rate; the valuation is rejected only when the currency pair has no rate at all.
+
+**Validates: Requirements 21.5, 36.2**
+
+### Property 46: Seed recompute consistency
+
+*For any* seeded title, recomputing it through the Guardrails_Engine reproduces its stored Recommendation_Status and stored payback_horizon_months.
+
+**Validates: Requirements 36.1**
+
+### Property 47: Dashboard view state is a pure function of the URL
+
+*For any* Dashboard_View_State (search, recommendation filter, deal-stage filter, sort), the grid rendered from URL query parameters equals the grid produced by applying that same search/filter/sort directly, and changing any control updates the URL accordingly.
+
+**Validates: Requirements 33.1, 33.2, 33.3, 33.4**
+
 ## Testing Strategy
 
 CineROI AI uses a layered strategy: property-based tests for the pure financial and determinism core, example-based unit tests for specific scenarios and edge cases, integration tests for persistence/concurrency/async/auth, and component/snapshot tests for the frontend.
@@ -999,3 +1099,14 @@ Run against a real PostgreSQL 16 + pgvector instance and a real broker where fea
 ### Why PBT applies here (and where it does not)
 
 Property-based testing is appropriate because the system's decision logic is a set of pure, universally-quantifiable functions over a large input space. It is deliberately *not* applied to: database schema/constraints (verified by migration and constraint tests), Docker/deployment orchestration (smoke tests), SSO/session infrastructure and external telemetry sources (integration tests with representative examples), and UI rendering/layout (component and snapshot tests).
+
+### Enhancement testing (R31-R36)
+
+- **Deal-stage state machine (R34):** `backend/tests/domain/test_deal_stage.py` - example tests for each forward/abandon/terminal transition plus Hypothesis properties (41, 42) asserting transition legality, self-exclusion, terminal dead-ends, and matrix agreement. API behavior (advance / illegal 422 / unauthorized 403 / audit entry) is covered by example tests in `tests/api/test_core_routers.py`.
+- **Comparable titles (R31):** API example tests cover the ranked, empty-embedding (`found=false`), and 404 paths; the ranking/self-exclusion invariant is Property 43. Frontend `comparable-titles.test.tsx` covers the ranked, pending-badge, empty, and error states.
+- **Market telemetry card (R32):** backend example test asserts `genre_tag`/`primary_territory` on the scorecard; frontend `market-telemetry-card.test.tsx` covers the data, stale-source, never-polled, and absent-genre/territory states.
+- **Dashboard view state (R33):** `asset-data-grid.test.tsx` uses a stateful `next/navigation` mock mirroring the URL and re-rendering, covering search, both filters, URL hydration, no-match, and that sort/filter changes write the query string (Property 47 angle).
+- **Optimistic-lock fix (R36.3):** `backend/tests/repositories/test_base_update_with_version.py` builds the guarded UPDATE against a fake session with no database and asserts it compiles and executes - a DB-less regression that reproduces the original `UnmappedInstanceError` on the pre-fix code (Property 44). The existing optimistic-lock integration test (Property 34) remains the live-DB check.
+- **Exchange-rate fallback (R36.2):** `backend/tests/engines/test_fx_fallback.py` plus the guardrails property/persistence fakes exercising `get_latest_rate` (Property 45).
+- **Seed consistency (R36.1):** verified by recomputing all five seeded titles against the running engine (Property 46); the generator's `--check` mode guards that the committed seed SQL stays in sync with the generator.
+- **Responsive layout (R35)** and the **How It Works guide (R36.5)** are verified by typecheck/lint/build and manual review rather than property tests, consistent with the "PBT does not apply to UI rendering/layout and docs" principle above.
