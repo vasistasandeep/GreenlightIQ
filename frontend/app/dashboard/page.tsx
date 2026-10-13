@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { AppShell } from "@/components/layout/top-nav";
 import { api, ApiError } from "@/lib/api-client";
@@ -84,7 +85,11 @@ export default async function DashboardPage() {
 
         <section aria-label="Pipeline asset grid" className="space-y-3">
           <h2 className="text-lg font-medium">Pipeline Assets</h2>
-          <AssetDataGrid titles={summary.titles} />
+          {/* Suspense boundary: AssetDataGrid reads filter/sort state from the
+              URL via useSearchParams, which requires a Suspense boundary. */}
+          <Suspense fallback={null}>
+            <AssetDataGrid titles={summary.titles} />
+          </Suspense>
         </section>
       </div>
     </AppShell>

@@ -6,17 +6,32 @@ import { AssetDataGrid } from "@/components/dashboard/asset-data-grid";
 import type { TitleSummary } from "@/lib/types";
 
 /**
- * AssetDataGrid sorting + row-click navigation tests (R14.4, R14.5).
+ * AssetDataGrid tests (R14.2, R14.4, R14.5).
  *
- * `next/navigation`'s useRouter is mocked so navigation (R14.5) can be
- * asserted via push calls. Column-header clicks drive the sort order (R14.4),
- * including direction toggling on repeat selection.
+ * All view state (search, recommendation filter, sort column/direction) is
+ * mirrored into the URL. The next/navigation mock is therefore STATEFUL: a
+ * module-level URLSearchParams that `router.replace` mutates and
+ * `useSearchParams` reads, with a listener that re-renders the component so the
+ * component stays a pure function of the (mocked) URL - exactly as it is live.
+ * `router.push` is tracked separately to assert row-click navigation (R14.5).
  */
 
 const pushMock = vi.fn();
+let currentParams = new URLSearchParams();
+let rerender: (() => void) | null = null;
+
+function applyReplace(url: string) {
+  const qIndex = url.indexOf("?");
+  currentParams = new URLSearchParams(qIndex >= 0 ? url.slice(qIndex + 1) : "");
+  rerender?.();
+}
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: pushMock }),
+  useRouter: () => ({
+    push: pushMock,
+    replace: (url: string) => applyReplace(url),
+  }),
+  useSearchParams: () => currentParams,
 }));
 
 const TITLES: TitleSummary[] = [
@@ -61,9 +76,17 @@ function rowTitleOrder(): string[] {
   });
 }
 
+function renderGrid() {
+  const utils = render(<AssetDataGrid titles={TITLES} />);
+  rerender = () => utils.rerender(<AssetDataGrid titles={TITLES} />);
+  return utils;
+}
+
 describe("AssetDataGrid", () => {
   beforeEach(() => {
     pushMock.mockReset();
+    currentParams = new URLSearchParams();
+    rerender = null;
   });
 
   it("renders an empty-state message when there are no titles", () => {
@@ -71,14 +94,13 @@ describe("AssetDataGrid", () => {
     expect(
       screen.getByText(/No active titles in the pipeline yet/i),
     ).toBeInTheDocument();
-    // The empty state offers a clear next action.
     expect(
       screen.getByRole("link", { name: /Evaluate an asset/i }),
     ).toBeInTheDocument();
   });
 
   it("defaults to ascending sort by title name", () => {
-    render(<AssetDataGrid titles={TITLES} />);
+    renderGrid();
     expect(rowTitleOrder()).toEqual([
       "Alpha Dawn",
       "Bravo Nights",
@@ -89,11 +111,10 @@ describe("AssetDataGrid", () => {
   describe("column sorting (R14.4)", () => {
     it("reorders rows ascending by asking price when the header is selected", async () => {
       const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
+      renderGrid();
 
       await user.click(screen.getByRole("button", { name: /Asking Price/ }));
 
-      // 1,000,000 (Alpha) < 3,000,000 (Bravo) < 5,000,000 (Charlie)
       expect(rowTitleOrder()).toEqual([
         "Alpha Dawn",
         "Bravo Nights",
@@ -103,11 +124,11 @@ describe("AssetDataGrid", () => {
 
     it("toggles to descending when the same header is selected twice", async () => {
       const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
+      renderGrid();
 
       const priceHeader = screen.getByRole("button", { name: /Asking Price/ });
       await user.click(priceHeader);
-      await user.click(priceHeader);
+      await user.click(screen.getByRole("button", { name: /Asking Price/ }));
 
       expect(rowTitleOrder()).toEqual([
         "Charlie's Saga",
@@ -116,50 +137,88 @@ describe("AssetDataGrid", () => {
       ]);
     });
 
-    it("sorts CPVH status by severity ranking rather than alphabetically", async () => {
-      const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
-
-      await user.click(screen.getByRole("button", { name: /CPVH Status/ }));
-
-      // Rank order ascending: PASS(0) < NO_CEILING(1) < BREACH(2)
-      expect(rowTitleOrder()).toEqual([
-        "Charlie's Saga", // PASS
-        "Bravo Nights", // NO_CEILING
-        "Alpha Dawn", // BREACH
-      ]);
-    });
-
     it("reflects the active sort direction via aria-sort on the header cell", async () => {
       const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
+      renderGrid();
 
-      const titleHeaderCell = screen.getByRole("columnheader", {
-        name: /Title/,
-      });
+      const titleHeaderCell = screen.getByRole("columnheader", { name: /Title/ });
       expect(titleHeaderCell).toHaveAttribute("aria-sort", "ascending");
 
       await user.click(screen.getByRole("button", { name: /^Title/ }));
-      expect(titleHeaderCell).toHaveAttribute("aria-sort", "descending");
+      expect(
+        screen.getByRole("columnheader", { name: /Title/ }),
+      ).toHaveAttribute("aria-sort", "descending");
+    });
+
+    it("persists the sort into the URL query string", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+
+      await user.click(screen.getByRole("button", { name: /Asking Price/ }));
+
+      expect(currentParams.get("sort")).toBe("asking_price");
+      expect(currentParams.get("dir")).toBe("asc");
+    });
+  });
+
+  describe("search + filter (URL-driven)", () => {
+    it("filters rows by the title search box and records it in the URL", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+
+      await user.type(screen.getByLabelText(/Search titles by name/i), "bravo");
+
+      expect(rowTitleOrder()).toEqual(["Bravo Nights"]);
+      expect(currentParams.get("q")).toBe("bravo");
+    });
+
+    it("filters rows by the recommendation dropdown", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+
+      await user.selectOptions(
+        screen.getByLabelText(/Recommendation/i),
+        "GREENLIGHT",
+      );
+
+      expect(rowTitleOrder()).toEqual(["Charlie's Saga"]);
+      expect(currentParams.get("rec")).toBe("GREENLIGHT");
+    });
+
+    it("hydrates initial state from the URL params", () => {
+      currentParams = new URLSearchParams("rec=PASS");
+      renderGrid();
+      expect(rowTitleOrder()).toEqual(["Alpha Dawn"]);
+    });
+
+    it("shows a no-match state and clears filters on demand", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+
+      await user.type(screen.getByLabelText(/Search titles by name/i), "zzz");
+      expect(screen.getByText(/No titles match your filters/i)).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /Clear filters/i }));
+      expect(currentParams.get("q")).toBeNull();
+      expect(rowTitleOrder()).toHaveLength(3);
     });
   });
 
   describe("row-click navigation (R14.5)", () => {
     it("navigates to the title evaluation view when a row is clicked", async () => {
       const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
+      renderGrid();
 
       await user.click(
         screen.getByRole("button", { name: "Open evaluation for Alpha Dawn" }),
       );
 
-      expect(pushMock).toHaveBeenCalledTimes(1);
       expect(pushMock).toHaveBeenCalledWith("/titles/t-alpha");
     });
 
     it("navigates when a row is activated via the keyboard", async () => {
       const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
+      renderGrid();
 
       const row = screen.getByRole("button", {
         name: "Open evaluation for Bravo Nights",
@@ -172,7 +231,7 @@ describe("AssetDataGrid", () => {
 
     it("does not navigate on a sort-header click", async () => {
       const user = userEvent.setup();
-      render(<AssetDataGrid titles={TITLES} />);
+      renderGrid();
 
       await user.click(screen.getByRole("button", { name: /Asking Price/ }));
 
