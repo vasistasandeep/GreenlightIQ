@@ -543,7 +543,16 @@ class Guardrails_Engine:
 
         rate_row = await self._exchange_rates.get_rate(native, BASE_CURRENCY, rate_date)
         if rate_row is None:
-            # Reject without persisting any normalized values (R21.5).
+            # No rate dated exactly on rate_date: fall back to the most recent
+            # available rate for this currency pair rather than rejecting. A
+            # dated table rarely carries today's row, and the latest known rate
+            # is the correct real-world behavior (and keeps re-valuation /
+            # what-if working on titles seeded with historical rates).
+            rate_row = await self._exchange_rates.get_latest_rate(
+                native, BASE_CURRENCY
+            )
+        if rate_row is None:
+            # Truly no rate on record for this pair: reject, persisting nothing (R21.5).
             raise ExchangeRateUnavailableError(
                 f"No exchange rate available to convert {native} to "
                 f"{BASE_CURRENCY} on {rate_date.isoformat()}.",

@@ -112,6 +112,9 @@ class FakeExchangeRateRepository:
     async def get_rate(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
         return None
 
+    async def get_latest_rate(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
+        return None
+
 
 class FakeLicenseTermRepository:
     """Not consulted when a milestone schedule is supplied via inputs."""
