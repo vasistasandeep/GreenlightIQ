@@ -107,7 +107,11 @@ export interface ValuationScorecard {
   normalized_cost_usd: number | string | null;
   model_version_id: string | null;
   explanation: Explanation | null;
-  metadata_breakdown: MetadataBreakdown | null;  /** Deal Decision Support (R4, R6, R8). Decimals arrive as JSON strings. */
+  metadata_breakdown: MetadataBreakdown | null;
+  /** Title descriptors for the market-telemetry lookup (R13.3). */
+  genre_tag?: string | null;
+  primary_territory?: string | null;
+  /** Deal Decision Support (R4, R6, R8). Decimals arrive as JSON strings. */
   target_purchase_ceiling_usd?: number | string | null;
   implied_discount_pct?: number | string | null;
   counter_proposal_levers?: CounterProposalLever[];
@@ -288,6 +292,21 @@ export interface ComparableTitles {
   title_id: string;
   found: boolean;
   comps: TitleComp[];
+}
+
+/**
+ * Cached market telemetry for a genre/territory pair (R13.3). `found` is false
+ * when the pair has never been polled; `source_available` is false when the
+ * most recent poll failed and the indices are retained-but-stale (R13.4).
+ */
+export interface MarketTelemetry {
+  genre_tag: string;
+  territory: string;
+  social_sentiment_index: number | string | null;
+  chart_velocity_score: number | string | null;
+  licensing_inflation_multiplier: number | string | null;
+  source_available: boolean;
+  found: boolean;
 }
 
 /** Best-effort Asset Studio fields parsed from an uploaded pitch PDF. */

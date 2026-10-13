@@ -38,6 +38,22 @@ INSERT INTO exchange_rates (exchange_rate_id, from_currency, to_currency, rate, 
   ('9e8c9896-c305-5a1c-a292-d35f8580eccf', 'GBP', 'USD', 1.27000000, DATE '2024-01-02')
 ON CONFLICT (from_currency, to_currency, rate_date) DO NOTHING;
 
+-- Market telemetry per (genre_tag, territory) pair (R13.2, R13.3). These
+-- drive territory-weighted CPM/LTV in the Guardrails engine (R21.3); the
+-- seeded title_versions back-fill divides out these weights so the stored
+-- scorecards stay identical under a live recompute.
+INSERT INTO market_telemetry_cache (telemetry_id, genre_tag, territory, social_sentiment_index, chart_velocity_score, licensing_inflation_multiplier, source_available) VALUES
+  ('2841995f-ba35-5642-8ca4-e4477cd749d4', 'sci-fi', 'US', 0.72, 6.0, 1.08, TRUE),
+  ('7963a93f-a421-57b5-9146-eb8357ec3e7a', 'sci-fi', 'GB', 0.65, 4.5, 1.04, TRUE),
+  ('41ac6230-ab43-5b96-a3ad-4caf95244c65', 'sci-fi', 'DE', 0.58, 3.0, 1.02, TRUE),
+  ('8a525699-bf51-5e70-bfab-8be39750257e', 'drama', 'US', 0.61, 3.5, 1.05, TRUE),
+  ('10d97f62-f91f-5c75-b2ed-e0be7c258dc5', 'drama', 'GB', 0.57, 2.5, 1.03, TRUE),
+  ('10df0d32-e3f9-51f6-94a5-7b47f81d413c', 'drama', 'IN', 0.69, 7.0, 0.98, TRUE),
+  ('0a079688-4117-5168-a392-cb89bf3341ad', 'thriller', 'US', 0.63, 5.0, 1.06, TRUE),
+  ('84237952-7d34-5a45-8b9a-12bfa2ab047d', 'comedy', 'DE', 0.52, 2.0, 1.01, TRUE),
+  ('b2d858f0-3ba0-5984-8d6e-eac369b41e93', 'comedy', 'FR', 0.55, 2.5, 1.02, TRUE)
+ON CONFLICT (genre_tag, territory) DO NOTHING;
+
 -- Candidate titles spanning every asset_type (R17.4).
 INSERT INTO titles (title_id, title_name, asset_type, acquisition_cost_or_budget, native_currency, target_territories, genre_tag, projected_viewing_hours, is_historical, created_by) VALUES
   ('bfbad645-391f-5544-9e72-45bc9bbafb1c', 'Aurora Protocol', 'ORIGINAL_SERIES', 42000000.00, 'USD', '["US","GB","DE"]'::jsonb, 'sci-fi', 250000000.00, FALSE, '57dd8615-a6f8-561c-ace1-76c2116bc392'),
@@ -52,11 +68,11 @@ ON CONFLICT (title_id) DO NOTHING;
 -- loads plaintext JSON (readable only with CINEROI_ENCRYPTION_REQUIRED=false,
 -- the local/dev passthrough); a production load would supply ciphertext.
 INSERT INTO title_versions (title_version_id, title_id, version_number, source_snapshot, is_active) VALUES
-  ('3d144e44-35c4-5710-a0b5-19127541f9bb', 'bfbad645-391f-5544-9e72-45bc9bbafb1c', 1, '{"ad_impressions":1915200.0,"churn_reduction_pct":2.1,"churn_reduction_value":931000.0,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"21000000.00","currency":"USD","month":0},{"amount":"21000000.00","currency":"USD","month":6}],"monthly_margin":3818181.82,"title_name":"Aurora Protocol","version":1,"watch_time_elasticity":1.0}', TRUE),
-  ('fd288aab-22be-55d2-a84d-7ae48f023e76', '5a6f491d-07be-5a21-83f5-eb104e8bd355', 1, '{"ad_impressions":8683.2,"churn_reduction_pct":1.8,"churn_reduction_value":4221.0,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"108000.00","currency":"USD","month":0},{"amount":"108000.00","currency":"USD","month":6}],"monthly_margin":18000.0,"title_name":"Monsoon Lanes","version":1,"watch_time_elasticity":1.0}', TRUE),
-  ('b1b76624-81e0-5f5e-a508-4b99b3e11d8f', 'd8abfba9-df50-5925-8adc-e212cb324b4d', 1, '{"ad_impressions":330600.0,"churn_reduction_pct":1.2,"churn_reduction_value":160708.3333,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"4750000.00","currency":"USD","month":0},{"amount":"4750000.00","currency":"USD","month":6}],"monthly_margin":633333.33,"title_name":"The Ledger","version":1,"watch_time_elasticity":1.0}', TRUE),
-  ('04140cff-d7f4-52d8-acef-e8e8a159ba76', '0343ecc1-2eb1-5f2c-9ee6-989a88ae4a5a', 1, '{"ad_impressions":64353.6,"churn_reduction_pct":0.9,"churn_reduction_value":31283.0,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"654000.00","currency":"USD","month":0},{"amount":"654000.00","currency":"USD","month":6}],"monthly_margin":163500.0,"title_name":"Vintage Reruns Vol. 7","version":1,"watch_time_elasticity":1.0}', TRUE),
-  ('a770188e-302d-5770-b216-ab93e9d07115', '7b1c3771-86fc-5ac3-aa53-84d4c969135c', 1, '{"ad_impressions":1260000.0,"churn_reduction_pct":2.0,"churn_reduction_value":612500.0,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"15000000.00","currency":"USD","month":0},{"amount":"15000000.00","currency":"USD","month":6}],"monthly_margin":3000000.0,"title_name":"Echoes of 2019","version":1,"watch_time_elasticity":1.0}', TRUE)
+  ('3d144e44-35c4-5710-a0b5-19127541f9bb', 'bfbad645-391f-5544-9e72-45bc9bbafb1c', 1, '{"ad_impressions":1829808.92,"churn_reduction_pct":2.1,"churn_reduction_value":890909.0909,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"21000000.00","currency":"USD","month":0},{"amount":"21000000.00","currency":"USD","month":6}],"monthly_margin":3818181.82,"title_name":"Aurora Protocol","version":1,"watch_time_elasticity":1.0}', TRUE),
+  ('fd288aab-22be-55d2-a84d-7ae48f023e76', '5a6f491d-07be-5a21-83f5-eb104e8bd355', 1, '{"ad_impressions":8640.0,"churn_reduction_pct":1.8,"churn_reduction_value":4029.5943,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"108000.00","currency":"USD","month":0},{"amount":"108000.00","currency":"USD","month":6}],"monthly_margin":18000.0,"title_name":"Monsoon Lanes","version":1,"watch_time_elasticity":1.0}', TRUE),
+  ('b1b76624-81e0-5f5e-a508-4b99b3e11d8f', 'd8abfba9-df50-5925-8adc-e212cb324b4d', 1, '{"ad_impressions":311886.79,"churn_reduction_pct":1.2,"churn_reduction_value":153055.5556,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"4750000.00","currency":"USD","month":0},{"amount":"4750000.00","currency":"USD","month":6}],"monthly_margin":633333.33,"title_name":"The Ledger","version":1,"watch_time_elasticity":1.0}', TRUE),
+  ('04140cff-d7f4-52d8-acef-e8e8a159ba76', '0343ecc1-2eb1-5f2c-9ee6-989a88ae4a5a', 1, '{"ad_impressions":63402.56,"churn_reduction_pct":0.9,"churn_reduction_value":30594.621,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"654000.00","currency":"USD","month":0},{"amount":"654000.00","currency":"USD","month":6}],"monthly_margin":163500.0,"title_name":"Vintage Reruns Vol. 7","version":1,"watch_time_elasticity":1.0}', TRUE),
+  ('a770188e-302d-5770-b216-ab93e9d07115', '7b1c3771-86fc-5ac3-aa53-84d4c969135c', 1, '{"ad_impressions":1211538.46,"churn_reduction_pct":2.0,"churn_reduction_value":594660.1942,"cpm":25.0,"ingested":"seed","ltv":120.0,"milestone_schedule":[{"amount":"15000000.00","currency":"USD","month":0},{"amount":"15000000.00","currency":"USD","month":6}],"monthly_margin":3000000.0,"title_name":"Echoes of 2019","version":1,"watch_time_elasticity":1.0}', TRUE)
 ON CONFLICT (title_version_id) DO NOTHING;
 
 -- Point each title at its active version (titles.active_version_id, R24.4).

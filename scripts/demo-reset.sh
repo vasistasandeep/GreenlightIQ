@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 echo "==> Resetting CineROI AI demo state to the pristine seed..."
 
 docker compose exec -T db psql -U cineroi -d cineroi -q -c \
-  "TRUNCATE TABLE audit_log, approval_actions, approval_workflows, historical_ground_truth, financial_projections, metadata_vectors, title_versions, titles, jobs, model_versions, exchange_rates, subscriber_clusters, users RESTART IDENTITY CASCADE;"
+  "TRUNCATE TABLE audit_log, approval_actions, approval_workflows, historical_ground_truth, financial_projections, metadata_vectors, title_versions, titles, jobs, model_versions, exchange_rates, market_telemetry_cache, subscriber_clusters, users RESTART IDENTITY CASCADE;"
 
 docker compose cp database/seed/02_seed_data.sql db:/tmp/seed.sql
 docker compose exec -T db psql -U cineroi -d cineroi -q -v ON_ERROR_STOP=1 -f /tmp/seed.sql

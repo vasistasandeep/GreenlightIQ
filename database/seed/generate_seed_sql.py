@@ -157,6 +157,56 @@ LICENSE_TERMS = [
      [{"month": 0, "amount": 15000000.0}, {"month": 12, "amount": 15000000.0}]),
 ]
 
+# Market telemetry per (genre_tag, territory) pair, covering every pair the
+# seed titles target (R13.2). Values are plausible demo signals:
+#   social_sentiment_index         - display-only buzz index (not weighted).
+#   chart_velocity_score           - chart momentum; lifts LTV weight by score/100.
+#   licensing_inflation_multiplier - ad-inventory cost vs baseline; the CPM weight.
+# source_available=TRUE marks a fresh (non-stale) poll.
+TELEMETRY = [
+    # (genre, territory, sentiment, velocity, inflation)
+    ("sci-fi", "US", "0.72", "6.0", "1.08"),
+    ("sci-fi", "GB", "0.65", "4.5", "1.04"),
+    ("sci-fi", "DE", "0.58", "3.0", "1.02"),
+    ("drama", "US", "0.61", "3.5", "1.05"),
+    ("drama", "GB", "0.57", "2.5", "1.03"),
+    ("drama", "IN", "0.69", "7.0", "0.98"),
+    ("thriller", "US", "0.63", "5.0", "1.06"),
+    ("comedy", "DE", "0.52", "2.0", "1.01"),
+    ("comedy", "FR", "0.55", "2.5", "1.02"),
+]
+
+# Fast lookup used by the projection back-fill to replicate the engine's
+# territory weighting (see _title_weights).
+_TELEMETRY_BY_PAIR = {
+    (genre, terr): (sentiment, velocity, inflation)
+    for genre, terr, sentiment, velocity, inflation in TELEMETRY
+}
+
+
+def _title_weights(genre: str, territories: list[str]) -> tuple[float, float]:
+    """Replicate Guardrails_Engine._territory_weighting for the seed back-fill.
+
+    cpm_weight = mean(licensing_inflation_multiplier) across territories;
+    ltv_weight = mean(1 + chart_velocity_score / 100). A pair with no telemetry
+    contributes a neutral 1, matching the engine. Returns (cpm_weight, ltv_weight).
+    """
+    if not territories:
+        return 1.0, 1.0
+    cpm_mults: list[float] = []
+    ltv_mults: list[float] = []
+    for terr in territories:
+        reading = _TELEMETRY_BY_PAIR.get((genre, terr))
+        if reading is None:
+            cpm_mults.append(1.0)
+            ltv_mults.append(1.0)
+            continue
+        _sentiment, velocity, inflation = reading
+        cpm_mults.append(float(inflation))
+        ltv_mults.append(1.0 + float(velocity) / 100.0)
+    return (sum(cpm_mults) / len(cpm_mults), sum(ltv_mults) / len(ltv_mults))
+
+
 CLUSTERS = [
     ("cluster-prestige-drama", "Prestige Drama Loyalists",
      "Subscribers who favor award-season dramas and limited series."),
@@ -250,6 +300,25 @@ def render() -> str:
     w("ON CONFLICT (from_currency, to_currency, rate_date) DO NOTHING;")
     w("")
 
+    # --- market telemetry cache ----------------------------------------------
+    w("-- Market telemetry per (genre_tag, territory) pair (R13.2, R13.3). These")
+    w("-- drive territory-weighted CPM/LTV in the Guardrails engine (R21.3); the")
+    w("-- seeded title_versions back-fill divides out these weights so the stored")
+    w("-- scorecards stay identical under a live recompute.")
+    w("INSERT INTO market_telemetry_cache (telemetry_id, genre_tag, territory, "
+      "social_sentiment_index, chart_velocity_score, licensing_inflation_multiplier, "
+      "source_available) VALUES")
+    rows = []
+    for genre, terr, sentiment, velocity, inflation in TELEMETRY:
+        label = f"telemetry-{genre}-{terr}"
+        rows.append(
+            f"  ('{det_uuid(label)}', {q(genre)}, {q(terr)}, {sentiment}, "
+            f"{velocity}, {inflation}, TRUE)"
+        )
+    w(",\n".join(rows))
+    w("ON CONFLICT (genre_tag, territory) DO NOTHING;")
+    w("")
+
     # --- titles ---------------------------------------------------------------
     w("-- Candidate titles spanning every asset_type (R17.4).")
     w("INSERT INTO titles (title_id, title_name, asset_type, "
@@ -281,20 +350,25 @@ def render() -> str:
          cpvh, ltv, churn, payback, rec) = t
         tv_label = f"{label}-v1"
         # Back-fill modeling inputs so a live recompute reproduces the stored
-        # scorecard. Territory weighting is identity (no seeded telemetry), so
-        # the LTV-to-cost numerator is churn_reduction_value*ltv (SVOD) +
-        # watch_time_elasticity*cpm*ad_impressions (AVOD). We size inputs to a
-        # 70/30 SVOD/AVOD split of total_value = ltv_multiple * normalized_cost.
+        # scorecard. The engine territory-weights CPM and LTV from the seeded
+        # telemetry (R21.3): the LTV-to-cost numerator is
+        #   churn_reduction_value * (ltv * ltv_weight)        [SVOD]
+        # + watch_time_elasticity * (cpm * cpm_weight) * ad_impressions  [AVOD].
+        # We size the UNWEIGHTED inputs to a 70/30 SVOD/AVOD split of
+        # total_value = ltv_multiple * normalized_cost, then DIVIDE OUT the
+        # weights so applying them lands back on the same multiple - keeping the
+        # seeded scorecard identical while staying faithful under a live recompute.
+        cpm_weight, ltv_weight = _title_weights(genre, terrs)
         normalized = float(cost) * rate_map[cur]
         total_value = float(ltv) * normalized
         svod_value = total_value * 0.70
         avod_value = total_value * 0.30
-        # SVOD: churn_reduction_value * ltv_per_sub. Fix ltv_per_sub = 120.
+        # SVOD: churn_reduction_value * (ltv_per_sub * ltv_weight). Fix ltv_per_sub = 120.
         ltv_per_sub = 120.0
-        churn_reduction_value = round(svod_value / ltv_per_sub, 4)
-        # AVOD: watch_time_elasticity(=1) * cpm * ad_impressions. Fix cpm = 25.
+        churn_reduction_value = round(svod_value / (ltv_per_sub * ltv_weight), 4)
+        # AVOD: watch_time_elasticity(=1) * (cpm * cpm_weight) * ad_impressions. Fix cpm = 25.
         cpm = 25.0
-        ad_impressions = round(avod_value / cpm, 2)
+        ad_impressions = round(avod_value / (cpm * cpm_weight), 2)
         snapshot = {
             "title_name": name,
             "ingested": "seed",

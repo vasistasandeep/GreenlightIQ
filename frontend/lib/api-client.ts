@@ -29,6 +29,7 @@ import type {
   OverrideResult,
   ParsedPitch,
   ComparableTitles,
+  MarketTelemetry,
   TitleDecision,
   WhatIfRequest,
   ValuationScorecard,
@@ -204,6 +205,17 @@ export const api = {
    */
   getComps(titleId: string, options?: RequestOptions) {
     return apiFetch<ComparableTitles>(`/valuation/${titleId}/comps`, {
+      method: "GET",
+      ...options,
+    });
+  },
+  /**
+   * GET /api/v1/market/telemetry?genre=&territory= - cached market telemetry
+   * indices for a genre/territory pair (R13.3).
+   */
+  getTelemetry(genre: string, territory: string, options?: RequestOptions) {
+    const query = new URLSearchParams({ genre, territory }).toString();
+    return apiFetch<MarketTelemetry>(`/market/telemetry?${query}`, {
       method: "GET",
       ...options,
     });

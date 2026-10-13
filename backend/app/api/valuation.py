@@ -170,6 +170,8 @@ async def get_valuation(
         counter_proposal_levers=levers,
         ltv_attribution=ltv_attr,
         churn_cohort=churn_cohort,
+        genre_tag=getattr(title, "genre_tag", None),
+        primary_territory=_primary_territory(title),
     )
 
 
@@ -274,6 +276,18 @@ async def get_title_decision(
         title_id=title_id,
         decision_id=projection.projection_id,
     )
+
+
+def _primary_territory(title: object) -> str | None:
+    """Return a title's first target territory, if any (for telemetry lookup)."""
+    raw = getattr(title, "target_territories", None)
+    if isinstance(raw, dict):
+        if isinstance(raw.get("territories"), list) and raw["territories"]:
+            return str(raw["territories"][0])
+        return next((str(k) for k in raw.keys()), None)
+    if isinstance(raw, (list, tuple)) and raw:
+        return str(raw[0])
+    return None
 
 
 async def _metadata_breakdown(

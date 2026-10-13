@@ -160,6 +160,10 @@ class ValuationScorecardResponse(BaseModel):
     model_version_id: uuid.UUID | None
     explanation: dict[str, Any] | None
     metadata_breakdown: MetadataBreakdown | None
+    # Title descriptors surfaced for the market-telemetry lookup (R13.3). The
+    # primary territory is the first of the title's target_territories.
+    genre_tag: str | None = None
+    primary_territory: str | None = None
     # Deal Decision Support (R4, R6, R8). Decimals serialize as JSON strings.
     target_purchase_ceiling_usd: Decimal | None = None
     implied_discount_pct: Decimal | None = None

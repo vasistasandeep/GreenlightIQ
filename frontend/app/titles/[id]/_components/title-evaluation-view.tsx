@@ -34,6 +34,7 @@ import { ExplanationPanel } from "./explanation-panel";
 import { FinancialAccordion } from "./financial-accordion";
 import { MetadataRadar } from "./metadata-radar";
 import { ComparableTitlesPanel } from "./comparable-titles";
+import { MarketTelemetryCard } from "./market-telemetry-card";
 import { NegotiationLeverage } from "./negotiation-leverage";
 import { PendingValuationState } from "./pending-state";
 
@@ -144,6 +145,12 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
           <NegotiationLeverage scorecard={state.scorecard} />
           <div className="lg:col-span-2">
             <ComparableTitlesPanel titleId={titleId} />
+          </div>
+          <div className="lg:col-span-2">
+            <MarketTelemetryCard
+              genre={state.scorecard.genre_tag}
+              territory={state.scorecard.primary_territory}
+            />
           </div>
           <div className="lg:col-span-2">
             <FinancialAccordion scorecard={state.scorecard} />

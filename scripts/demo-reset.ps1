@@ -16,7 +16,7 @@ if (-not (Test-Path $seed)) { Write-Host "Seed file not found: $seed" -Foregroun
 
 Write-Host "`n==> Resetting CineROI AI demo state to the pristine seed..." -ForegroundColor Cyan
 
-$truncate = "TRUNCATE TABLE audit_log, approval_actions, approval_workflows, historical_ground_truth, financial_projections, metadata_vectors, title_versions, titles, jobs, model_versions, exchange_rates, subscriber_clusters, users RESTART IDENTITY CASCADE;"
+$truncate = "TRUNCATE TABLE audit_log, approval_actions, approval_workflows, historical_ground_truth, financial_projections, metadata_vectors, title_versions, titles, jobs, model_versions, exchange_rates, market_telemetry_cache, subscriber_clusters, users RESTART IDENTITY CASCADE;"
 
 Write-Host "   - truncating seed-owned tables" -ForegroundColor DarkGray
 docker compose exec -T db psql -U cineroi -d cineroi -q -c $truncate | Out-Null
