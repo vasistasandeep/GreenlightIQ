@@ -19,7 +19,7 @@ import uuid
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # --------------------------------------------------------------------------- #
@@ -241,8 +241,35 @@ class BacktestAuditRequest(BaseModel):
 
     title_id: uuid.UUID = Field(..., description="The historical title being audited.")
     metrics: list[GroundTruthMetricInput] = Field(
-        ..., min_length=1, description="One or more observed actual-outcome metrics."
+        default_factory=list,
+        description=(
+            "Observed actual-outcome metrics. Optional on its own: at least one "
+            "metric must come from either this list or actual_churn_reduction_pct."
+        ),
     )
+    actual_churn_reduction_pct: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description=(
+            "Optional observed churn-reduction percentage, persisted as the "
+            "'churn_reduction' ground-truth metric (R11.1)."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _require_at_least_one_metric(self) -> "BacktestAuditRequest":
+        """Require at least one metric from either source (R11.2).
+
+        A submission is valid when it carries one or more entries in ``metrics``
+        or supplies ``actual_churn_reduction_pct``. An empty ``metrics`` list
+        with no churn alias leaves nothing to audit and is rejected (422).
+        """
+        if len(self.metrics) < 1 and self.actual_churn_reduction_pct is None:
+            raise ValueError(
+                "A backtest audit must contain at least one metric: provide "
+                "'metrics' and/or 'actual_churn_reduction_pct'."
+            )
+        return self
 
 
 class AuditMetricResponse(BaseModel):

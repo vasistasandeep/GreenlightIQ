@@ -956,6 +956,63 @@ def test_backtest_audit_returns_scorecard(
     assert backtesting.session.commits == 1
 
 
+def test_backtest_accepts_actual_churn_alias(
+    client: TestClient, backtesting: FakeBacktestingModule
+) -> None:
+    # The optional top-level actual_churn_reduction_pct is persisted as the
+    # "churn_reduction" ground-truth metric even when no metrics list is sent
+    # (R11.1). The churn alias alone satisfies the "at least one metric" rule.
+    title_id = uuid.uuid4()
+    resp = client.post(
+        "/api/v1/backtest/audit",
+        json={
+            "title_id": str(title_id),
+            "actual_churn_reduction_pct": "1.80",
+        },
+    )
+    assert resp.status_code == 200
+    assert len(backtesting.persisted) == 1
+    persisted_metrics = backtesting.persisted[0]["metrics"]
+    churn = [m for m in persisted_metrics if m["metric_name"] == "churn_reduction"]
+    assert len(churn) == 1
+    assert Decimal(str(churn[0]["actual_value"])) == Decimal("1.80")
+
+
+def test_backtest_accepts_churn_alias_alongside_metrics(
+    client: TestClient, backtesting: FakeBacktestingModule
+) -> None:
+    # Both a metrics list and the churn alias may be present; the alias adds one
+    # churn entry in addition to the caller-supplied metrics (R11.1, R11.2).
+    title_id = uuid.uuid4()
+    resp = client.post(
+        "/api/v1/backtest/audit",
+        json={
+            "title_id": str(title_id),
+            "metrics": [{"metric_name": "cpvh", "actual_value": 0.05}],
+            "actual_churn_reduction_pct": "1.80",
+        },
+    )
+    assert resp.status_code == 200
+    persisted_metrics = backtesting.persisted[0]["metrics"]
+    names = {m["metric_name"] for m in persisted_metrics}
+    assert names == {"cpvh", "churn_reduction"}
+
+
+def test_backtest_requires_at_least_one_metric(
+    client: TestClient, backtesting: FakeBacktestingModule
+) -> None:
+    # Neither a metrics list nor the churn alias: nothing to audit, rejected 422
+    # via the model validator before the handler runs, persisting nothing (R11.2).
+    title_id = uuid.uuid4()
+    resp = client.post(
+        "/api/v1/backtest/audit",
+        json={"title_id": str(title_id)},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error_code"] == "VALIDATION_FAILED"
+    assert backtesting.persisted == []
+
+
 # --------------------------------------------------------------------------- #
 # GET /market/telemetry
 # --------------------------------------------------------------------------- #

@@ -128,7 +128,7 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Add a backend test that recomputes churn for the five seeded titles from their features and asserts the tolerances (Aurora within 0.05 of 2.10; Echoes 2.00; Monsoon 1.80; Ledger in [1.60, 1.65]; Reruns in [0.80, 0.90]) and the resulting verdicts (3 GREENLIGHT, 1 NEGOTIATE_HARD, 1 PASS).
   - _Requirements: 9.3, 9.4, 13.2_
 
-- [~] 13. Backtest churn ground truth
+- [x] 13. Backtest churn ground truth
   - Add optional `actual_churn_reduction_pct: Decimal | None` to `BacktestAuditRequest`; in the audit handler append a `{"metric_name": "churn_reduction", "actual_value": ...}` metric when present, and require at least one metric from either source. Add an API test for the alias and the "at least one metric" rule.
   - _Requirements: 11.1, 11.2, 11.5_
 

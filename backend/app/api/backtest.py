@@ -46,15 +46,28 @@ async def backtest_audit(
     (R11.2); a historical title with no ground truth raises
     ``404 GROUND_TRUTH_MISSING`` (R11.4) — both via the error envelope.
     """
+    metrics: list[GroundTruthMetric] = [
+        GroundTruthMetric(
+            metric_name=metric.metric_name,
+            actual_value=metric.actual_value,
+        )
+        for metric in body.metrics
+    ]
+    # R11.1: an optional top-level observed churn is persisted as the
+    # "churn_reduction" ground-truth metric, which PREDICTED_METRIC_FIELDS maps
+    # to the churn_reduction_pct projection column. The module upserts per
+    # (title, metric), so this adds exactly one churn entry alongside any
+    # caller-supplied metrics.
+    if body.actual_churn_reduction_pct is not None:
+        metrics.append(
+            GroundTruthMetric(
+                metric_name="churn_reduction",
+                actual_value=body.actual_churn_reduction_pct,
+            )
+        )
     record: GroundTruthRecord = {
         "title_id": body.title_id,
-        "metrics": [
-            GroundTruthMetric(
-                metric_name=metric.metric_name,
-                actual_value=metric.actual_value,
-            )
-            for metric in body.metrics
-        ],
+        "metrics": metrics,
     }
     await module.persist_ground_truth(record)
     # Durably commit the ground truth so a later request (e.g. calibration, which
