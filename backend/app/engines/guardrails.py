@@ -220,6 +220,11 @@ class ValuationInputs:
     talent_pedigree_score: Decimal | None = None
     production_scale_metric: Decimal | None = None
     is_exclusive: bool | None = None
+    #: Optional OTT content format carried on the snapshot (calculable-churn-model
+    #: R17): live-sports / live-event / reality-competition / scripted-series /
+    #: film / library, etc. Drives the additive content-format churn lift. None
+    #: when not carried (unknown -> neutral default lift, 0 today).
+    content_format: str | None = None
 
 
 class ValuationInputProvider(Protocol):
@@ -980,6 +985,7 @@ class Guardrails_Engine:
             is_exclusive=is_exclusive,
             telemetry_heat=telemetry_heat,
             genre=getattr(title, "genre_tag", None),
+            content_format=inputs.content_format,
         )
         return resolve_churn(inputs.churn_reduction_pct, features, params, source)
 

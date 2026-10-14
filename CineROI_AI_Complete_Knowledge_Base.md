@@ -129,6 +129,9 @@ all four to earn a straight GREENLIGHT. Every monetary amount is converted to US
   (not zero), and an unlisted genre uses a neutral genre weight - so a data gap never
   unfairly pushes a title toward a PASS. A number typed directly by a buyer overrides the
   model exactly (SUPPLIED). The coefficients are illustrative, tuned to the demo titles.
+  A separate **content format** signal (live sports, live events, reality) adds extra churn
+  credit for OTT-native appointment formats the asset type cannot express - so a live cricket
+  match is not scored like a one-and-done library title.
 - **The line:** must keep at least **1.5% of subscribers** from cancelling each month.
   Below 1.5% is a breach.
 - **Worked example (Vintage Reruns Vol. 7):** model-computed 0.81% reduction. 0.81% < 1.5% ->

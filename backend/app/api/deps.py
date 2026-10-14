@@ -372,6 +372,12 @@ class SnapshotValuationInputProvider:
                 if snapshot.get("is_exclusive") is not None
                 else None
             ),
+            # calculable-churn-model (R17): OTT content format for the churn lift.
+            content_format=(
+                str(snapshot["content_format"])
+                if snapshot.get("content_format") is not None
+                else None
+            ),
         )
 
 

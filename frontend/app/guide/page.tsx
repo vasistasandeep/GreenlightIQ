@@ -134,6 +134,7 @@ const GLOSSARY: GlossaryGroup[] = [
       { term: "Target Territories", def: "The regions the title will be distributed in (India, North America, Europe, SE Asia, Global). Drives territory-weighted CPM/LTV." },
       { term: "Logline / Synopsis", def: "The narrative premise. Feeds feature extraction (Narrative DNA, affective tone). Required." },
       { term: "Genre & Tags", def: "The genre classification, chosen from a dropdown (a custom value still works). Drives market-telemetry lookups AND a per-genre churn-affinity weight: serialized/returning formats (crime, drama, thriller, reality) retain subscribers more than one-and-done formats. An unlisted genre uses a neutral weight." },
+      { term: "Content Format", def: "The OTT consumption format (live sports, live event, reality/competition, scripted series, film, library), chosen from a dropdown. Adds an extra churn lift for live/appointment formats the asset type cannot express - a live match is far stickier than a one-and-done film. Zero lift for formats the asset type already covers." },
       { term: "Projected Viewing Hours", def: "Estimated total hours audiences will watch, entered with a unit (hours / minutes / seconds) that is normalized to hours. Optional - if blank the engine estimates it. Drives CPVH." },
       { term: "Talent Pedigree", def: "A 0-10 score of cast/creator strength. Higher pedigree raises modeled value and recovers cost sooner." },
       { term: "License (months) / License Duration", def: "How long the content is licensed for. Bounds the windowing rules and the milestone schedule." },
@@ -439,7 +440,7 @@ function GuardrailsTab() {
         n={3}
         name="Keeps Subscribers (Churn Mitigation)"
         question="Does having this title stop people from cancelling their subscription?"
-        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz + genre affinity"
+        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz + genre affinity + content format"
         line={
           <>
             The churn number is <span className="text-slate-100">calculated</span> by adding up
@@ -637,7 +638,7 @@ function CalculationsTab() {
       />
       <CalcBlock
         title="3. Keeps Subscribers (Churn Mitigation)"
-        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz + genre affinity"
+        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz + genre affinity + content format"
         rule={<>The monthly churn-reduction % is <span className="text-slate-100">calculated</span> by adding small, explained contributions from the title&apos;s features, then capped between 0.10% and 5.00% (illustrative coefficients, tuned to the demo titles). A title with no market-buzz data or an unlisted genre uses a neutral default rather than zero, so a data gap never unfairly forces a PASS. A buyer can instead <span className="text-slate-100">supply</span> a known figure, which is used exactly. Must be at least <span className="text-emerald-300">1.5%</span>; below = breach. A number within 0.05% of 1.5% shows a borderline note (it never changes the verdict). <span className="text-rose-300">Not correctable</span> - no price change makes a title stickier, so one churn breach forces a PASS.</>}
         worked={<>Vintage Reruns: model-computed 0.81% &lt; 1.5% -&gt; <span className="text-rose-300">BREACH</span> (non-correctable). The Ledger: 1.60% &ge; 1.5% -&gt; PASS.</>}
       />

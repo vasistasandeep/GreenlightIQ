@@ -30,6 +30,7 @@ function calculatedModel(overrides: Partial<ChurnModel> = {}): ChurnModel {
       exclusivity_lift: "0.25",
       market_telemetry_heat: "0.33",
       genre_affinity: "0.15",
+      content_format: "0.00",
     },
     assumed_features: [],
     ...overrides,
@@ -55,6 +56,7 @@ describe("ChurnBreakdown (R10)", () => {
       ["Exclusivity Lift", "+0.25"],
       ["Market Telemetry Heat", "+0.33"],
       ["Genre Affinity", "+0.15"],
+      ["Content Format", "0.00"],
     ];
     for (const [label, points] of rows) {
       const row = within(table).getByText(label).closest("tr")!;

@@ -122,6 +122,9 @@ def _churn_model_params_json() -> dict:
         "genre_offsets": {k: str(v) for k, v in p.genre_offsets.items()},
         "genre_default": str(p.genre_default),
         "telemetry_neutral": str(p.telemetry_neutral),
+        # Content-format lifts (calculable-churn-model Addendum B, R17).
+        "format_offsets": {k: str(v) for k, v in p.format_offsets.items()},
+        "format_default": str(p.format_default),
     }
 
 
@@ -295,6 +298,17 @@ _PEDIGREE_SCALE = {
 }
 _EXCLUSIVE_BY_TITLE = {label: exclusive for label, _d, exclusive, _w, _m in LICENSE_TERMS}
 
+# Aligned OTT content format per seeded title (calculable-churn-model R17). Each
+# matches the title's asset type, so the format lift is 0 and the seeded churn is
+# unchanged; the breakdown still shows an explicit Content Format row.
+_FORMAT_BY_TITLE = {
+    "title-aurora": "scripted-series",
+    "title-monsoon": "scripted-series",
+    "title-ledger": "original-film",
+    "title-reruns": "library",
+    "title-echoes": "scripted-series",
+}
+
 
 def _title_churn_result(label: str, atype: str, genre: str, territories: list[str]):
     """Compute the model Churn_Result for a seeded title (R9.5).
@@ -311,6 +325,7 @@ def _title_churn_result(label: str, atype: str, genre: str, territories: list[st
         is_exclusive=_EXCLUSIVE_BY_TITLE.get(label, False),
         telemetry_heat=_telemetry_heat(genre, territories),
         genre=genre,
+        content_format=_FORMAT_BY_TITLE.get(label),
     )
     return calculate_churn_mitigation(
         features, DEFAULT_CHURN_MODEL_PARAMS, "MODEL_VERSION"
@@ -648,6 +663,10 @@ def render() -> str:
             "milestone_schedule": [
                 {"month": 1, "amount": f"{normalized:.2f}", "currency": "USD"},
             ],
+            # OTT content format (calculable-churn-model R17): each title's aligned
+            # format (zero lift), so a live recompute reads it from the snapshot
+            # and the breakdown shows an explicit Content Format row.
+            "content_format": _FORMAT_BY_TITLE.get(label),
         }
         rows.append(
             f"  ('{det_uuid(tv_label)}', '{det_uuid(label)}', 1, "

@@ -52,6 +52,22 @@ const VIEWING_UNITS: { value: "hours" | "minutes" | "seconds"; label: string }[]
   { value: "seconds", label: "sec" },
 ];
 
+// OTT content formats with a churn-affinity lift (live/appointment formats are
+// stickiest). The field is an editable dropdown; a custom value falls back to a
+// neutral lift. Distinct from Asset Type and Genre.
+const CONTENT_FORMATS = [
+  "Live Sports",
+  "Live Event",
+  "Reality / Competition",
+  "Scripted Series",
+  "Limited Series",
+  "Original Film",
+  "Licensed Film",
+  "Documentary",
+  "Kids / Animation",
+  "Library / Catalog",
+];
+
 const TERRITORIES = [
   { code: "IN", label: "India" },
   { code: "NA", label: "North America" },
@@ -122,6 +138,7 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
   const [genre, setGenre] = useState("");
   const [viewingHours, setViewingHours] = useState("");
   const [viewingUnit, setViewingUnit] = useState<"hours" | "minutes" | "seconds">("hours");
+  const [contentFormat, setContentFormat] = useState("");
   const [pedigree, setPedigree] = useState("5.0");
   const [duration, setDuration] = useState("24");
   const [exclusive, setExclusive] = useState(true);
@@ -148,6 +165,7 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
     setPedigree(String(p.talent_pedigree_score ?? "5.0"));
     setDuration(String(p.license_duration_months ?? "24"));
     setExclusive(Boolean(p.is_exclusive));
+    setContentFormat("");
     setError(null);
   }
 
@@ -210,6 +228,7 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
       genre_tag: genre.trim() || null,
       projected_viewing_hours: viewingHours ? Number(viewingHours) : null,
       viewing_hours_unit: viewingUnit,
+      content_format: contentFormat.trim() || null,
       talent_pedigree_score: pedigree ? Number(pedigree) : null,
       license_duration_months: duration ? Number(duration) : null,
       is_exclusive: exclusive,
@@ -324,6 +343,15 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
             </select>
           </div>
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="f-format" className={labelCls}>Content Format (opt.)</label>
+        <input id="f-format" className={fieldCls} value={contentFormat} list="format-options"
+          onChange={(e) => setContentFormat(e.target.value)} placeholder="e.g. Live Sports" />
+        <datalist id="format-options">
+          {CONTENT_FORMATS.map((f) => <option key={f} value={f} />)}
+        </datalist>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

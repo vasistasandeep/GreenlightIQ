@@ -484,6 +484,8 @@ export interface QuickEvaluateRequest {
   projected_viewing_hours?: number | null;
   /** Unit the viewing-hours value is in; the backend normalizes to hours (R16). */
   viewing_hours_unit?: "hours" | "minutes" | "seconds";
+  /** OTT content format driving the churn content-format lift (R17). */
+  content_format?: string | null;
   talent_pedigree_score?: number | null;
   license_duration_months?: number | null;
   is_exclusive: boolean;

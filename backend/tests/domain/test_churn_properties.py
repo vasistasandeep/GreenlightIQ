@@ -814,3 +814,103 @@ def test_normalize_genre_maps_variants_to_one_key() -> None:
     assert normalize_genre("  DRAMA  ") == "drama"
     assert normalize_genre("") is None
     assert normalize_genre(None) is None
+
+
+# ---------------------------------------------------------------------------
+# Addendum B: content-format lift (R17)
+# ---------------------------------------------------------------------------
+
+from app.domain.churn import DEFAULT_FORMAT_OFFSETS  # noqa: E402
+
+
+def test_content_format_lift_is_additive_and_zero_for_aligned_formats() -> None:
+    """Validates: Requirements 17.1, 17.3
+
+    An asset-aligned format (scripted-series / original-film / library) carries a
+    zero lift, so adding a content_format does not change churn for those; a live
+    format adds its positive lift on top.
+    """
+    base = _features(genre="drama")  # no content_format -> default 0
+    aligned = ChurnFeatures(
+        asset_type=base.asset_type,
+        pedigree=base.pedigree,
+        production_scale=base.production_scale,
+        is_exclusive=base.is_exclusive,
+        telemetry_heat=base.telemetry_heat,
+        genre=base.genre,
+        content_format="scripted-series",
+    )
+    live = ChurnFeatures(
+        asset_type=base.asset_type,
+        pedigree=base.pedigree,
+        production_scale=base.production_scale,
+        is_exclusive=base.is_exclusive,
+        telemetry_heat=base.telemetry_heat,
+        genre=base.genre,
+        content_format="live-sports",
+    )
+    base_v = calculate_churn_mitigation(base, DEFAULT_CHURN_MODEL_PARAMS).churn_reduction_pct
+    aligned_v = calculate_churn_mitigation(aligned, DEFAULT_CHURN_MODEL_PARAMS).churn_reduction_pct
+    live_v = calculate_churn_mitigation(live, DEFAULT_CHURN_MODEL_PARAMS).churn_reduction_pct
+    # Aligned format adds nothing (lift 0); unknown/absent also adds nothing.
+    assert aligned_v == base_v
+    # A live format lifts churn by its (positive) weight.
+    assert live_v > base_v
+    row = next(
+        c
+        for c in calculate_churn_mitigation(live, DEFAULT_CHURN_MODEL_PARAMS).breakdown
+        if c.key == "content_format"
+    )
+    assert row.points == DEFAULT_FORMAT_OFFSETS["live-sports"].quantize(Decimal("0.01"))
+
+
+def test_content_format_row_always_present_and_conserves() -> None:
+    """Validates: Requirements 17.6, 1.8
+
+    The breakdown always carries a content_format row and still conserves to the
+    final value, with or without a format.
+    """
+    for fmt in (None, "live-sports", "library", "totally-unknown-format"):
+        f = ChurnFeatures(
+            asset_type="ORIGINAL_SERIES",
+            pedigree=Decimal("6"),
+            production_scale=Decimal("6"),
+            is_exclusive=True,
+            telemetry_heat=Decimal("50"),
+            genre="drama",
+            content_format=fmt,
+        )
+        r = calculate_churn_mitigation(f, DEFAULT_CHURN_MODEL_PARAMS)
+        assert any(c.key == "content_format" for c in r.breakdown)
+        assert sum(c.points for c in r.breakdown) == r.churn_reduction_pct
+
+
+def test_params_without_format_fields_still_parse_with_defaults() -> None:
+    """Validates: Requirements 17.2, 3.2
+
+    A churn_model dict WITHOUT format_offsets / format_default parses to
+    MODEL_VERSION and fills them from the built-in defaults; a negative format
+    weight rejects the block to DEFAULTS.
+    """
+    base = {
+        "intercept": "0.03",
+        "asset_offsets": {
+            "ORIGINAL_SERIES": "0.35",
+            "CO_PRODUCTION": "0.45",
+            "ORIGINAL_FILM": "0.15",
+            "LICENSED_LIBRARY": "0.00",
+        },
+        "pedigree_weight": "0.09",
+        "scale_weight": "0.03",
+        "exclusivity_lift": "0.25",
+        "telemetry_weight": "0.005",
+        "min_churn": "0.10",
+        "max_churn": "5.00",
+    }
+    params, source = parse_params(base)
+    assert source == "MODEL_VERSION"
+    assert dict(params.format_offsets) == dict(DEFAULT_FORMAT_OFFSETS)
+
+    neg = {**base, "format_offsets": {"live-sports": "-0.10"}}
+    _p, src = parse_params(neg)
+    assert src == "DEFAULTS"

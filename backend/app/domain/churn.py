@@ -48,6 +48,8 @@ __all__ = [
     "DEFAULT_GENRE_OFFSETS",
     "DEFAULT_GENRE_WEIGHT",
     "DEFAULT_TELEMETRY_NEUTRAL",
+    "DEFAULT_FORMAT_OFFSETS",
+    "DEFAULT_FORMAT_WEIGHT",
     "DEFAULT_CHURN_MODEL_PARAMS",
     "ChurnModelParams",
     "ChurnFeatures",
@@ -123,6 +125,29 @@ DEFAULT_GENRE_WEIGHT = Decimal("0.10")
 # data gap does not score as zero buzz.
 DEFAULT_TELEMETRY_NEUTRAL = Decimal("50")
 
+# Canonical content-format lifts (calculable-churn-model Addendum B, R17). An
+# ADDITIVE lift on top of the asset-type offset: 0 for formats the asset type
+# already captures (scripted series, films, library), positive only for the
+# OTT-native appointment formats the four asset types cannot express (live
+# sports, live events, reality). Keys are normalized like genres.
+DEFAULT_FORMAT_OFFSETS: Mapping[str, Decimal] = {
+    "live-sports": Decimal("0.70"),
+    "live-event": Decimal("0.50"),
+    "reality-competition": Decimal("0.45"),
+    "scripted-series": Decimal("0.00"),
+    "limited-series": Decimal("0.00"),
+    "original-film": Decimal("0.00"),
+    "licensed-film": Decimal("0.00"),
+    "documentary": Decimal("0.00"),
+    "kids-animation": Decimal("0.00"),
+    "library": Decimal("0.00"),
+}
+
+# Neutral content-format lift for an unknown/absent format. Default 0 preserves
+# the pre-format behavior (asset_cadence still applies); a non-zero value would
+# mark an unknown format as assumed.
+DEFAULT_FORMAT_WEIGHT = Decimal("0.00")
+
 _SOURCE_MODEL_VERSION = "MODEL_VERSION"
 _SOURCE_DEFAULTS = "DEFAULTS"
 
@@ -165,6 +190,8 @@ class ChurnModelParams:
     genre_offsets: Mapping[str, Decimal] = field(default_factory=dict)
     genre_default: Decimal = DEFAULT_GENRE_WEIGHT
     telemetry_neutral: Decimal = DEFAULT_TELEMETRY_NEUTRAL
+    format_offsets: Mapping[str, Decimal] = field(default_factory=dict)
+    format_default: Decimal = DEFAULT_FORMAT_WEIGHT
 
 
 @dataclass(frozen=True)
@@ -184,6 +211,7 @@ class ChurnFeatures:
     is_exclusive: bool
     telemetry_heat: Decimal | None  # 0-100 scale; None -> neutral default
     genre: str | None = None  # unknown/absent -> neutral genre default
+    content_format: str | None = None  # unknown/absent -> neutral format lift
 
 
 @dataclass(frozen=True)
@@ -228,6 +256,8 @@ DEFAULT_CHURN_MODEL_PARAMS = ChurnModelParams(
     genre_offsets=DEFAULT_GENRE_OFFSETS,
     genre_default=DEFAULT_GENRE_WEIGHT,
     telemetry_neutral=DEFAULT_TELEMETRY_NEUTRAL,
+    format_offsets=DEFAULT_FORMAT_OFFSETS,
+    format_default=DEFAULT_FORMAT_WEIGHT,
 )
 
 
@@ -380,6 +410,20 @@ def parse_params(raw: Mapping | None) -> tuple[ChurnModelParams, str]:
     else:
         telemetry_neutral = DEFAULT_TELEMETRY_NEUTRAL
 
+    # Optional content-format lifts: absent -> defaults; present-invalid -> reject.
+    format_offsets = _parse_genre_offsets(raw.get("format_offsets"))
+    if format_offsets is _REJECT:
+        return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
+    if format_offsets is None:
+        format_offsets = DEFAULT_FORMAT_OFFSETS
+
+    if "format_default" in raw:
+        format_default = _coerce_param(raw.get("format_default"))
+        if format_default is None:
+            return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
+    else:
+        format_default = DEFAULT_FORMAT_WEIGHT
+
     params = ChurnModelParams(
         intercept=intercept,  # type: ignore[arg-type]
         asset_offsets=offsets,
@@ -392,6 +436,8 @@ def parse_params(raw: Mapping | None) -> tuple[ChurnModelParams, str]:
         genre_offsets=genre_offsets,
         genre_default=genre_default,  # type: ignore[arg-type]
         telemetry_neutral=telemetry_neutral,  # type: ignore[arg-type]
+        format_offsets=format_offsets,
+        format_default=format_default,  # type: ignore[arg-type]
     )
     return params, _SOURCE_MODEL_VERSION
 
@@ -497,6 +543,22 @@ def calculate_churn_mitigation(
         assumed.append("genre")
     genre_points = _quantize(genre_full)
 
+    # Content format: an additive lift for OTT-native appointment formats (live
+    # sports / events / reality) the asset type cannot express; 0 for formats the
+    # asset offset already covers (R17.1, R17.3). An unknown/absent format uses
+    # the neutral default (0 by default); it is only recorded as assumed when the
+    # configured default is non-zero (a 0 default is simply "no extra signal").
+    norm_format = normalize_genre(features.content_format)
+    if norm_format is not None and norm_format in params.format_offsets:
+        format_full = params.format_offsets[norm_format]
+        format_input: Decimal | None = format_full
+    else:
+        format_full = params.format_default
+        format_input = format_full
+        if params.format_default != 0:
+            assumed.append("content_format")
+    format_points = _quantize(format_full)
+
     unclamped = (
         base_full
         + offset_full
@@ -505,6 +567,7 @@ def calculate_churn_mitigation(
         + excl_full
         + heat_full
         + genre_full
+        + format_full
     )
     clamped = _clamp(unclamped, params.min_churn, params.max_churn)
     final = _quantize(clamped)
@@ -517,6 +580,7 @@ def calculate_churn_mitigation(
         + excl_points
         + heat_points
         + genre_points
+        + format_points
     )
     bounds_adjustment = final - feature_points_sum
 
@@ -569,6 +633,13 @@ def calculate_churn_mitigation(
             input=genre_input,
             coefficient=None,
             points=genre_points,
+        ),
+        ChurnContribution(
+            key="content_format",
+            label="Content Format",
+            input=format_input,
+            coefficient=None,
+            points=format_points,
         ),
     ]
 

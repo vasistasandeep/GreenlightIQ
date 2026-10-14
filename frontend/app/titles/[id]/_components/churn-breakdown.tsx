@@ -32,6 +32,7 @@ const FEATURE_ROWS: { key: string; label: string }[] = [
   { key: "exclusivity_lift", label: "Exclusivity Lift" },
   { key: "market_telemetry_heat", label: "Market Telemetry Heat" },
   { key: "genre_affinity", label: "Genre Affinity" },
+  { key: "content_format", label: "Content Format" },
 ];
 
 /**
@@ -42,6 +43,7 @@ const FEATURE_ROWS: { key: string; label: string }[] = [
 const ASSUMED_FEATURE_ALIASES: Record<string, string[]> = {
   market_telemetry_heat: ["telemetry_heat"],
   genre_affinity: ["genre"],
+  content_format: ["content_format"],
 };
 
 /**
@@ -168,7 +170,9 @@ export function ChurnBreakdown({ churnModel }: ChurnBreakdownProps) {
                         <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                           {key === "genre_affinity"
                             ? "neutral (unlisted genre)"
-                            : "neutral (no market data)"}
+                            : key === "content_format"
+                              ? "neutral (unlisted format)"
+                              : "neutral (no market data)"}
                         </span>
                       ) : null}
                     </th>

@@ -85,6 +85,10 @@ class QuickEvaluateRequest(BaseModel):
     churn_reduction_pct: Decimal | None = Field(
         default=None, ge=Decimal("0"), le=Decimal("100")
     )
+    # calculable-churn-model (R17): optional OTT content format (live-sports,
+    # live-event, reality-competition, scripted-series, original-film, library,
+    # ...). Drives the additive content-format churn lift; unknown -> neutral.
+    content_format: str | None = Field(default=None, max_length=64)
 
     @field_validator("asset_type")
     @classmethod
@@ -239,6 +243,10 @@ def _modeled_inputs(body: QuickEvaluateRequest, rate_date: str | None = None) ->
         "license_duration_months": duration,
         "rate_date": rate_date,
     }
+    # calculable-churn-model (R17): carry the OTT content format into the snapshot
+    # so the engine applies the content-format churn lift. Omitted when absent.
+    if body.content_format:
+        snapshot["content_format"] = body.content_format
     # calculable-churn-model (R4.5, R8.1): place churn in the snapshot ONLY when
     # the request supplied it (SUPPLIED, used exactly); otherwise leave it out so
     # the engine resolves CALCULATED from the carried feature facts.

@@ -679,6 +679,7 @@ async def test_persisted_explanation_shape_for_calculated() -> None:
         "exclusivity_lift",
         "market_telemetry_heat",
         "genre_affinity",
+        "content_format",
     }.issubset(breakdown.keys())
     # String values conserve to the final churn_reduction_pct.
     assert _sum_breakdown(breakdown) == result["churn_reduction_pct"]

@@ -181,7 +181,7 @@ is used exactly). The math lives in the pure domain module `backend/app/domain/c
 is covered by property-based tests.
 
 - **Additive formula (CALCULATED path):**
-  `churn% = intercept + asset_offset + pedigree_weight x pedigree + scale_weight x production_scale + exclusivity_lift (if exclusive) + telemetry_weight x telemetry_heat + genre_weight`
+  `churn% = intercept + asset_offset + pedigree_weight x pedigree + scale_weight x production_scale + exclusivity_lift (if exclusive) + telemetry_weight x telemetry_heat + genre_weight + content_format_lift`
   then **clamped to [0.10, 5.00]** and rounded to **2 decimals HALF_UP**. All feature weights
   are non-negative.
 - Each numeric feature is first clamped to its valid domain: pedigree and production scale to
@@ -196,6 +196,13 @@ is covered by property-based tests.
   thriller, reality retain subscribers more than one-and-done formats such as documentary, kids,
   musical). An unknown or absent genre uses a **neutral default of 0.10** and is reported as
   *assumed*. The weights are stored under `guardrail_params["churn_model"]["genre_offsets"]`.
+- `content_format_lift` is an **additive lift** for OTT-native appointment formats the four asset
+  types cannot express. It is **0** for formats the asset type already captures (scripted series,
+  films, library) and positive only for: **live sports 0.70**, **live events 0.50**, **reality/
+  competition 0.45**. An unknown/absent format adds 0 (today's behavior). This is why a live
+  cricket match stored as a LICENSED_LIBRARY asset still earns strong churn credit. Stored under
+  `guardrail_params["churn_model"]["format_offsets"]`; the Asset Studio exposes a Content Format
+  dropdown separate from Asset Type and Genre.
 - Default coefficients: `intercept 0.03`; asset offsets ORIGINAL_SERIES 0.35 / CO_PRODUCTION 0.45
   / ORIGINAL_FILM 0.15 / LICENSED_LIBRARY 0.00; `pedigree_weight 0.09`; `scale_weight 0.03`;
   `exclusivity_lift 0.25`; `telemetry_weight 0.005`; `genre_default 0.10`; `telemetry_neutral 50`.
@@ -266,7 +273,7 @@ The persisted `financial_projections.explanation` carries a `churn_model` object
 `churn_method` (CALCULATED | SUPPLIED), `is_borderline`, `params_source`
 (MODEL_VERSION | DEFAULTS), `model_version_id`, `missing_features`, `assumed_features` (features that used a neutral default - a missing telemetry reading or an unlisted genre), and `churn_breakdown` (the
 per-feature points: `base_platform_rate`, `asset_cadence`, `talent_pedigree_contribution`,
-`production_scale_contribution`, `exclusivity_lift`, `market_telemetry_heat`, `genre_affinity`, plus a
+`production_scale_contribution`, `exclusivity_lift`, `market_telemetry_heat`, `genre_affinity`, `content_format`, plus a
 `bounds_adjustment` entry when clamping/rounding changed the value so the entries always sum to
 the final value). When SUPPLIED, `churn_breakdown` is null and `missing_features` is empty.
 
