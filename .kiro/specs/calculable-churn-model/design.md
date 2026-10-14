@@ -302,6 +302,38 @@ The persisted `churn_model` object gains an `assumed_features` array and the bre
 ### A.6 Seed, docs, tests
 
 The seed generator imports the updated defaults (self-check still asserts no drift), recomputes the five churns (2.11/1.99/1.79/1.60/0.81), and embeds `genre_offsets`/`genre_default`/`telemetry_neutral` in the model-version params. Docs (Calculations Reference, Knowledge Base, guide) gain the genre driver, the neutral-telemetry rule, and the viewing-hours units, and update the five seeded numbers (Echoes 1.96->1.99, Ledger 1.62->1.60, Reruns 0.88->0.81; Aurora 2.11 and Monsoon ~1.76->1.79). Property tests gain: genre monotonic-ish (higher genre weight never decreases churn), neutral-telemetry (None heat -> telemetry_neutral contribution, listed assumed not missing), and the seed regression updates to the new tolerances. Frontend tests cover the genre dropdown, the viewing-hours unit normalization, and the "neutral (no market data)" / "Genre Affinity" breakdown rows.
+## Addendum B: Content format driver (OTT formats) (R17)
+
+A UX review of a live cricket title ("ACC Championship") scored it as LICENSED_LIBRARY with a 1.0% churn PASS. A live marquee event is one of the stickiest things an OTT platform can own, but the four asset types cannot express live-ness / appointment viewing. This addendum adds a content-format driver as an ADDITIVE LIFT so OTT-native formats (live sports, live events, reality) get credit the asset types miss, WITHOUT double-counting the formats the asset types already cover and WITHOUT moving the five seeded verdicts.
+
+### B.1 Format lift (R17)
+
+`ChurnModelParams` gains `format_offsets: Mapping[str, Decimal]` (non-negative) and `format_default: Decimal` (the neutral lift for an unknown/absent format; built-in default 0). `ChurnFeatures` gains `content_format: str | None`. The additive sum gains `+ format_lift`, where `format_lift = format_offsets.get(normalized_format, format_default)`. Format keys are normalized the same way as genre (lowercased, spaces/underscores -> hyphen). A new ordered breakdown entry `content_format` ("Content Format") is emitted. `parse_params` validates `format_offsets` (mapping of non-negative Decimals; empty/missing -> defaults) and `format_default` (non-negative; missing -> 0).
+
+Canonical format lifts (0 for formats the asset-type offset already captures; positive only for OTT-native appointment formats):
+
+| Content format | lift | Rationale |
+|---|---|---|
+| live-sports | 0.70 | subscribe-for-the-event; strongest retention while live |
+| live-event | 0.50 | awards / concerts / reality finales; appointment viewing |
+| reality-competition | 0.45 | weekly appointment over a season |
+| scripted-series | 0.00 | already captured by the ORIGINAL_SERIES / CO_PRODUCTION asset offset |
+| limited-series | 0.00 | captured by the series asset offset |
+| original-film | 0.00 | captured by the ORIGINAL_FILM asset offset |
+| licensed-film | 0.00 | captured by the film / library asset offset |
+| documentary | 0.00 | one-and-done; no extra lift |
+| kids-animation | 0.00 | long-tail; no extra lift |
+| library | 0.00 | captured by the LICENSED_LIBRARY asset offset |
+
+`format_default = 0.00` (unknown format adds nothing, preserving today's behavior). Because the lift is 0 for the demo titles' aligned formats, the five seeded churns are UNCHANGED (2.11 / 1.99 / 1.79 / 1.60 / 0.81) and no coefficient re-tune is needed (verified).
+
+### B.2 Why additive-lift, not a replacement
+
+Asset type stays the source of truth for CPVH ceilings and licensing economics (R17.5) and already encodes the scripted-vs-film-vs-library cadence. Content format is a separate, orthogonal signal for live-ness / appointment viewing. Making the lift 0 for the asset-aligned formats avoids double-counting the cadence while still letting a live match (LICENSED_LIBRARY asset + live-sports format) earn its retention credit. Verified: ACC-style title (LICENSED_LIBRARY, pedigree 5, not exclusive, sports genre, neutral telemetry 50, live-sports format) computes ~1.66 -> GREENLIGHT, vs ~0.96 -> PASS without the format term.
+
+### B.3 Engine, quick-evaluate, seed, UI, docs
+
+The engine resolves `content_format` from the title (a snapshot fact; the quick-evaluate path carries it, and a persisted title can carry it in its source snapshot) into `ChurnFeatures.content_format`. `_churn_model_json` emits the `content_format` breakdown row (it iterates all contributions, so this is automatic once the domain adds the row) and format assumed-ness folds into `assumed_features` when a non-zero default is configured. `QuickEvaluateRequest` gains an optional `content_format` field. The seed embeds `format_offsets`/`format_default` and gives each seeded title its aligned format (scripted-series / original-film / library) so the stored row and a live recompute agree and the breakdown shows a +0.00 Content Format row. The Asset Studio form adds a "Content Format" editable dropdown. The breakdown UI renders the "Content Format" row. Docs (Calculations Reference, Knowledge Base, guide) describe the format driver and the live-sports example.
 ## Correctness Properties
 
 These invariants map to the Hypothesis and regression tests in the Testing Strategy and to the acceptance criteria.

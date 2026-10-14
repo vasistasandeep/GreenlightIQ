@@ -236,6 +236,21 @@ The scope is strictly limited to **how the churn-reduction percentage is produce
 2. THE system SHALL normalize the entered value to hours before valuation (minutes / 60, seconds / 3600), so the CPVH math consumes a canonical hours figure.
 3. WHEN the viewing-hours value is blank, THE system SHALL fall back to the existing estimated-viewing-hours behavior (unchanged).
 
+### Requirement 17: Content format as a churn driver (OTT formats)
+
+**User Story:** As a reviewer, I want the content format (live sports, live events, reality, scripted series, films, library) to influence the churn estimate, so that OTT-native appointment formats a live cricket match, an awards show, a reality finale) are not scored like one-and-done library titles. The four asset types alone (ORIGINAL_SERIES, ORIGINAL_FILM, LICENSED_LIBRARY, CO_PRODUCTION) cannot express live-ness or appointment-viewing, which is a primary churn driver on an OTT platform.
+
+#### Acceptance Criteria
+
+1. THE Churn_Mitigation_Model SHALL add a content-format contribution to the additive sum: `+ (format lift for the title's content format)`, where the lift is a non-negative per-format coefficient from the model parameters.
+2. THE model parameters SHALL carry a `format_offsets` mapping from a canonical content-format key to a non-negative Decimal lift, stored alongside the other churn coefficients in `guardrail_params["churn_model"]`.
+3. THE format lift SHALL be ADDITIVE and SHALL default to 0 for formats whose churn signal is already captured by the asset-type offset (scripted series, limited series, original film, licensed film, documentary, kids/animation, library), so adding the format term does not double-count or move the five seeded verdicts. The lift SHALL be positive only for OTT-native formats the four asset types cannot express: live sports, live events, and reality/competition.
+4. WHEN a title's content format is absent or not present in `format_offsets`, THE model SHALL apply a neutral default lift (the built-in default is 0, preserving today's behavior) and SHALL record the format as assumed when a non-zero default is configured.
+5. THE Asset Studio form SHALL offer a "Content Format" dropdown with the canonical format list, editable with a custom value that falls back to the neutral default lift. It is distinct from Asset Type (which drives CPVH ceilings and licensing economics) and from Genre.
+6. THE Churn_Breakdown SHALL include a "Content Format" contribution row showing the format's lift points.
+7. THE re-tuned/extended coefficients (now including the content-format term) SHALL continue to preserve the five seeded verdicts and their tolerances from Requirement 9 (3 GREENLIGHT, 1 NEGOTIATE_HARD, 1 PASS); the seeded titles carry their aligned format (zero lift), so their churn is unchanged.
+8. THE quick-evaluate request SHALL accept an optional `content_format` field; when present it is passed into the churn feature resolution.
+
 ## Out of Scope
 
 - Changing the 1.5 percent Churn_Mitigation_Threshold, the CPVH / LTV / payback guardrails, or the recommendation logic.
