@@ -23,7 +23,7 @@ This module is pure: no I/O, no database access, no global state.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 __all__ = [
     "GuardrailCheck",
@@ -79,11 +79,19 @@ class Explanation(TypedDict):
             shortfall magnitude, or None when there are no breaches (R30.3).
         unclassifiable: True when at least one breach could not be classified as
             correctable or non-correctable (R8.4).
+        churn_model: Optional churn-explanation object (calculable-churn-model,
+            R7.2) describing how the churn-reduction percentage was obtained:
+            ``churn_method`` (SUPPLIED/CALCULATED), ``is_borderline``,
+            ``params_source``, ``model_version_id``, ``missing_features``, and a
+            ``churn_breakdown`` (null when SUPPLIED). This key is ``NotRequired``:
+            explanations produced before this feature omit it entirely, and such
+            stored payloads must still load and serialize unchanged.
     """
 
     checks: list[GuardrailCheck]
     dominant_factor: str | None
     unclassifiable: bool
+    churn_model: NotRequired[dict]
 
 
 def _dominant_factor(breaches: list[GuardrailCheck]) -> str | None:

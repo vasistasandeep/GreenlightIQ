@@ -53,10 +53,18 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Optional, Protocol, Sequence, TypedDict
 
 from app.core.errors import ExchangeRateUnavailableError, TitleNotFoundError
+from app.domain.churn import (
+    ChurnFeatures,
+    ChurnResult,
+    coerce_supplied,
+    is_borderline,
+    parse_params,
+    resolve_churn,
+)
 from app.domain.cpvh import (
     AssetType,
     CPVHComputationError,
@@ -102,6 +110,7 @@ __all__ = [
     "ValuationResult",
     "GuardrailPersistenceError",
     "Guardrails_Engine",
+    "churn_model_json",
 ]
 
 # --- Guardrail thresholds (mirroring the design) -------------------------- #
@@ -228,6 +237,11 @@ class ValuationResult(TypedDict):
     exchange_rate_id: uuid.UUID | None
     model_version_id: uuid.UUID
     explanation: Explanation
+    # calculable-churn-model (task 5): the resolved churn result (method,
+    # borderline flag, breakdown, params source). Carried on the result so a
+    # later task can persist its explanation JSON; None on the stateless
+    # what-if path (task 7 refines the scenario churn_model).
+    churn_detail: ChurnResult | None
     # Deal Decision Support (additive; response-composition only, not persisted).
     ltv_subscription_value: Decimal | None
     ltv_advertising_value: Decimal | None
@@ -280,6 +294,7 @@ class Guardrails_Engine:
         model_versioning_engine: Any,
         audit_service: Any,
         input_provider: ValuationInputProvider,
+        metadata_vector_repo: Any | None = None,
     ) -> None:
         self._titles = title_repository
         self._projections = projection_repository
@@ -289,6 +304,11 @@ class Guardrails_Engine:
         self._versioning = model_versioning_engine
         self._audit = audit_service
         self._inputs = input_provider
+        # calculable-churn-model (task 5): optional metadata-vector repository
+        # used to resolve pedigree/production-scale features for CALCULATED
+        # churn. Defaults to None so existing test wiring that omits it keeps
+        # working (and SUPPLIED churn short-circuits feature resolution anyway).
+        self._metadata_vectors = metadata_vector_repo
 
     # -- public API -------------------------------------------------------- #
 
@@ -355,11 +375,16 @@ class Guardrails_Engine:
         # here and threaded into the pure compute core.
         payback_check, payback_months = await self._payback_check(title, inputs)
 
+        # 5b. Resolve churn (calculable-churn-model, task 5): SUPPLIED when the
+        # provider carried a Decimal, else CALCULATED from the title's features.
+        churn_result = await self._resolve_churn(title, inputs)
+
         # 5-6. Run the guardrail checks, recommendation, and deal-support block
         # through the shared pure compute core (no I/O).
         result = self._compute(
             title, inputs, normalized, exchange_rate_id, stamp, weighting,
-            payback_check, payback_months,
+            payback_check, payback_months, churn_result.churn_reduction_pct,
+            churn_detail=churn_result,
         )
         explanation = result["explanation"]
 
@@ -390,14 +415,25 @@ class Guardrails_Engine:
         weighting: TerritoryWeights,
         payback_check: GuardrailCheck,
         payback_months: int,
+        churn_pct: Decimal,
         *,
         cpvh_hours_override: Decimal | None = None,
+        churn_detail: ChurnResult | None = None,
     ) -> ValuationResult:
         """Run the four guardrail checks, the recommendation, and the deal-support
         block, returning a :class:`ValuationResult`. Performs NO I/O, NO
         persistence, and NO audit, so it is shared verbatim by the persisting
         ``evaluate`` path and the stateless ``evaluate_scenario`` path (identical
         math; no threshold or recommendation forking).
+
+        ``churn_pct`` is the resolved churn-reduction percentage the caller
+        produced (calculable-churn-model, task 5): the ``evaluate`` path resolves
+        it via :meth:`_resolve_churn` (SUPPLIED or CALCULATED from features), and
+        the ``evaluate_scenario`` path passes the scaled base value. It feeds the
+        churn-mitigation check, the retained-subscriber figure, and the persisted
+        ``churn_reduction_pct``. ``churn_detail`` is the full
+        :class:`~app.domain.churn.ChurnResult` carried on the result (None on the
+        scenario path).
         """
         weighted_cpm = inputs.cpm * weighting.cpm_weight
         weighted_ltv = inputs.ltv * weighting.ltv_weight
@@ -407,16 +443,6 @@ class Guardrails_Engine:
         )
         ltv_check, ltv_multiple = self._ltv_check(
             inputs, normalized.amount_usd, weighted_cpm, weighted_ltv
-        )
-        # churn_reduction_pct is now optional (calculable-churn-model, R4.6): a
-        # Decimal is an explicitly supplied value; None means "resolve and
-        # compute". The resolve-and-compute wiring lands in a later task; for now
-        # a None value falls back to a conservative Decimal("0") so the type and
-        # the current churn-check semantics are preserved exactly.
-        churn_pct = (
-            inputs.churn_reduction_pct
-            if inputs.churn_reduction_pct is not None
-            else Decimal("0")
         )
         churn_check = self._churn_check(churn_pct)
 
@@ -463,6 +489,7 @@ class Guardrails_Engine:
             "exchange_rate_id": exchange_rate_id,
             "model_version_id": stamp,
             "explanation": explanation,
+            "churn_detail": churn_detail,
             "ltv_subscription_value": ltv_sub,
             "ltv_advertising_value": ltv_adv,
             "ltv_total_modeled_value": ltv_total,
@@ -508,6 +535,35 @@ class Guardrails_Engine:
 
         payback_check, payback_months = await self._payback_check(title, inputs)
 
+        # Resolve the base churn FIRST so a None (compute) base is never
+        # multiplied (calculable-churn-model, task 5): resolve to a concrete
+        # Decimal, then scale that resolved value by the churn multiplier.
+        base_churn = await self._resolve_churn(title, inputs)
+        scaled_churn_pct = base_churn.churn_reduction_pct * Decimal(churn_multiplier)
+
+        # calculable-churn-model (task 7, R7.5/R7.6): carry a minimal
+        # ChurnResult for the scaled scenario so the response can surface a
+        # churn_model object. The scaled churn no longer equals the sum of the
+        # unscaled per-feature contributions, so the breakdown is OMITTED
+        # (``breakdown=None``) and the Borderline_Sensitivity flag is recomputed
+        # on the SCALED value, while the base method / params source are carried
+        # forward so the UI can still say SUPPLIED vs CALCULATED. This does NOT
+        # change the churn check math: the check consumes ``scaled_churn_pct``
+        # directly (below), and this ChurnResult's ``churn_reduction_pct`` is the
+        # same scaled value quantized to 2 dp for display consistency with the
+        # calculated path.
+        scenario_churn_detail = ChurnResult(
+            churn_reduction_pct=scaled_churn_pct.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            ),
+            method=base_churn.method,
+            is_borderline=is_borderline(scaled_churn_pct),
+            breakdown=None,
+            missing_features=(),
+            params_source=base_churn.params_source,
+            unclamped=None,
+        )
+
         base_hours = getattr(title, "projected_viewing_hours", None)
         scaled = scale_inputs(
             inputs,
@@ -529,7 +585,9 @@ class Guardrails_Engine:
             weighting,
             payback_check,
             payback_months,
+            scaled_churn_pct,
             cpvh_hours_override=scaled.viewing_hours,
+            churn_detail=scenario_churn_detail,
         )
 
     # -- currency normalization (R21.2, R21.5) ----------------------------- #
@@ -825,6 +883,141 @@ class Guardrails_Engine:
             "correctable": False if breached else None,
         }
 
+    # -- churn resolution (calculable-churn-model, R3, R6) ----------------- #
+
+    async def _resolve_churn(
+        self, title: Any, inputs: ValuationInputs
+    ) -> ChurnResult:
+        """Resolve the churn-reduction percentage for a title (R3, R6).
+
+        Reads the Churn_Model_Params from the ACTIVE model version's
+        ``guardrail_params["churn_model"]`` (R3.1); an absent/invalid block falls
+        back to the domain defaults (R3.2). Resolves the title's features with
+        snapshot-over-DB precedence (R6.1): pedigree and production scale from the
+        latest SUCCESS metadata vector, exclusivity from the title's license
+        terms, asset type from the title row (R6.2), and Telemetry_Heat as the
+        mean over the title's target territories with a cached reading of
+        ``social_sentiment_index * 100`` (R6.3-R6.5). Delegates to
+        :func:`~app.domain.churn.resolve_churn`, so a SUPPLIED Decimal on
+        ``inputs`` wins and short-circuits feature resolution (R4.1).
+        """
+        # SUPPLIED wins (R4.1): when the provider carried a finite numeric value,
+        # return it exactly without reading model-version params or resolving any
+        # feature. This also keeps fakes that only implement ``stamp()`` (not
+        # ``read_active()``) working, since they pass a Decimal churn.
+        if coerce_supplied(inputs.churn_reduction_pct) is not None:
+            default_params, default_source = parse_params(None)
+            empty_features = ChurnFeatures(
+                asset_type=None,
+                pedigree=None,
+                production_scale=None,
+                is_exclusive=False,
+                telemetry_heat=None,
+            )
+            return resolve_churn(
+                inputs.churn_reduction_pct,
+                empty_features,
+                default_params,
+                default_source,
+            )
+
+        active = await self._versioning.read_active()
+        raw = (
+            (active.guardrail_params or {}).get("churn_model")
+            if active is not None
+            else None
+        )
+        params, source = parse_params(raw)
+
+        # Pedigree / production scale from the latest SUCCESS metadata vector.
+        pedigree, production_scale = await self._resolve_metadata_features(title)
+        # Exclusivity from the title's license terms (unknown -> False).
+        is_exclusive = await self._resolve_exclusivity(title)
+        # Telemetry heat over the title's target territories (None when empty).
+        telemetry_heat = await self._resolve_telemetry_heat(title)
+
+        features = ChurnFeatures(
+            asset_type=getattr(title, "asset_type", None),
+            pedigree=pedigree,
+            production_scale=production_scale,
+            is_exclusive=is_exclusive,
+            telemetry_heat=telemetry_heat,
+        )
+        return resolve_churn(inputs.churn_reduction_pct, features, params, source)
+
+    async def _resolve_metadata_features(
+        self, title: Any
+    ) -> tuple[Decimal | None, Decimal | None]:
+        """Return (pedigree, production_scale) from the latest SUCCESS vector.
+
+        Picks the most recent (by ``created_at``) metadata vector with
+        ``extraction_status == "SUCCESS"`` for the title. Returns ``(None, None)``
+        when no metadata-vector repository is injected or no SUCCESS row exists
+        (features treated as missing, R2).
+        """
+        if self._metadata_vectors is None:
+            return None, None
+        title_id = getattr(title, "title_id", None)
+        if title_id is None:
+            return None, None
+        rows = await self._metadata_vectors.list_for_title(title_id)
+        success = [
+            row for row in rows
+            if getattr(row, "extraction_status", None) == "SUCCESS"
+        ]
+        if not success:
+            return None, None
+        latest = max(success, key=lambda row: getattr(row, "created_at", None))
+        pedigree = getattr(latest, "talent_pedigree_score", None)
+        production_scale = getattr(latest, "production_scale_metric", None)
+        return pedigree, production_scale
+
+    async def _resolve_exclusivity(self, title: Any) -> bool:
+        """Return the title's exclusivity from license terms (unknown -> False)."""
+        title_id = getattr(title, "title_id", None)
+        if title_id is None:
+            return False
+        terms = await self._license_terms.list_for_title(title_id)
+        for term in terms:
+            is_exclusive = getattr(term, "is_exclusive", None)
+            if is_exclusive is not None:
+                return bool(is_exclusive)
+        return False
+
+    async def _resolve_telemetry_heat(self, title: Any) -> Decimal | None:
+        """Compute Telemetry_Heat as the mean of ``social_sentiment_index * 100``.
+
+        Averages over the title's target territories that have a cached reading
+        for the title's genre, scaling the stored 0-1 index to 0-100 and rounding
+        the mean to 2 dp half-up (R6.3). Territories without a reading are
+        excluded (R6.4). Returns ``None`` (missing, R6.5) when the genre is
+        unknown, there are no territories, or no territory yields a non-None
+        ``social_sentiment_index`` — never divides by zero.
+        """
+        genre = getattr(title, "genre_tag", None)
+        if genre is None:
+            return None
+        territories = self._extract_territories(title)
+        if not territories:
+            return None
+
+        values: list[Decimal] = []
+        for territory in territories:
+            telemetry = await self._telemetry.get_for_genre_territory(
+                genre, territory
+            )
+            if telemetry is None:
+                continue
+            index = getattr(telemetry, "social_sentiment_index", None)
+            if index is None:
+                continue
+            values.append(Decimal(index) * Decimal("100"))
+
+        if not values:
+            return None
+        mean = sum(values, Decimal("0")) / Decimal(len(values))
+        return mean.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
     # -- payback check (R7) ------------------------------------------------ #
 
     async def _payback_check(
@@ -949,7 +1142,11 @@ class Guardrails_Engine:
             "normalized_cost_usd": result["normalized_cost_usd"],
             "exchange_rate_id": result["exchange_rate_id"],
             "model_version_id": result["model_version_id"],
-            "explanation": _jsonable_explanation(explanation),
+            "explanation": _jsonable_explanation(
+                explanation,
+                result["churn_detail"],
+                result["model_version_id"],
+            ),
         }
 
     @staticmethod
@@ -969,6 +1166,13 @@ class Guardrails_Engine:
                 else None
             ),
             "model_version_id": str(result["model_version_id"]),
+            # calculable-churn-model (R7.4): record how churn was resolved on the
+            # audit "after" snapshot; None when no churn detail is carried.
+            "churn_method": (
+                result["churn_detail"].method
+                if result["churn_detail"] is not None
+                else None
+            ),
         }
 
     # -- helpers ----------------------------------------------------------- #
@@ -1010,11 +1214,82 @@ def _decimal_str(value: Decimal | None) -> str | None:
     return str(value) if value is not None else None
 
 
-def _jsonable_explanation(explanation: Explanation) -> dict[str, Any]:
+def _churn_model_json(
+    churn_detail: ChurnResult, model_version_id: uuid.UUID | None
+) -> dict[str, Any]:
+    """Serialize a :class:`ChurnResult` into the flat ``churn_model`` object
+    stored under ``explanation["churn_model"]`` (calculable-churn-model, R7.2).
+
+    The shape is stable regardless of resolution method:
+
+    * ``churn_method``       — SUPPLIED or CALCULATED.
+    * ``is_borderline``      — whether the resolved value sits in [1.45, 1.55].
+    * ``params_source``      — MODEL_VERSION or DEFAULTS; records whether the
+      churn params came from the version's ``guardrail_params`` or the built-in
+      defaults (R3.3).
+    * ``model_version_id``   — the valuation's active stamp (the version in
+      effect, R3.3), stringified, or ``None`` when unknown.
+    * ``missing_features``   — the feature keys that were missing (empty for a
+      SUPPLIED value, which bypasses feature resolution).
+    * ``churn_breakdown``    — an object keyed by each contribution key to its
+      point value as a string; ``null`` for a SUPPLIED value.
+
+    Decimals are rendered as strings so the object round-trips through JSONB
+    without precision loss.
+    """
+    if churn_detail.breakdown is None:
+        # SUPPLIED: no per-feature breakdown and no missing-feature list.
+        breakdown: dict[str, str] | None = None
+        missing: list[str] = []
+    else:
+        breakdown = {
+            contribution.key: _decimal_str(contribution.points)
+            for contribution in churn_detail.breakdown
+        }
+        missing = list(churn_detail.missing_features)
+
+    return {
+        "churn_method": churn_detail.method,
+        "is_borderline": churn_detail.is_borderline,
+        "params_source": churn_detail.params_source,
+        "model_version_id": (
+            str(model_version_id) if model_version_id is not None else None
+        ),
+        "missing_features": missing,
+        "churn_breakdown": breakdown,
+    }
+
+
+def churn_model_json(
+    churn_detail: ChurnResult, model_version_id: uuid.UUID | None
+) -> dict[str, Any]:
+    """Public wrapper over :func:`_churn_model_json`.
+
+    Exposes the stable ``churn_model`` serialization (same shape persisted under
+    ``explanation["churn_model"]``) so the read-only what-if route can attach it
+    to its response explanation without re-running the persist path
+    (calculable-churn-model, R7.5/R7.6). Decimals are rendered as strings; a
+    scaled scenario carries ``churn_breakdown: null``.
+    """
+    return _churn_model_json(churn_detail, model_version_id)
+
+
+def _jsonable_explanation(
+    explanation: Explanation,
+    churn_detail: ChurnResult | None = None,
+    model_version_id: uuid.UUID | None = None,
+) -> dict[str, Any]:
     """Convert an :class:`Explanation` into a JSON-serializable dict for JSONB.
 
     Decimals become strings so the stored ``explanation`` round-trips without
     precision loss and is valid JSON (JSONB has no Decimal type).
+
+    When ``churn_detail`` is provided (the persisting ``evaluate`` path), a
+    ``churn_model`` object is attached under the ``"churn_model"`` key via
+    :func:`_churn_model_json` (calculable-churn-model, R7.2). When it is ``None``
+    (e.g. the stateless what-if path, which carries ``churn_detail=None``), no
+    ``churn_model`` key is emitted, keeping the payload backward compatible with
+    explanations produced before this feature.
     """
     checks: list[dict[str, Any]] = []
     for check in explanation["checks"]:
@@ -1029,8 +1304,11 @@ def _jsonable_explanation(explanation: Explanation) -> dict[str, Any]:
                 "correctable": check["correctable"],
             }
         )
-    return {
+    payload: dict[str, Any] = {
         "checks": checks,
         "dominant_factor": explanation["dominant_factor"],
         "unclassifiable": explanation["unclassifiable"],
     }
+    if churn_detail is not None:
+        payload["churn_model"] = _churn_model_json(churn_detail, model_version_id)
+    return payload

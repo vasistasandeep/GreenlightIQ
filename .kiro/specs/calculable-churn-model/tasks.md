@@ -89,23 +89,23 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Build/verify the existing engine/persistence/what-if/sensitivity tests still pass (fakes pass a Decimal -> SUPPLIED).
   - _Requirements: 4.6, 7.7, 7.8_
 
-- [~] 5. Resolve churn inside the Guardrails_Engine
+- [x] 5. Resolve churn inside the Guardrails_Engine
   - Add keyword `metadata_vector_repo: Any | None = None` to the engine constructor; inject `MetadataVectorRepository(session)` in `deps.py` `get_guardrails_engine`.
   - Implement async `_resolve_churn(title, inputs) -> ChurnResult`: read `guardrail_params["churn_model"]` from the active model version via `read_active()` and `parse_params`; resolve features (pedigree/scale/exclusivity from snapshot facts if present on inputs, else latest SUCCESS metadata vector and license terms; asset type from the title); compute telemetry heat as the mean over target territories with a reading of `social_sentiment_index * 100` (2 dp half-up) with an explicit empty-list guard that yields None; call `resolve_churn(inputs.churn_reduction_pct, features, params, source)`.
   - Thread the `ChurnResult` into `_compute` so the churn check uses `result.churn_reduction_pct`; leave the 1.5 hurdle and non-correctable classification unchanged. Add `churn_detail: ChurnResult | None` to `ValuationResult`.
   - _Requirements: 3.1, 3.2, 3.3, 6.1, 6.2, 6.3, 6.4, 6.5, 7.1_
 
-- [~] 6. Persist and audit the churn explanation
+- [x] 6. Persist and audit the churn explanation
   - Extend `_jsonable_explanation` to emit the flat `churn_model` object (`churn_method`, `is_borderline`, `params_source`, `model_version_id`, `missing_features`, `churn_breakdown` with the six feature keys + `bounds_adjustment`; `churn_breakdown` null and `missing_features` [] when SUPPLIED; Decimals as strings).
   - Record `churn_method` in the audit "after" snapshot. Extend the `Explanation` TypedDict in `app/domain/recommendation.py` with a `NotRequired` `churn_model`.
   - _Requirements: 3.3, 7.2, 7.4_
 
-- [~] 7. What-if churn handling
+- [x] 7. What-if churn handling
   - In `evaluate_scenario`: resolve the base `ChurnResult` first (so a None base is computed, never multiplied), apply the churn multiplier to that resolved value, omit `churn_breakdown`, and recompute `is_borderline` from the scaled value. Attach a minimal `churn_model` object carrying the base method, null breakdown, and the recomputed flag.
   - Add an engine test asserting the scaled scenario omits the breakdown and flips `is_borderline` as the scaled value crosses [1.45, 1.55].
   - _Requirements: 7.5, 7.6_
 
-- [~] 8. Engine resolution tests
+- [x] 8. Engine resolution tests
   - Add `backend/tests/engines/test_churn_resolution.py` with in-memory fakes (incl. a fake metadata-vector repo and telemetry repo): supplied-wins over features; feature precedence (snapshot over DB); telemetry-heat mean and empty-list -> missing; defaults fallback when params absent/invalid; explanation shape; audit records method.
   - _Requirements: 2.1, 3.2, 4.1, 6.1, 6.3, 6.5, 7.2, 7.4_
 

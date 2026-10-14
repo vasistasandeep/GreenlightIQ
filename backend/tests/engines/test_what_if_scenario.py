@@ -123,6 +123,52 @@ def test_property_5_viewership_monotonicity(m1, m2):
     asyncio.run(run())
 
 
+# Feature: calculable-churn-model, Property 11: What-if borderline
+# Validates: Requirements 7.5, 7.6
+def test_what_if_churn_multiplier_omits_breakdown_and_recomputes_borderline():
+    """A churn multiplier != 1 yields a scaled churn_detail that omits the
+    per-feature breakdown and recomputes is_borderline on the SCALED value, and
+    crossing the [1.45, 1.55] band flips the flag (R7.5, R7.6)."""
+    from app.domain.churn import is_borderline
+
+    async def run():
+        inputs = _inputs()  # SUPPLIED base churn of 2.0
+
+        # In-band: 2.0 * 0.75 = 1.50 -> borderline true, breakdown omitted.
+        e_in, t_in, _, _ = _engine(inputs)
+        in_band = await e_in.evaluate_scenario(
+            t_in,
+            cost_multiplier=Decimal("1.0"),
+            viewership_multiplier=Decimal("1.0"),
+            churn_multiplier=Decimal("0.75"),
+        )
+        detail_in = in_band["churn_detail"]
+        assert detail_in is not None
+        assert detail_in.breakdown is None  # omitted for a scaled scenario
+        assert in_band["churn_reduction_pct"] == Decimal("1.50")
+        assert detail_in.is_borderline is True
+        assert detail_in.is_borderline == is_borderline(in_band["churn_reduction_pct"])
+        # method carried from the base resolution (SUPPLIED here).
+        assert detail_in.method == "SUPPLIED"
+
+        # Out-of-band: 2.0 * 0.5 = 1.00 -> borderline false, flag flips.
+        e_out, t_out, _, _ = _engine(inputs)
+        out_band = await e_out.evaluate_scenario(
+            t_out,
+            cost_multiplier=Decimal("1.0"),
+            viewership_multiplier=Decimal("1.0"),
+            churn_multiplier=Decimal("0.5"),
+        )
+        detail_out = out_band["churn_detail"]
+        assert detail_out is not None
+        assert detail_out.breakdown is None
+        assert out_band["churn_reduction_pct"] == Decimal("1.00")
+        assert detail_out.is_borderline is False
+        assert detail_out.is_borderline == is_borderline(out_band["churn_reduction_pct"])
+
+    asyncio.run(run())
+
+
 def test_evaluate_scenario_does_not_persist_or_audit():
     """R2.4: the scenario path writes no projection and records no audit entry."""
     async def run():

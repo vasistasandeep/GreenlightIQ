@@ -31,6 +31,7 @@ from app.api.deps import (
 )
 from app.core.errors import TitleNotFoundError
 from app.domain import cohort, negotiation
+from app.engines.guardrails import churn_model_json
 from app.engines.rbac import Operation
 from app.models.metadata_vector import NARRATIVE_DNA_DIMENSIONS
 from app.repositories.financial_projections import FinancialProjectionRepository
@@ -377,6 +378,21 @@ async def what_if_valuation(
 
     explanation = result["explanation"]
     checks = explanation["checks"] if isinstance(explanation, dict) else []
+
+    # calculable-churn-model (task 7, R7.5/R7.6): the engine's in-memory
+    # Explanation does not carry a churn_model key (that key is attached only by
+    # the persist path's _jsonable_explanation). Surface it here from the
+    # scenario churn detail so the read-only what-if response exposes the scaled
+    # churn method, the recomputed Borderline_Sensitivity flag, and a null
+    # churn_breakdown (omitted for a scaled scenario). This persists nothing.
+    churn_detail = result.get("churn_detail")
+    if isinstance(explanation, dict) and churn_detail is not None:
+        explanation = {
+            **explanation,
+            "churn_model": churn_model_json(
+                churn_detail, result["model_version_id"]
+            ),
+        }
     cost = result["normalized_cost_usd"]
     ceiling = negotiation.target_purchase_ceiling(cost, checks)
     discount = negotiation.implied_discount_pct(cost, ceiling)
