@@ -146,7 +146,7 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Update the user guide (the "How Numbers Are Calculated" tab and the Guardrail 3 explainer), `CineROI_AI_Calculations_Reference.md`, and `CineROI_AI_Complete_Knowledge_Base.md` to describe the additive model, the supplied-value override, the borderline flag, the feature sources, and the parameter storage, with churn numbers consistent with the regenerated seed. Label the coefficients illustrative.
   - _Requirements: 3.5, 9.7, 12.1, 12.2, 12.3_
 
-- [~] 17. End-to-end verification
+- [x] 17. End-to-end verification
   - Run the full backend suite and the frontend typecheck/lint/vitest. Rebuild the containers and run `scripts/demo-reset.ps1`. Recompute all five seeded titles via `POST /valuation/calculate` and confirm the churn values, `churn_model` objects, and verdicts match the stored seed; confirm `GET /valuation/{id}` returns `churn_model` and the title page loads. Clean up any temp files.
   - _Requirements: 9.3, 9.5, 13.2_
 
