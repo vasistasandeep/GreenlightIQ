@@ -183,6 +183,60 @@ TITLES = [
         ["US", "GB"], "drama", "180000000.00", True,
         "0.1667", "3.50", "2.00", 10, "GREENLIGHT",
     ),
+    # --- SonyLIV-style OTT catalog (invented titles; INR; Indian territories) ---
+    # Churn is the model's output (neutral telemetry); cpvh/ltv/payback produce
+    # the stated verdict. kaveri/paperboats use SEA to avoid the drama/IN telemetry
+    # row (keeps their churn neutral and the verified value).
+    (
+        "title-sl-ipl", "Bharat T20 Smash 2026", "LICENSED_LIBRARY", "820000000.00", "INR",
+        ["IN"], "cricket", "296000000.00", False,
+        "0.0480", "3.90", "2.23", 10, "GREENLIGHT",
+    ),
+    (
+        "title-sl-crorepati", "Crorepati Chronicles S7", "ORIGINAL_SERIES", "180000000.00", "INR",
+        ["IN"], "reality", "130000000.00", False,
+        "0.1500", "3.60", "2.32", 11, "GREENLIGHT",
+    ),
+    (
+        "title-sl-mumbainoir", "Mumbai Noir S2 (Hindi)", "ORIGINAL_SERIES", "240000000.00", "INR",
+        ["IN", "SEA"], "crime-biopic", "110000000.00", False,
+        "0.1600", "3.80", "2.01", 12, "GREENLIGHT",
+    ),
+    (
+        "title-sl-football", "Metro Football League 2026", "LICENSED_LIBRARY", "780000000.00", "INR",
+        ["IN", "SEA"], "football", "272000000.00", False,
+        "0.0490", "3.40", "1.86", 12, "GREENLIGHT",
+    ),
+    (
+        "title-sl-ringkings", "Ring Kings Live Chennai", "LICENSED_LIBRARY", "320000000.00", "INR",
+        ["IN", "SEA"], "wwe", "35000000.00", False,
+        "0.0520", "3.50", "1.88", 11, "NEGOTIATE_HARD",
+    ),
+    (
+        "title-sl-kaveri", "Kaveri Tides S1 (Tamil)", "ORIGINAL_SERIES", "150000000.00", "INR",
+        ["SEA"], "drama", "90000000.00", False,
+        "0.1900", "3.10", "1.80", 14, "NEGOTIATE_HARD",
+    ),
+    (
+        "title-sl-deccan", "Deccan Files S1 (Telugu)", "ORIGINAL_SERIES", "130000000.00", "INR",
+        ["IN"], "thriller", "80000000.00", False,
+        "0.1700", "3.00", "1.49", 13, "PASS",
+    ),
+    (
+        "title-sl-paperboats", "Paper Boats (Malayalam)", "ORIGINAL_FILM", "90000000.00", "INR",
+        ["SEA"], "drama", "42000000.00", False,
+        "0.2000", "2.80", "1.43", 14, "PASS",
+    ),
+    (
+        "title-sl-spiceroute", "The Spice Route", "ORIGINAL_FILM", "60000000.00", "INR",
+        ["IN"], "documentary", "20000000.00", False,
+        "0.1900", "3.30", "0.96", 12, "PASS",
+    ),
+    (
+        "title-sl-classics", "Golden Era Classics Vol. 7", "LICENSED_LIBRARY", "50000000.00", "INR",
+        ["IN"], "comedy", "60000000.00", False,
+        "0.0300", "4.20", "0.69", 8, "PASS",
+    ),
 ]
 
 # Seeded acquisition deal stage per title (deal-stage lifecycle). Chosen to span
@@ -193,6 +247,16 @@ DEAL_STAGE_BY_TITLE = {
     "title-ledger": "EVALUATED",      # NEGOTIATE_HARD, still being worked
     "title-reruns": "SCREENING",
     "title-echoes": "CLOSED_WON",     # historical, deal done
+    "title-sl-ipl": "APPROVED",
+    "title-sl-crorepati": "APPROVED",
+    "title-sl-mumbainoir": "IN_NEGOTIATION",
+    "title-sl-football": "SCREENING",
+    "title-sl-ringkings": "EVALUATED",
+    "title-sl-kaveri": "EVALUATED",
+    "title-sl-deccan": "SCREENING",
+    "title-sl-paperboats": "SCREENING",
+    "title-sl-spiceroute": "SCREENING",
+    "title-sl-classics": "PASSED",
 }
 
 
@@ -213,6 +277,39 @@ LICENSE_TERMS = [
     ("title-echoes", 24, True,
      {"windows": [{"type": "exclusive", "months": 24}]},
      [{"month": 0, "amount": 15000000.0}, {"month": 12, "amount": 15000000.0}]),
+    # SonyLIV-style titles. Live sports/events are shorter-term exclusive rights;
+    # series 24m, films 18m, library 12m. Single milestone at signing (keeps the
+    # payback input simple and consistent with the stored payback_horizon).
+    ("title-sl-ipl", 12, True,
+     {"windows": [{"type": "exclusive", "months": 12}]},
+     [{"month": 0, "amount": 9840000.0}]),
+    ("title-sl-crorepati", 24, True,
+     {"windows": [{"type": "exclusive", "months": 24}]},
+     [{"month": 0, "amount": 2160000.0}]),
+    ("title-sl-mumbainoir", 24, True,
+     {"windows": [{"type": "exclusive", "months": 24}]},
+     [{"month": 0, "amount": 2880000.0}]),
+    ("title-sl-football", 12, False,
+     {"windows": [{"type": "non_exclusive", "months": 12}]},
+     [{"month": 0, "amount": 9360000.0}]),
+    ("title-sl-ringkings", 12, True,
+     {"windows": [{"type": "exclusive", "months": 12}]},
+     [{"month": 0, "amount": 3840000.0}]),
+    ("title-sl-kaveri", 24, True,
+     {"windows": [{"type": "exclusive", "months": 24}]},
+     [{"month": 0, "amount": 1800000.0}]),
+    ("title-sl-deccan", 24, False,
+     {"windows": [{"type": "non_exclusive", "months": 24}]},
+     [{"month": 0, "amount": 1560000.0}]),
+    ("title-sl-paperboats", 18, True,
+     {"windows": [{"type": "exclusive", "months": 18}]},
+     [{"month": 0, "amount": 1080000.0}]),
+    ("title-sl-spiceroute", 18, False,
+     {"windows": [{"type": "non_exclusive", "months": 18}]},
+     [{"month": 0, "amount": 720000.0}]),
+    ("title-sl-classics", 12, False,
+     {"windows": [{"type": "non_exclusive", "months": 12}]},
+     [{"month": 0, "amount": 600000.0}]),
 ]
 
 # Market telemetry per (genre_tag, territory) pair, covering every pair the
@@ -295,6 +392,16 @@ _PEDIGREE_SCALE = {
     "title-ledger": ("6.00", "5.50"),
     "title-reruns": ("4.00", "3.50"),
     "title-echoes": ("7.80", "7.00"),
+    "title-sl-ipl": ("7.00", "9.00"),
+    "title-sl-crorepati": ("7.00", "7.00"),
+    "title-sl-mumbainoir": ("8.00", "8.00"),
+    "title-sl-football": ("6.00", "8.00"),
+    "title-sl-ringkings": ("6.00", "7.00"),
+    "title-sl-kaveri": ("6.50", "6.00"),
+    "title-sl-deccan": ("6.00", "5.50"),
+    "title-sl-paperboats": ("5.00", "5.00"),
+    "title-sl-spiceroute": ("4.00", "4.00"),
+    "title-sl-classics": ("3.00", "3.00"),
 }
 _EXCLUSIVE_BY_TITLE = {label: exclusive for label, _d, exclusive, _w, _m in LICENSE_TERMS}
 
@@ -307,6 +414,16 @@ _FORMAT_BY_TITLE = {
     "title-ledger": "original-film",
     "title-reruns": "library",
     "title-echoes": "scripted-series",
+    "title-sl-ipl": "live-sports",
+    "title-sl-crorepati": "reality-competition",
+    "title-sl-mumbainoir": "scripted-series",
+    "title-sl-football": "live-sports",
+    "title-sl-ringkings": "live-event",
+    "title-sl-kaveri": "scripted-series",
+    "title-sl-deccan": "scripted-series",
+    "title-sl-paperboats": "original-film",
+    "title-sl-spiceroute": "documentary",
+    "title-sl-classics": "library",
 }
 
 
@@ -696,6 +813,16 @@ def render() -> str:
         "title-ledger": ("TENSION", "FEAR"),
         "title-reruns": ("JOY", "NOSTALGIA"),
         "title-echoes": ("HOPE", "SADNESS"),
+        "title-sl-ipl": ("AWE", "TENSION"),
+        "title-sl-crorepati": ("JOY", "ANTICIPATION"),
+        "title-sl-mumbainoir": ("TENSION", "FEAR"),
+        "title-sl-football": ("AWE", "HOPE"),
+        "title-sl-ringkings": ("TENSION", "AWE"),
+        "title-sl-kaveri": ("NOSTALGIA", "HOPE"),
+        "title-sl-deccan": ("FEAR", "TENSION"),
+        "title-sl-paperboats": ("SADNESS", "HOPE"),
+        "title-sl-spiceroute": ("AWE", "NOSTALGIA"),
+        "title-sl-classics": ("JOY", "NOSTALGIA"),
     }
     scores = {
         "title-aurora": ("8.50", "9.00"),
@@ -703,6 +830,16 @@ def render() -> str:
         "title-ledger": ("6.00", "5.50"),
         "title-reruns": ("4.00", "3.50"),
         "title-echoes": ("7.80", "7.00"),
+        "title-sl-ipl": ("7.00", "9.00"),
+        "title-sl-crorepati": ("7.00", "7.00"),
+        "title-sl-mumbainoir": ("8.00", "8.00"),
+        "title-sl-football": ("6.00", "8.00"),
+        "title-sl-ringkings": ("6.00", "7.00"),
+        "title-sl-kaveri": ("6.50", "6.00"),
+        "title-sl-deccan": ("6.00", "5.50"),
+        "title-sl-paperboats": ("5.00", "5.00"),
+        "title-sl-spiceroute": ("4.00", "4.00"),
+        "title-sl-classics": ("3.00", "3.00"),
     }
     rows = []
     for t in TITLES:

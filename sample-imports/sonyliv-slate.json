@@ -1,0 +1,492 @@
+{
+  "titles": [
+    {
+      "title_name": "Bharat T20 Smash 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "304200000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "cricket",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "296000000.00"
+    },
+    {
+      "title_name": "Subcontinent Premier Cricket 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "236400000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "cricket",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "289000000.00"
+    },
+    {
+      "title_name": "Metro Football League 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "782300000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "football",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "272000000.00"
+    },
+    {
+      "title_name": "Grand Slam Mumbai Open 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "708200000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "tennis",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "193000000.00"
+    },
+    {
+      "title_name": "Pro Kabaddi Clash 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "515000000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "kabaddi",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "153000000.00"
+    },
+    {
+      "title_name": "National Badminton Masters 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "469400000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "GB",
+        "US"
+      ],
+      "genre_tag": "badminton",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "303000000.00"
+    },
+    {
+      "title_name": "Desi Golf Invitational 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "519400000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "GB",
+        "US"
+      ],
+      "genre_tag": "golf",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "282000000.00"
+    },
+    {
+      "title_name": "Electric GP India 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "861500000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "motorsport",
+      "content_format": "live-sports",
+      "projected_viewing_hours": "197000000.00"
+    },
+    {
+      "title_name": "Ring Kings Live: Chennai",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "32100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "wwe",
+      "content_format": "live-event",
+      "projected_viewing_hours": "35000000.00"
+    },
+    {
+      "title_name": "Cage Fury Night: Kolkata",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "202800000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "ufc",
+      "content_format": "live-event",
+      "projected_viewing_hours": "10000000.00"
+    },
+    {
+      "title_name": "Screen Legends Awards 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "98100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "GB",
+        "US"
+      ],
+      "genre_tag": "awards",
+      "content_format": "live-event",
+      "projected_viewing_hours": "52000000.00"
+    },
+    {
+      "title_name": "Monsoon Music Fest Live 2026",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "192800000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "music",
+      "content_format": "live-event",
+      "projected_viewing_hours": "13000000.00"
+    },
+    {
+      "title_name": "Crorepati Chronicles S7",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "171700000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "reality",
+      "content_format": "reality-competition",
+      "projected_viewing_hours": "130000000.00"
+    },
+    {
+      "title_name": "Kitchen Kings S7",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "51200000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "reality",
+      "content_format": "reality-competition",
+      "projected_viewing_hours": "84000000.00"
+    },
+    {
+      "title_name": "Dance Dangal S8",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "115900000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "reality",
+      "content_format": "reality-competition",
+      "projected_viewing_hours": "60000000.00"
+    },
+    {
+      "title_name": "Startup Shark Tank Desi S4",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "202100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "reality",
+      "content_format": "reality-competition",
+      "projected_viewing_hours": "85000000.00"
+    },
+    {
+      "title_name": "Comedy Clash Live S9",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "140600000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "reality",
+      "content_format": "reality-competition",
+      "projected_viewing_hours": "99000000.00"
+    },
+    {
+      "title_name": "The Ledger Keepers S1 (Hindi)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "244000000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "crime",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "110000000.00"
+    },
+    {
+      "title_name": "Mumbai Noir S2 (Hindi)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "233600000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "crime-biopic",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "73000000.00"
+    },
+    {
+      "title_name": "Chambal Shadows S5 (Hindi)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "336900000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "thriller",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "136000000.00"
+    },
+    {
+      "title_name": "Kaveri Tides S2 (Tamil)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "336500000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "drama",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "79000000.00"
+    },
+    {
+      "title_name": "Deccan Files S4 (Telugu)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "135300000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "thriller",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "166000000.00"
+    },
+    {
+      "title_name": "Konkan Diaries S5 (Marathi)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "271100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "drama",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "109000000.00"
+    },
+    {
+      "title_name": "Backwater Secrets S3 (Malayalam)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "262300000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "GB",
+        "US"
+      ],
+      "genre_tag": "mystery",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "101000000.00"
+    },
+    {
+      "title_name": "City of Spies S1 (Hindi)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "271000000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "action",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "103000000.00"
+    },
+    {
+      "title_name": "Gullak Lane S1 (Hindi)",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "308100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "comedy",
+      "content_format": "scripted-series",
+      "projected_viewing_hours": "66000000.00"
+    },
+    {
+      "title_name": "Paper Boats (Malayalam)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "96200000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "drama",
+      "content_format": "original-film",
+      "projected_viewing_hours": "46000000.00"
+    },
+    {
+      "title_name": "Last Local (Marathi)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "55900000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "thriller",
+      "content_format": "original-film",
+      "projected_viewing_hours": "58000000.00"
+    },
+    {
+      "title_name": "Saffron Sky (Hindi)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "33800000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "romance",
+      "content_format": "original-film",
+      "projected_viewing_hours": "40000000.00"
+    },
+    {
+      "title_name": "The Auditor (Tamil)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "99100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "crime",
+      "content_format": "original-film",
+      "projected_viewing_hours": "35000000.00"
+    },
+    {
+      "title_name": "Monsoon Wedding Redux (Hindi)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "57000000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "romance",
+      "content_format": "original-film",
+      "projected_viewing_hours": "28000000.00"
+    },
+    {
+      "title_name": "Neon Bazaar (Telugu)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "60500000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "action",
+      "content_format": "original-film",
+      "projected_viewing_hours": "22000000.00"
+    },
+    {
+      "title_name": "Silent Harbour (Malayalam)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "52100000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "mystery",
+      "content_format": "original-film",
+      "projected_viewing_hours": "31000000.00"
+    },
+    {
+      "title_name": "Making of a Champion",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "23400000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "documentary",
+      "content_format": "documentary",
+      "projected_viewing_hours": "15000000.00"
+    },
+    {
+      "title_name": "The Spice Route",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "18500000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "documentary",
+      "content_format": "documentary",
+      "projected_viewing_hours": "27000000.00"
+    },
+    {
+      "title_name": "Cricket Nation",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "34500000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "documentary",
+      "content_format": "documentary",
+      "projected_viewing_hours": "22000000.00"
+    },
+    {
+      "title_name": "Golden Era Classics Vol. 11",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "16200000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "comedy",
+      "content_format": "library",
+      "projected_viewing_hours": "80000000.00"
+    },
+    {
+      "title_name": "Retro Masala Nights Vol. 10",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "41700000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN"
+      ],
+      "genre_tag": "drama",
+      "content_format": "library",
+      "projected_viewing_hours": "50000000.00"
+    },
+    {
+      "title_name": "Evergreen Melodies Vol. 10",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "16400000.00",
+      "native_currency": "INR",
+      "target_territories": [
+        "IN",
+        "SEA"
+      ],
+      "genre_tag": "music",
+      "content_format": "library",
+      "projected_viewing_hours": "61000000.00"
+    }
+  ]
+}
