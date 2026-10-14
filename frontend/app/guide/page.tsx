@@ -1024,6 +1024,7 @@ function FeaturesTab() {
         what="Bring in a catalog of titles from a festival or a studio in one upload instead of typing them one by one."
         steps={[
           <>In the Asset Studio, switch to the <span className="font-medium text-slate-100">Batch Slate</span> tab.</>,
+          <>New to the format? Click <span className="font-medium text-slate-100">Download CSV template</span> to get a ready-made file with the header row, every allowed value as a comment hint, and three example titles. Fill in your rows and remove the examples.</>,
           <>Choose the format (CSV or JSON), then upload a file or paste the contents. Each row needs at least a title name and a cost.</>,
           <>Press <span className="font-medium text-slate-100">Ingest slate</span>. A live indicator tracks the background job.</>,
           <>When it finishes, read the summary: how many rows were accepted vs rejected, with a reason per rejected row.</>,
