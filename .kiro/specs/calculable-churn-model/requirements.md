@@ -203,6 +203,39 @@ The scope is strictly limited to **how the churn-reduction percentage is produce
 2. THE backend test suite SHALL include a seed regression test asserting the five seeded titles keep their verdicts (3 GREENLIGHT, 1 NEGOTIATE_HARD, 1 PASS) and their churn tolerances from Requirement 9.
 3. THE frontend test suite SHALL include a component test confirming the Churn Drivers Breakdown renders the per-feature rows and the borderline pill.
 
+### Requirement 14: Genre as a churn driver
+
+**User Story:** As a reviewer, I want the title genre to influence the churn estimate, so that retention-heavy formats (ongoing crime/drama/thriller series) are not scored the same as one-and-done formats, and so a title in a genre the demo never seeded still gets a rational churn number.
+
+#### Acceptance Criteria
+
+1. THE Churn_Mitigation_Model SHALL add a genre contribution to the additive sum: `+ (genre weight for the title's genre)`, where the genre weight is a non-negative per-genre coefficient from the model parameters.
+2. THE model parameters SHALL carry a `genre_offsets` mapping from a canonical genre key to a non-negative Decimal weight, stored alongside the other churn coefficients in `guardrail_params["churn_model"]`.
+3. WHEN a title's genre is absent or not present in `genre_offsets`, THE model SHALL apply a neutral default genre weight (not zero and not the maximum) and SHALL record the genre as assumed/defaulted rather than treating the title as un-scoreable.
+4. THE re-tuned coefficients (now including the genre term) SHALL continue to preserve the five seeded verdicts and their tolerances from Requirement 9 (3 GREENLIGHT, 1 NEGOTIATE_HARD, 1 PASS).
+5. THE Asset Studio genre input SHALL be an editable dropdown offering the canonical genre list, while still accepting a custom typed value that falls back to the neutral genre weight.
+6. THE Churn_Breakdown SHALL include a "Genre Affinity" contribution row showing the genre's points.
+
+### Requirement 15: Rational default for missing market telemetry
+
+**User Story:** As a reviewer, I want a title with no cached market-telemetry data to get a neutral churn contribution rather than a zero, so that a data gap does not unfairly push the title toward a PASS.
+
+#### Acceptance Criteria
+
+1. WHEN Telemetry_Heat cannot be resolved (no cached reading for the title's genre and territories), THE model SHALL use a neutral default heat value on the 0-100 scale (not 0) for the telemetry contribution.
+2. THE model SHALL record that the telemetry contribution used a neutral default (assumed), distinct from a real reading, so the explanation and the UI can label it "neutral (no market data)" rather than "unavailable".
+3. THE neutral telemetry default SHALL NOT change the five seeded verdicts (the seeded titles all have real telemetry readings, so their churn is unaffected).
+
+### Requirement 16: Viewing-hours value-and-unit input
+
+**User Story:** As a buyer, I want to enter projected viewing hours with a unit, so that I can type the figure in whatever unit I have (hours, minutes, seconds) without hand-converting.
+
+#### Acceptance Criteria
+
+1. THE Asset Studio projected-viewing-hours input SHALL accept a numeric value plus a unit selected from {hours, minutes, seconds}.
+2. THE system SHALL normalize the entered value to hours before valuation (minutes / 60, seconds / 3600), so the CPVH math consumes a canonical hours figure.
+3. WHEN the viewing-hours value is blank, THE system SHALL fall back to the existing estimated-viewing-hours behavior (unchanged).
+
 ## Out of Scope
 
 - Changing the 1.5 percent Churn_Mitigation_Threshold, the CPVH / LTV / payback guardrails, or the recommendation logic.

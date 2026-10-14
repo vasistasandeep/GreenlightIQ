@@ -248,6 +248,60 @@ No schema change. The only persisted addition is the `churn_model` object inside
 - Update existing engine/persistence/what-if/sensitivity tests for the optional churn field and the new explanation key.
 - Frontend `churn-breakdown.test.tsx` (Vitest + Testing Library): renders the six rows, the bounds-adjustment row, the unavailable tag, the SUPPLIED note, and the borderline pill (R13.3). Update affected `financial-accordion`/`valuation-report` tests and types.
 
+## Addendum A: Genre driver, neutral telemetry, viewing-hours units (R14-R16)
+
+A UX review of a real title (crime-biopic, India, no seeded telemetry) exposed two model gaps: a missing-telemetry feature scored 0 (penalizing a data gap) and genre had no effect at all. This addendum adds a genre driver, makes missing telemetry neutral, and makes viewing-hours unit-aware. The 1.5 hurdle and non-correctable classification are unchanged.
+
+### A.1 Genre driver (R14)
+
+`ChurnModelParams` gains `genre_offsets: Mapping[str, Decimal]` (non-negative) and `genre_default: Decimal` (the neutral weight for an unknown/absent genre). `ChurnFeatures` gains `genre: str | None`. The additive sum gains `+ genre_weight`, where `genre_weight = genre_offsets.get(normalized_genre, genre_default)`. Genre keys are normalized (lowercased, spaces/underscores trimmed) before lookup. A new ordered breakdown entry `genre_affinity` ("Genre Affinity") is emitted. `parse_params` validates `genre_offsets` (a mapping of non-negative Decimals; empty/missing -> defaults) and `genre_default` (non-negative; missing -> a built-in neutral).
+
+Canonical genre weights (retention propensity; serialized/returning formats retain more than one-and-done):
+
+| Genre | weight | Genre | weight |
+|---|---|---|---|
+| crime | 0.18 | crime-biopic | 0.17 |
+| drama | 0.15 | thriller | 0.15 |
+| reality | 0.15 | mystery | 0.14 |
+| sci-fi | 0.12 | fantasy | 0.12 |
+| biopic | 0.11 | romance | 0.10 |
+| action | 0.10 | adventure | 0.09 |
+| historical | 0.09 | war | 0.09 |
+| horror | 0.08 | sports | 0.08 |
+| family | 0.07 | animation | 0.07 |
+| anthology | 0.07 | comedy | 0.05 |
+| documentary | 0.05 | kids | 0.05 |
+| musical | 0.05 | western | 0.05 |
+
+`genre_default = 0.10` (neutral mid). The frontend genre dropdown offers this canonical list (editable; a custom value falls back to `genre_default`).
+
+### A.2 Re-tuned coefficients (verified)
+
+Adding the genre term shifts all five seeded churns up, so the non-genre coefficients are re-tuned (only the intercept drops; the rest are unchanged). New `DEFAULT_CHURN_MODEL_PARAMS`:
+
+- intercept 0.03 (was 0.15)
+- asset_offsets ORIGINAL_SERIES 0.35, CO_PRODUCTION 0.45, ORIGINAL_FILM 0.15 (was 0.20), LICENSED_LIBRARY 0.00
+- pedigree_weight 0.09, scale_weight 0.03, exclusivity_lift 0.25, telemetry_weight 0.005 (unchanged)
+- genre_offsets as above; genre_default 0.10
+- bounds [0.10, 5.00]
+
+Verified seeded churn (with genre term): Aurora 2.11, Echoes 1.99, Monsoon 1.79, Ledger 1.60, Reruns 0.81 — all within the R9.4 tolerances; verdicts 3 GREENLIGHT / 1 NEGOTIATE_HARD / 1 PASS preserved. The Scam-1992-style title (pedigree 5, exclusive, crime-biopic, neutral telemetry 50) computes ~1.68 -> GREENLIGHT instead of the old 1.4 -> PASS.
+
+### A.3 Neutral telemetry default (R15)
+
+`ChurnModelParams` gains `telemetry_neutral: Decimal` (default 50, on the 0-100 scale). When `ChurnFeatures.telemetry_heat is None`, the model uses `telemetry_neutral` for the contribution instead of 0, and records `telemetry_heat` in an `assumed_features` set (distinct from `missing_features`). The breakdown's market-telemetry row carries the neutral input and a flag so the UI labels it "neutral (no market data)". `ChurnResult` gains `assumed_features: tuple[str, ...]`. The engine's telemetry resolver still returns `None` when no reading exists; the neutral substitution happens in the pure model so it is covered by property tests. Seeded titles have real readings, so their churn is unchanged (R15.3).
+
+### A.4 Viewing-hours units (R16)
+
+`QuickEvaluateRequest` gains `viewing_hours_unit: Literal["hours","minutes","seconds"] = "hours"`. The handler normalizes `projected_viewing_hours` to hours (minutes/60, seconds/3600) before building the title. Blank value -> existing estimate path. The frontend adds a unit `<select>` beside the viewing-hours input (mirroring the cost+currency pattern).
+
+### A.5 Explanation / breakdown shape
+
+The persisted `churn_model` object gains an `assumed_features` array and the breakdown gains a `genre_affinity` key. The `market_telemetry_heat` row, when neutral, carries its neutral input value (50) and is listed in `assumed_features` rather than `missing_features`. Backward compatible: older stored explanations without these keys still render.
+
+### A.6 Seed, docs, tests
+
+The seed generator imports the updated defaults (self-check still asserts no drift), recomputes the five churns (2.11/1.99/1.79/1.60/0.81), and embeds `genre_offsets`/`genre_default`/`telemetry_neutral` in the model-version params. Docs (Calculations Reference, Knowledge Base, guide) gain the genre driver, the neutral-telemetry rule, and the viewing-hours units, and update the five seeded numbers (Echoes 1.96->1.99, Ledger 1.62->1.60, Reruns 0.88->0.81; Aurora 2.11 and Monsoon ~1.76->1.79). Property tests gain: genre monotonic-ish (higher genre weight never decreases churn), neutral-telemetry (None heat -> telemetry_neutral contribution, listed assumed not missing), and the seed regression updates to the new tolerances. Frontend tests cover the genre dropdown, the viewing-hours unit normalization, and the "neutral (no market data)" / "Genre Affinity" breakdown rows.
 ## Correctness Properties
 
 These invariants map to the Hypothesis and regression tests in the Testing Strategy and to the acceptance criteria.
