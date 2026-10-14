@@ -1,0 +1,69 @@
+# Sample Imports
+
+Ready-to-import catalogs for the CineROI AI portal. Use them in the **Asset Studio ->
+Batch Slate** tab to bring a whole slate of titles into the pipeline in one go.
+
+## Files
+
+| File | Format | Rows | What it demonstrates |
+|---|---|---|---|
+| `slate.csv` | CSV | 10 (8 accepted, 2 rejected) | A festival-style catalog across every asset type and currency, with two deliberately bad rows so you can see the accepted/rejected summary. |
+| `slate.json` | JSON | 5 (4 accepted, 1 rejected) | The same shape in JSON, including one title with full `license_terms` (windowing + milestone schedule), plus one out-of-range row that rejects. |
+
+## How to import
+
+1. Open the portal and go to **Asset Studio** (`/studio`).
+2. Switch to the **Batch Slate** tab.
+3. Either click **Upload a slate file** and choose `slate.csv` or `slate.json`, or open the
+   file, copy its contents, and paste them into the text box. (Uploading a `.json` file sets
+   the format to JSON automatically; `.csv` sets CSV.)
+4. Press **Ingest slate**. A spinner tracks the background job; when it finishes you will see
+   **Accepted N, rejected M** with a reason per rejected row.
+5. Open the **Dashboard** to see the newly ingested titles in the grid.
+
+You can also import straight from the API (same path the Batch Slate tab uses):
+
+```
+# CSV
+curl -X POST http://localhost:8000/api/v1/titles/ingest \
+  -H "Content-Type: text/csv" --data-binary @slate.csv
+
+# JSON
+curl -X POST http://localhost:8000/api/v1/titles/ingest \
+  -H "Content-Type: application/json" --data-binary @slate.json
+```
+
+The response is `{ "job_id": "...", "status": "PENDING" }`; poll
+`GET /api/v1/jobs/{job_id}` for the accepted/rejected summary.
+
+## The fields
+
+| Field | Required | Notes |
+|---|---|---|
+| `title_name` | Yes | The title. A row without it is rejected. |
+| `acquisition_cost_or_budget` | Yes | Native-currency cost. Must be between `0.01` and `999,999,999.99`; anything outside (or non-numeric) is rejected. |
+| `asset_type` | No | One of `ORIGINAL_SERIES`, `ORIGINAL_FILM`, `LICENSED_LIBRARY`, `CO_PRODUCTION`. Any other value is rejected. Omitted -> defaults to `LICENSED_LIBRARY`. |
+| `native_currency` | No | `USD`, `INR`, `EUR`, or `GBP`. Omitted -> `USD`. Costs are normalized to USD at valuation time. |
+| `target_territories` | No | **CSV:** a semicolon-delimited list, e.g. `US;GB;DE` (use `;` not `,` so it stays in one CSV cell). **JSON:** an array, e.g. `["US","GB","DE"]`. |
+| `genre_tag` | No | Free-text genre (e.g. `sci-fi`, `drama`). Used for the market-telemetry lookup. |
+| `projected_viewing_hours` | No | Estimated total hours watched; drives Cost-per-Viewing-Hour. If omitted, the engine can estimate it. |
+| `title_id` | No | Supply an existing title's id to add a new **version** of that title instead of creating a new one. |
+| `license_terms` | No (JSON only) | An object with `license_duration_months`, `is_exclusive`, `windowing_rules`, and `milestone_schedule`. See `slate.json` for the shape. |
+
+## Good to know
+
+- **Partial acceptance:** bad rows never block the batch - accepted + rejected always equals
+  the number of rows you submitted. The two "...Example" rows in `slate.csv` and the
+  out-of-range row in `slate.json` are there on purpose to show this.
+- **Ingest is not a valuation.** Ingestion creates the titles and kicks off feature
+  extraction; it does not run the four-guardrail valuation inline. Freshly ingested titles
+  show as "valuation pending" until you evaluate them. To get an instant scorecard for a
+  single title with the full modeled drivers, use the Asset Studio **Single Asset** tab
+  instead (it runs the valuation on submit).
+- **CSV territory delimiter:** use semicolons (`US;GB;DE`). A comma would split into separate
+  CSV columns. A JSON array inside a CSV cell also works if you prefer.
+- **Idempotency:** re-submitting the identical batch with the same `Idempotency-Key` header
+  returns the original result instead of creating duplicates (API only; the UI does not set a
+  key, so re-uploading via the UI will create new titles).
+
+Edit these files or copy them as a starting point for your own slates.

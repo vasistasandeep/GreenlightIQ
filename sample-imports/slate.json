@@ -1,0 +1,61 @@
+{
+  "titles": [
+    {
+      "title_name": "Orbital Drift",
+      "asset_type": "ORIGINAL_SERIES",
+      "acquisition_cost_or_budget": "41000000.00",
+      "native_currency": "USD",
+      "target_territories": ["US", "GB", "DE"],
+      "genre_tag": "sci-fi",
+      "projected_viewing_hours": "230000000.00"
+    },
+    {
+      "title_name": "The Coriander Diaries",
+      "asset_type": "CO_PRODUCTION",
+      "acquisition_cost_or_budget": "19000000.00",
+      "native_currency": "INR",
+      "target_territories": ["IN", "GB"],
+      "genre_tag": "drama",
+      "projected_viewing_hours": "150000000.00",
+      "license_terms": {
+        "license_duration_months": 36,
+        "is_exclusive": true,
+        "windowing_rules": [
+          { "window_type": "EXCLUSIVE", "start_month": 1, "end_month": 24 },
+          { "window_type": "NON_EXCLUSIVE", "start_month": 25, "end_month": 36 }
+        ],
+        "milestone_schedule": [
+          { "month": 1, "amount": "9500000.00", "currency": "USD" },
+          { "month": 12, "amount": "9500000.00", "currency": "USD" }
+        ]
+      }
+    },
+    {
+      "title_name": "Midnight at the Roxy",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "9000000.00",
+      "native_currency": "USD",
+      "target_territories": ["US"],
+      "genre_tag": "thriller",
+      "projected_viewing_hours": "38000000.00"
+    },
+    {
+      "title_name": "Classic Cuts Vol. 9",
+      "asset_type": "LICENSED_LIBRARY",
+      "acquisition_cost_or_budget": "1100000.00",
+      "native_currency": "EUR",
+      "target_territories": ["DE", "FR"],
+      "genre_tag": "comedy",
+      "projected_viewing_hours": "58000000.00"
+    },
+    {
+      "title_name": "Overpriced Example (will reject: cost out of range)",
+      "asset_type": "ORIGINAL_FILM",
+      "acquisition_cost_or_budget": "1000000000.00",
+      "native_currency": "USD",
+      "target_territories": ["US"],
+      "genre_tag": "drama",
+      "projected_viewing_hours": "50000000.00"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+title_name,asset_type,acquisition_cost_or_budget,native_currency,target_territories,genre_tag,projected_viewing_hours
+Neon Harbor,ORIGINAL_SERIES,38000000.00,USD,US;GB;DE,sci-fi,210000000.00
+The Last Monsoon,CO_PRODUCTION,22000000.00,INR,IN;GB,drama,160000000.00
+Paper Lanterns,ORIGINAL_FILM,8500000.00,USD,US,romance,36000000.00
+Weekend Classics Vol. 3,LICENSED_LIBRARY,900000.00,EUR,DE;FR,comedy,55000000.00
+Granite City,ORIGINAL_SERIES,45000000.00,GBP,GB;US,thriller,240000000.00
+Saffron Road,CO_PRODUCTION,15000000.00,INR,IN,drama,120000000.00
+Afterlight,ORIGINAL_FILM,12000000.00,USD,US;GB;DE;FR,sci-fi,48000000.00
+Retro Nights,LICENSED_LIBRARY,1200000.00,EUR,FR,comedy,60000000.00
+Missing Price Example,ORIGINAL_FILM,,USD,US,drama,30000000.00
+Bad Asset Type Example,DOCUSERIES,5000000.00,USD,US,documentary,25000000.00
