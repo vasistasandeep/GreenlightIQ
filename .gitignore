@@ -30,3 +30,6 @@ Thumbs.db
 # Diagnostics (local browser captures / error screenshots)
 *.har
 errors/
+
+# NotebookLM export (regenerated copies of docs with unique names)
+notebooklm-export/
