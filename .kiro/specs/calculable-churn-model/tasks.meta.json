@@ -1,0 +1,164 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Create the pure churn domain module": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969989318
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970005070
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970196554
+      }
+    ],
+    "2. Property-test the churn domain": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969989616
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970207728
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970424055
+      }
+    ],
+    "3. Extract the shared production-scale helper": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969989866
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970428736
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970557948
+      }
+    ],
+    "4. Make the carried churn value optional (backward compatible)": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969990140
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970562667
+      },
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791970949006
+      }
+    ],
+    "5. Resolve churn inside the Guardrails_Engine": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969990361
+      }
+    ],
+    "6. Persist and audit the churn explanation": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969990643
+      }
+    ],
+    "7. What-if churn handling": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969991013
+      }
+    ],
+    "8. Engine resolution tests": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969991274
+      }
+    ],
+    "9. Quick-evaluate uses the model": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969991621
+      }
+    ],
+    "10. Valuation API passthrough": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969991888
+      }
+    ],
+    "11. Regenerate the seed with model-computed churn": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969992240
+      }
+    ],
+    "12. Seed verdict-stability regression test": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969992476
+      }
+    ],
+    "13. Backtest churn ground truth": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969992686
+      }
+    ],
+    "14. Backtest frontend churn support": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969992910
+      }
+    ],
+    "15. Frontend types and Churn Drivers Breakdown": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969993190
+      }
+    ],
+    "16. Documentation": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969993415
+      }
+    ],
+    "17. End-to-end verification": [
+      {
+        "executionId": "f738b64a-2b6d-4a5f-8e15-5ca7c3e38fc9",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1791969993655
+      }
+    ]
+  }
+}

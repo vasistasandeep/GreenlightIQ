@@ -302,6 +302,7 @@ class SnapshotValuationInputProvider:
     session: AsyncSession
 
     async def get_inputs(self, title_id: uuid.UUID) -> Any:
+        from app.domain.churn import coerce_supplied
         from app.engines.guardrails import ValuationInputs
         from app.repositories.titles import TitleVersionRepository
 
@@ -338,9 +339,12 @@ class SnapshotValuationInputProvider:
             ),
             cpm=_coerce_decimal(snapshot.get("cpm"), Decimal("0")),
             ad_impressions=_coerce_decimal(snapshot.get("ad_impressions"), Decimal("0")),
-            churn_reduction_pct=_coerce_decimal(
-                snapshot.get("churn_reduction_pct"), Decimal("0")
-            ),
+            # Optional carried churn (calculable-churn-model, R4.6): a snapshot
+            # WITHOUT churn yields None (CALCULATED, computed by the engine in a
+            # later task); a snapshot WITH a value yields a Decimal (SUPPLIED).
+            # Today's seed snapshots carry churn_reduction_pct, so this preserves
+            # current seeded behavior (SUPPLIED with the stored value).
+            churn_reduction_pct=coerce_supplied(snapshot.get("churn_reduction_pct")),
             monthly_margin=_coerce_decimal(snapshot.get("monthly_margin"), Decimal("0")),
             milestone_schedule=milestone_schedule,
             rate_date=rate_date,

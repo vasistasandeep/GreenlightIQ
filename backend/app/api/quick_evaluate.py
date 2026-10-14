@@ -39,6 +39,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.api.deps import GuardrailsEngineDep, SessionDep, require_operation
 from app.core.errors import UnsupportedFormatError
 from app.domain import negotiation
+from app.domain.metadata import derive_production_scale
 from app.domain.pitch_parse import parse_pitch_text
 from app.engines.rbac import Operation
 from app.schemas.api import (
@@ -225,14 +226,13 @@ def _metadata_profile(body: QuickEvaluateRequest) -> MetadataProfileOut:
     genre_len = Decimal(len((body.genre_tag or "").strip()))
     narrative = min(Decimal("10"), Decimal("4") + genre_len % Decimal("6"))
     synopsis_rich = min(Decimal("10"), Decimal(len(body.synopsis)) / Decimal("25"))
-    production = min(Decimal("10"), (pedigree + synopsis_rich) / Decimal("2"))
     portability = Decimal(len(body.target_territories)) * Decimal("2.5")
     portability = min(Decimal("10"), portability if portability > 0 else Decimal("3"))
     return MetadataProfileOut(
         narrative_dna=narrative.quantize(Decimal("0.1")),
         affective_tone=synopsis_rich.quantize(Decimal("0.1")),
         talent_pedigree=pedigree.quantize(Decimal("0.1")),
-        production_scale=production.quantize(Decimal("0.1")),
+        production_scale=derive_production_scale(pedigree, body.synopsis),
         cultural_portability=portability.quantize(Decimal("0.1")),
     )
 

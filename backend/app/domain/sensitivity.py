@@ -70,10 +70,20 @@ def scale_inputs(
     vm = _as_decimal(viewership_multiplier)
     cm = _as_decimal(churn_multiplier)
 
+    # churn_reduction_pct is now optional (calculable-churn-model, R4.6): a
+    # Decimal is a supplied value we scale; None means "resolve and compute" and
+    # must not be multiplied here. The what-if resolve-then-scale is handled in a
+    # later task; for now a None churn is carried through unchanged.
+    scaled_churn = (
+        None
+        if base.churn_reduction_pct is None
+        else _as_decimal(base.churn_reduction_pct) * cm
+    )
+
     scaled = dataclasses.replace(
         base,
         ad_impressions=_as_decimal(base.ad_impressions) * vm,
-        churn_reduction_pct=_as_decimal(base.churn_reduction_pct) * cm,
+        churn_reduction_pct=scaled_churn,
     )
     scaled_hours = (
         None

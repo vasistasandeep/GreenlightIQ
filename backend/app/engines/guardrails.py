@@ -159,10 +159,18 @@ class ValuationInputs:
         watch_time_elasticity: Watch-time elasticity coefficient.
         cpm: Base cost-per-mille (USD), pre territory weighting.
         ad_impressions: Projected advertising impressions.
-        churn_reduction_pct: Modeled cohort monthly churn-reduction percentage
-            evaluated against the 1.5% threshold (R6.1-R6.3).
         monthly_margin: Monthly contribution margin used by milestone-based
             payback (R7.1, R22.2).
+        churn_reduction_pct: The carried churn-reduction value, now *optional*
+            (calculable-churn-model, R4.6). A ``Decimal`` means an explicitly
+            supplied value (SUPPLIED) that overrides the model exactly; ``None``
+            means "resolve and compute" — the engine resolves the title's
+            features and computes churn from the Churn_Mitigation_Model (wired in
+            a later task). The field is ordered among the defaulted trailing
+            fields so it can default to ``None`` without breaking the frozen
+            dataclass's field-ordering contract; every caller in this repo
+            constructs ``ValuationInputs`` with keyword arguments, so the
+            reordering is positionally transparent.
         milestone_schedule: Milestone disbursement schedule; when omitted the
             engine falls back to the title's ``license_terms`` row (R22.2).
         rate_date: The exchange-rate date to normalize against; defaults to the
@@ -174,8 +182,8 @@ class ValuationInputs:
     watch_time_elasticity: Decimal
     cpm: Decimal
     ad_impressions: Decimal
-    churn_reduction_pct: Decimal
     monthly_margin: Decimal
+    churn_reduction_pct: Decimal | None = None
     milestone_schedule: Sequence[dict[str, Any]] | None = None
     rate_date: Optional[date] = None
     #: Optional modeled addressable cohort size for absolute churn numbers; when
@@ -400,7 +408,17 @@ class Guardrails_Engine:
         ltv_check, ltv_multiple = self._ltv_check(
             inputs, normalized.amount_usd, weighted_cpm, weighted_ltv
         )
-        churn_check = self._churn_check(inputs.churn_reduction_pct)
+        # churn_reduction_pct is now optional (calculable-churn-model, R4.6): a
+        # Decimal is an explicitly supplied value; None means "resolve and
+        # compute". The resolve-and-compute wiring lands in a later task; for now
+        # a None value falls back to a conservative Decimal("0") so the type and
+        # the current churn-check semantics are preserved exactly.
+        churn_pct = (
+            inputs.churn_reduction_pct
+            if inputs.churn_reduction_pct is not None
+            else Decimal("0")
+        )
+        churn_check = self._churn_check(churn_pct)
 
         checks: list[GuardrailCheck] = [
             cpvh_check,
@@ -430,7 +448,7 @@ class Guardrails_Engine:
                 if inputs.modeled_cohort_size is not None
                 else derive_modeled_cohort_size(normalized.amount_usd)
             )
-            retained = retained_subscribers(cohort_size, inputs.churn_reduction_pct)
+            retained = retained_subscribers(cohort_size, churn_pct)
         except (ArithmeticError, TypeError, ValueError):
             ltv_sub = ltv_adv = ltv_total = cohort_size = retained = None
 
@@ -438,7 +456,7 @@ class Guardrails_Engine:
             "title_id": title.title_id,
             "calculated_cpvh": calculated_cpvh,
             "ltv_to_cost_multiple": ltv_multiple,
-            "churn_reduction_pct": inputs.churn_reduction_pct,
+            "churn_reduction_pct": churn_pct,
             "payback_horizon_months": payback_months,
             "recommendation_status": status,
             "normalized_cost_usd": normalized.amount_usd,
