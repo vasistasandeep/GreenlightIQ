@@ -13,6 +13,11 @@
 > **CineROI_AI_Calculations_Reference.md**. The same content is in the in-portal guide
 > under the "How Numbers Are Calculated" tab.
 
+> For a picture-first, executive-friendly walkthrough of the architecture and the
+> end-to-end data flow (the six services, the four processing stations, the two request
+> journeys, and the self-calibration loop, with diagrams), see the companion document
+> **CineROI_AI_Architecture_And_Data_Flow.md**.
+
 ---
 
 ## 1. Executive Summary (Read This First)
@@ -277,6 +282,15 @@ Where titles enter the pipeline and get an instant verdict.
 - **Single Asset tab** - type a title's details (name, asset type, cost & currency,
   synopsis, optional pedigree/territories/viewing-hours) and press RUN ROI VALUATION to
   get a full scorecard instantly (synchronous quick-evaluate path).
+- **Viewing-hours units** - the viewing-hours field takes a value plus a unit (hours /
+  minutes / seconds) and is normalized to hours before the CPVH math, so you can type a
+  figure in whatever unit you have (e.g. 1,000,000 sec). Blank = the engine estimates it.
+- **Genre dropdown** - genre is chosen from a canonical list (a custom value still works)
+  and drives both market-telemetry lookups and a per-genre churn-affinity weight.
+- **Content Format dropdown** - the OTT consumption format (Live Sports, Live Event,
+  Reality/Competition, Scripted Series, Film, Library, ...). Live/appointment formats add
+  extra churn credit the asset type cannot express, so a live match is not scored like a
+  one-and-done library title. Optional; unlisted/blank adds no extra churn.
 - **Shorthand budgets** - the cost field accepts analyst shorthand like `12 Cr`,
   `3 Lakh`, `1.5M`, `500k`, with a live preview of the expanded number.
 - **Quick Presets** - one-click sample titles that fill the form so you can run a

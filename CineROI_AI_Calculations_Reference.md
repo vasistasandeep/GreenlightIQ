@@ -5,6 +5,11 @@
 > rounding it uses, and worked examples with real figures. Taken directly from the
 > implementation. Use this alongside the main knowledge base.
 
+> Companion documents: **CineROI_AI_Complete_Knowledge_Base.md** (what every feature and
+> screen does, with the demo data and build history) and
+> **CineROI_AI_Architecture_And_Data_Flow.md** (an executive, diagram-led walkthrough of
+> the architecture and end-to-end data flow).
+
 ---
 
 ## 0. How to Read This: Two Layers of Computation
