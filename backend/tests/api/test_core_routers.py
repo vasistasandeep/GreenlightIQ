@@ -32,7 +32,52 @@ from fastapi.testclient import TestClient
 from app.api import deps
 from app.core.errors import TitleNotFoundError
 from app.core.security import UserContext, UserRole
+from app.domain.churn import ChurnContribution, ChurnResult
 from app.main import create_app
+
+
+# A small CALCULATED churn detail used by the FakeGuardrailsEngine canned result
+# so POST /valuation/calculate can surface a churn_model object (R7.3). The
+# breakdown carries the six feature keys plus a bounds-adjustment entry; the keys
+# and points mirror the domain's calculate_churn_mitigation output shape.
+def _canned_churn_detail() -> ChurnResult:
+    breakdown = (
+        ChurnContribution("base_platform_rate", "Base Platform Rate", None, None, Decimal("0.15")),
+        ChurnContribution("asset_cadence", "Asset Cadence", Decimal("0.35"), None, Decimal("0.35")),
+        ChurnContribution(
+            "talent_pedigree_contribution",
+            "Talent Pedigree Contribution",
+            Decimal("8.50"),
+            Decimal("0.09"),
+            Decimal("0.77"),
+        ),
+        ChurnContribution(
+            "production_scale_contribution",
+            "Production Scale Contribution",
+            Decimal("9.00"),
+            Decimal("0.03"),
+            Decimal("0.27"),
+        ),
+        ChurnContribution(
+            "exclusivity_lift", "Exclusivity Lift", Decimal("1"), Decimal("0.25"), Decimal("0.25")
+        ),
+        ChurnContribution(
+            "market_telemetry_heat",
+            "Market Telemetry Heat",
+            Decimal("65.00"),
+            Decimal("0.005"),
+            Decimal("0.33"),
+        ),
+    )
+    return ChurnResult(
+        churn_reduction_pct=Decimal("2.00"),
+        method="CALCULATED",
+        is_borderline=False,
+        breakdown=breakdown,
+        missing_features=(),
+        params_source="MODEL_VERSION",
+        unclamped=Decimal("2.12"),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -141,6 +186,12 @@ class FakeGuardrailsEngine:
                 "dominant_factor": None,
                 "unclassifiable": False,
             },
+            # calculable-churn-model (R7.3): the resolved churn detail the
+            # calculate route serializes into explanation["churn_model"]. The
+            # in-memory explanation above intentionally omits churn_model (the
+            # engine attaches it only on the persist path), so the route must
+            # derive it from this.
+            "churn_detail": _canned_churn_detail(),
         }
 
 
@@ -360,6 +411,29 @@ def test_calculate_missing_title_maps_to_404(
     assert resp.json()["error_code"] == "TITLE_NOT_FOUND"
 
 
+def test_calculate_includes_churn_model(client: TestClient) -> None:
+    """POST /valuation/calculate surfaces churn_model from the resolved detail (R7.3)."""
+    title_id = uuid.uuid4()
+    resp = client.post(
+        "/api/v1/valuation/calculate",
+        json={"title_id": str(title_id)},
+    )
+    assert resp.status_code == 200
+    churn_model = resp.json()["explanation"]["churn_model"]
+    assert churn_model["churn_method"] == "CALCULATED"
+    assert churn_model["is_borderline"] is False
+    assert churn_model["params_source"] == "MODEL_VERSION"
+    assert churn_model["missing_features"] == []
+    breakdown = churn_model["churn_breakdown"]
+    # The six feature keys ride along as decimal strings (JSONB round-trip shape).
+    assert breakdown["base_platform_rate"] == "0.15"
+    assert breakdown["asset_cadence"] == "0.35"
+    assert breakdown["talent_pedigree_contribution"] == "0.77"
+    assert breakdown["production_scale_contribution"] == "0.27"
+    assert breakdown["exclusivity_lift"] == "0.25"
+    assert breakdown["market_telemetry_heat"] == "0.33"
+
+
 # --------------------------------------------------------------------------- #
 # GET /valuation/{title_id}
 # --------------------------------------------------------------------------- #
@@ -436,6 +510,108 @@ def test_get_valuation_returns_scorecard(client: TestClient) -> None:
         val_mod.TitleRepository = tr.TitleRepository
         val_mod.FinancialProjectionRepository = fp.FinancialProjectionRepository
         val_mod.MetadataVectorRepository = mv.MetadataVectorRepository
+
+
+def _patch_valuation_get(title_id: uuid.UUID, explanation: dict | None):
+    """Patch the GET /valuation repositories with in-memory fakes.
+
+    Returns the valuation module so the caller can restore the real repository
+    classes in a finally block. The stored projection carries ``explanation``
+    verbatim, exercising the GET passthrough (no engine re-run).
+    """
+    import app.api.valuation as val_mod
+
+    @dataclass
+    class FakeTitle:
+        title_id: uuid.UUID
+
+    @dataclass
+    class FakeProjection:
+        calculated_cpvh: Decimal = Decimal("0.0400")
+        ltv_to_cost_multiple: Decimal = Decimal("3.5000")
+        churn_reduction_pct: Decimal = Decimal("2.00")
+        payback_horizon_months: int = 8
+        recommendation_status: str = "GREENLIGHT"
+        normalized_cost_usd: Decimal = Decimal("1000.00")
+        model_version_id: uuid.UUID = field(default_factory=uuid.uuid4)
+        explanation: dict | None = field(default_factory=lambda: explanation)
+
+    class _Titles:
+        def __init__(self, session: Any) -> None: ...
+
+        async def get(self, tid: uuid.UUID) -> Any:
+            return FakeTitle(title_id=title_id) if tid == title_id else None
+
+    class _Projections:
+        def __init__(self, session: Any) -> None: ...
+
+        async def get_latest_for_title(self, tid: uuid.UUID) -> Any:
+            return FakeProjection()
+
+    class _Vectors:
+        def __init__(self, session: Any) -> None: ...
+
+        async def list_for_title(self, tid: uuid.UUID) -> list[Any]:
+            return []
+
+    val_mod.TitleRepository = _Titles  # type: ignore[assignment]
+    val_mod.FinancialProjectionRepository = _Projections  # type: ignore[assignment]
+    val_mod.MetadataVectorRepository = _Vectors  # type: ignore[assignment]
+    return val_mod
+
+
+def _restore_valuation_repos() -> None:
+    import app.api.valuation as val_mod
+    import app.repositories.financial_projections as fp
+    import app.repositories.metadata_vectors as mv
+    import app.repositories.titles as tr
+
+    val_mod.TitleRepository = tr.TitleRepository
+    val_mod.FinancialProjectionRepository = fp.FinancialProjectionRepository
+    val_mod.MetadataVectorRepository = mv.MetadataVectorRepository
+
+
+def test_get_valuation_passthrough_churn_model(client: TestClient) -> None:
+    """GET passes a persisted churn_model through unchanged, no re-run (R7.3)."""
+    title_id = uuid.uuid4()
+    stored_churn_model = {
+        "churn_method": "CALCULATED",
+        "is_borderline": True,
+        "params_source": "MODEL_VERSION",
+        "model_version_id": str(uuid.uuid4()),
+        "missing_features": ["telemetry_heat"],
+        "churn_breakdown": {
+            "base_platform_rate": "0.15",
+            "asset_cadence": "0.35",
+            "talent_pedigree_contribution": "0.77",
+            "production_scale_contribution": "0.27",
+            "exclusivity_lift": "0.25",
+            "market_telemetry_heat": "0.00",
+        },
+    }
+    _patch_valuation_get(
+        title_id, {"checks": [], "churn_model": stored_churn_model}
+    )
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}")
+        assert resp.status_code == 200
+        assert resp.json()["explanation"]["churn_model"] == stored_churn_model
+    finally:
+        _restore_valuation_repos()
+
+
+def test_get_valuation_without_churn_model_still_serializes(client: TestClient) -> None:
+    """A stored explanation lacking churn_model serializes fine; key is absent (R7.6)."""
+    title_id = uuid.uuid4()
+    _patch_valuation_get(title_id, {"checks": []})
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}")
+        assert resp.status_code == 200
+        explanation = resp.json()["explanation"]
+        assert explanation == {"checks": []}
+        assert "churn_model" not in explanation
+    finally:
+        _restore_valuation_repos()
 
 
 def test_get_valuation_missing_title_maps_to_404(client: TestClient) -> None:

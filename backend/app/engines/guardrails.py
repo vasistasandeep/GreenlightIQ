@@ -184,6 +184,16 @@ class ValuationInputs:
             engine falls back to the title's ``license_terms`` row (R22.2).
         rate_date: The exchange-rate date to normalize against; defaults to the
             provider's choice / today's date when unset.
+        talent_pedigree_score: Optional explicit pedigree fact carried on the
+            snapshot (calculable-churn-model, R6.1). When not ``None`` it takes
+            precedence over the latest SUCCESS metadata vector in
+            :meth:`Guardrails_Engine._resolve_churn`.
+        production_scale_metric: Optional explicit production-scale fact carried
+            on the snapshot (R6.1); precedence as above. For the Asset Studio
+            path this equals the metadata radar's production-scale axis (R8.2).
+        is_exclusive: Optional explicit exclusivity fact carried on the snapshot
+            (R6.1); when not ``None`` it takes precedence over the title's
+            license terms.
     """
 
     churn_reduction_value: Decimal
@@ -198,6 +208,18 @@ class ValuationInputs:
     #: Optional modeled addressable cohort size for absolute churn numbers; when
     #: absent the engine derives a labeled placeholder. Never a guardrail input.
     modeled_cohort_size: Decimal | None = None
+    # calculable-churn-model (R6.1): optional explicit churn feature facts
+    # carried on the snapshot. When present they take precedence over the
+    # metadata-vector / license-term repositories in ``_resolve_churn`` so a
+    # snapshot that carries the facts (e.g. the Asset Studio quick-evaluate path,
+    # which creates no metadata/license rows) computes the same CALCULATED churn
+    # the engine would. ``None`` means "not carried" -> fall back to the repos
+    # (every existing fake and provider leaves these ``None``, so behavior is
+    # unchanged where they are not set). Placed among the trailing defaulted
+    # fields; every caller constructs ``ValuationInputs`` with keyword arguments.
+    talent_pedigree_score: Decimal | None = None
+    production_scale_metric: Decimal | None = None
+    is_exclusive: bool | None = None
 
 
 class ValuationInputProvider(Protocol):
@@ -893,9 +915,13 @@ class Guardrails_Engine:
         Reads the Churn_Model_Params from the ACTIVE model version's
         ``guardrail_params["churn_model"]`` (R3.1); an absent/invalid block falls
         back to the domain defaults (R3.2). Resolves the title's features with
-        snapshot-over-DB precedence (R6.1): pedigree and production scale from the
-        latest SUCCESS metadata vector, exclusivity from the title's license
-        terms, asset type from the title row (R6.2), and Telemetry_Heat as the
+        snapshot-over-DB precedence (R6.1): pedigree, production scale, and
+        exclusivity from the explicit snapshot facts carried on ``inputs``
+        (``talent_pedigree_score`` / ``production_scale_metric`` /
+        ``is_exclusive``) when present, else from the latest SUCCESS metadata
+        vector (pedigree, production scale) and the title's license terms
+        (exclusivity); asset type from the title row (R6.2), and Telemetry_Heat
+        as the
         mean over the title's target territories with a cached reading of
         ``social_sentiment_index * 100`` (R6.3-R6.5). Delegates to
         :func:`~app.domain.churn.resolve_churn`, so a SUPPLIED Decimal on
@@ -929,10 +955,20 @@ class Guardrails_Engine:
         )
         params, source = parse_params(raw)
 
-        # Pedigree / production scale from the latest SUCCESS metadata vector.
+        # Pedigree / production scale: explicit snapshot facts carried on
+        # ``inputs`` take precedence (R6.1); fall back to the latest SUCCESS
+        # metadata vector per-feature when a fact is absent.
         pedigree, production_scale = await self._resolve_metadata_features(title)
-        # Exclusivity from the title's license terms (unknown -> False).
-        is_exclusive = await self._resolve_exclusivity(title)
+        if inputs.talent_pedigree_score is not None:
+            pedigree = inputs.talent_pedigree_score
+        if inputs.production_scale_metric is not None:
+            production_scale = inputs.production_scale_metric
+        # Exclusivity: explicit snapshot fact wins (R6.1); else the title's
+        # license terms (unknown -> False).
+        if inputs.is_exclusive is not None:
+            is_exclusive = bool(inputs.is_exclusive)
+        else:
+            is_exclusive = await self._resolve_exclusivity(title)
         # Telemetry heat over the title's target territories (None when empty).
         telemetry_heat = await self._resolve_telemetry_heat(title)
 

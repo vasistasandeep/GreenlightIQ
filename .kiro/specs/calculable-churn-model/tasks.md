@@ -109,12 +109,12 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Add `backend/tests/engines/test_churn_resolution.py` with in-memory fakes (incl. a fake metadata-vector repo and telemetry repo): supplied-wins over features; feature precedence (snapshot over DB); telemetry-heat mean and empty-list -> missing; defaults fallback when params absent/invalid; explanation shape; audit records method.
   - _Requirements: 2.1, 3.2, 4.1, 6.1, 6.3, 6.5, 7.2, 7.4_
 
-- [~] 9. Quick-evaluate uses the model
+- [x] 9. Quick-evaluate uses the model
   - Add optional `churn_reduction_pct: Decimal | None = Field(default=None, ge=0, le=100)` to `QuickEvaluateRequest`. Stop writing the placeholder churn in `_modeled_inputs`; place churn in the snapshot only when the request supplied it (so otherwise the engine computes CALCULATED).
   - Pass the `churn_model` object through `ExplanationOut`. Add an API test: no churn supplied -> CALCULATED with a breakdown; churn supplied -> SUPPLIED with no breakdown.
   - _Requirements: 4.5, 7.3, 8.1, 8.3_
 
-- [~] 10. Valuation API passthrough
+- [x] 10. Valuation API passthrough
   - Confirm `POST /valuation/calculate` and `GET /valuation/{title_id}` carry the `churn_model` object (computed and persisted respectively) with no re-run on GET; add/extend a test that a persisted explanation without `churn_model` still serializes (treated as absent).
   - _Requirements: 7.3, 7.6_
 

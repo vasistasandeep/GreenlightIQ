@@ -76,12 +76,31 @@ async def calculate_valuation(
         body.model_version_id,
         actor=actor.user_id,
     )
+
+    # calculable-churn-model (task 10, R7.3): the engine's in-memory Explanation
+    # does not carry a churn_model key — that key is attached only by the persist
+    # path's _jsonable_explanation when writing JSONB, not to the in-memory dict
+    # the engine returns. Surface it here from the resolved churn detail so the
+    # calculate response exposes the churn method, borderline flag, breakdown,
+    # missing features, params source, and model_version_id (same shape persisted
+    # under explanation["churn_model"]), mirroring the what-if route. The
+    # response explanation stays a plain dict.
+    explanation = _explanation_dict(result["explanation"])
+    churn_detail = result.get("churn_detail")
+    if churn_detail is not None:
+        explanation = {
+            **explanation,
+            "churn_model": churn_model_json(
+                churn_detail, result.get("model_version_id")
+            ),
+        }
+
     return ValuationSummaryResponse(
         title_id=result["title_id"],
         calculated_cpvh=result["calculated_cpvh"],
         ltv_to_cost_multiple=result["ltv_to_cost_multiple"],
         recommendation_status=str(result["recommendation_status"]),
-        explanation=_explanation_dict(result["explanation"]),
+        explanation=explanation,
     )
 
 

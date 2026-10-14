@@ -306,6 +306,16 @@ class SnapshotValuationInputProvider:
         from app.engines.guardrails import ValuationInputs
         from app.repositories.titles import TitleVersionRepository
 
+        def _opt_decimal(value: Any) -> Decimal | None:
+            """Coerce an optional snapshot value to a finite Decimal, else None."""
+            if value is None:
+                return None
+            try:
+                parsed = Decimal(str(value))
+            except (InvalidOperation, ValueError):
+                return None
+            return parsed if parsed.is_finite() else None
+
         active = await TitleVersionRepository(self.session).get_active(title_id)
         snapshot: dict[str, Any] = (
             dict(active.source_snapshot)
@@ -348,6 +358,20 @@ class SnapshotValuationInputProvider:
             monthly_margin=_coerce_decimal(snapshot.get("monthly_margin"), Decimal("0")),
             milestone_schedule=milestone_schedule,
             rate_date=rate_date,
+            # calculable-churn-model (R6.1): surface the explicit churn feature
+            # facts a snapshot may carry (the Asset Studio quick-evaluate path
+            # writes these, creating no metadata-vector / license rows) so the
+            # engine computes the same CALCULATED churn from them. Absent facts
+            # stay None and the engine falls back to the metadata/license repos.
+            talent_pedigree_score=_opt_decimal(snapshot.get("talent_pedigree_score")),
+            production_scale_metric=_opt_decimal(
+                snapshot.get("production_scale_metric")
+            ),
+            is_exclusive=(
+                bool(snapshot["is_exclusive"])
+                if snapshot.get("is_exclusive") is not None
+                else None
+            ),
         )
 
 

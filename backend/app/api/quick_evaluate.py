@@ -40,6 +40,7 @@ from app.api.deps import GuardrailsEngineDep, SessionDep, require_operation
 from app.core.errors import UnsupportedFormatError
 from app.domain import negotiation
 from app.domain.metadata import derive_production_scale
+from app.engines.guardrails import churn_model_json
 from app.domain.pitch_parse import parse_pitch_text
 from app.engines.rbac import Operation
 from app.schemas.api import (
@@ -73,6 +74,13 @@ class QuickEvaluateRequest(BaseModel):
     talent_pedigree_score: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("10"))
     license_duration_months: int | None = Field(default=None, ge=1)
     is_exclusive: bool = Field(default=False)
+    # calculable-churn-model (R4.5): an optional explicitly supplied churn value.
+    # When present and valid it is SUPPLIED (used exactly, overriding the model);
+    # when omitted the Asset Studio path resolves CALCULATED from the carried
+    # feature facts. Constrained to the inclusive percent range [0, 100].
+    churn_reduction_pct: Decimal | None = Field(
+        default=None, ge=Decimal("0"), le=Decimal("100")
+    )
 
     @field_validator("asset_type")
     @classmethod
@@ -111,6 +119,11 @@ class ExplanationOut(BaseModel):
     checks: list[GuardrailCheckOut] = Field(default_factory=list)
     dominant_factor: str | None = None
     unclassifiable: bool = False
+    # calculable-churn-model (R8.3): the flat churn_model object (method,
+    # borderline flag, params source, model_version_id, missing features, and
+    # the per-feature breakdown). CALCULATED carries the breakdown; SUPPLIED
+    # carries a null breakdown. Null when the engine returned no churn detail.
+    churn_model: dict | None = None
 
 
 class GovernanceOut(BaseModel):
@@ -182,7 +195,6 @@ def _modeled_inputs(body: QuickEvaluateRequest, rate_date: str | None = None) ->
     cpm = Decimal("12.0")
     ad_impressions = ad_value / (elasticity * cpm)
 
-    churn_pct = (Decimal("1.0") + quality * Decimal("2.0")).quantize(Decimal("0.01"))
     duration = body.license_duration_months or 24
 
     # Payback model: a stronger title recovers faster. Target a horizon in the
@@ -201,7 +213,8 @@ def _modeled_inputs(body: QuickEvaluateRequest, rate_date: str | None = None) ->
     target_payback = max(target_payback, 1)
     monthly_margin = (cost / Decimal(target_payback)).quantize(Decimal("0.01"))
     milestones = [{"month": 1, "amount": str(cost)}]
-    return {
+
+    snapshot: dict[str, Any] = {
         "logline": body.synopsis,
         "manifest_content": body.synopsis,
         "churn_reduction_value": str(churn_reduction_value),
@@ -209,14 +222,25 @@ def _modeled_inputs(body: QuickEvaluateRequest, rate_date: str | None = None) ->
         "watch_time_elasticity": str(elasticity),
         "cpm": str(cpm),
         "ad_impressions": str(ad_impressions),
-        "churn_reduction_pct": str(churn_pct),
         "monthly_margin": str(monthly_margin),
         "milestone_schedule": milestones,
+        # calculable-churn-model (R6.1, R8.2): carry the churn feature facts the
+        # model reads so a CALCULATED quick-evaluate is meaningful and matches
+        # the engine, since this path creates no metadata-vector / license rows.
+        # production_scale_metric uses the same helper as the radar so the
+        # explained input equals the displayed production scale (R8.2).
         "talent_pedigree_score": str(pedigree),
+        "production_scale_metric": str(derive_production_scale(pedigree, body.synopsis)),
         "is_exclusive": body.is_exclusive,
         "license_duration_months": duration,
         "rate_date": rate_date,
     }
+    # calculable-churn-model (R4.5, R8.1): place churn in the snapshot ONLY when
+    # the request supplied it (SUPPLIED, used exactly); otherwise leave it out so
+    # the engine resolves CALCULATED from the carried feature facts.
+    if body.churn_reduction_pct is not None:
+        snapshot["churn_reduction_pct"] = str(body.churn_reduction_pct)
+    return snapshot
 
 
 def _metadata_profile(body: QuickEvaluateRequest) -> MetadataProfileOut:
@@ -410,6 +434,16 @@ async def quick_evaluate(
             checks=_explanation_checks(explanation),
             dominant_factor=_attr(explanation, "dominant_factor"),
             unclassifiable=bool(_attr(explanation, "unclassifiable") or False),
+            # calculable-churn-model (R8.3): the in-memory Explanation carries no
+            # churn_model key (that is added only when the engine persists), so
+            # build it from the engine's churn_detail with the same serializer
+            # the persist path and the what-if route use. CALCULATED -> breakdown
+            # present; SUPPLIED -> null breakdown; None detail -> null.
+            churn_model=(
+                churn_model_json(result["churn_detail"], result["model_version_id"])
+                if result.get("churn_detail") is not None
+                else None
+            ),
         ),
         governance=governance,
         metadata_profile=_metadata_profile(body),

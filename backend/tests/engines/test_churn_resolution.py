@@ -248,8 +248,20 @@ def _build_engine(
     return engine, title.title_id, projections, audit
 
 
-def _inputs(*, churn_reduction_pct: Decimal | None) -> ValuationInputs:
-    """Benign LTV/CPM figures; churn is the knob (``None`` => CALCULATED)."""
+def _inputs(
+    *,
+    churn_reduction_pct: Decimal | None,
+    talent_pedigree_score: Decimal | None = None,
+    production_scale_metric: Decimal | None = None,
+    is_exclusive: bool | None = None,
+) -> ValuationInputs:
+    """Benign LTV/CPM figures; churn is the knob (``None`` => CALCULATED).
+
+    The optional ``talent_pedigree_score`` / ``production_scale_metric`` /
+    ``is_exclusive`` model explicit churn feature facts carried on the snapshot
+    (calculable-churn-model, R6.1); when set they take precedence over the
+    metadata-vector / license-term repositories in ``_resolve_churn``.
+    """
     return ValuationInputs(
         churn_reduction_value=Decimal("1"),
         ltv=Decimal("100"),
@@ -259,6 +271,9 @@ def _inputs(*, churn_reduction_pct: Decimal | None) -> ValuationInputs:
         churn_reduction_pct=churn_reduction_pct,
         monthly_margin=Decimal("1000"),
         milestone_schedule=None,  # fall back to the license-term schedule
+        talent_pedigree_score=talent_pedigree_score,
+        production_scale_metric=production_scale_metric,
+        is_exclusive=is_exclusive,
     )
 
 
@@ -678,3 +693,101 @@ async def test_audit_after_payload_records_churn_method() -> None:
     sup_after = sup_audit.records[0]["after"]
     assert sup_after["churn_method"] == "SUPPLIED"
     assert sup_after["churn_method"] == sup_result["churn_detail"].method
+
+
+# --------------------------------------------------------------------------- #
+# 9. Snapshot-carried feature facts win over the repos (R6.1, R8.1, R8.2)
+# --------------------------------------------------------------------------- #
+
+
+async def test_snapshot_facts_take_precedence_over_repositories() -> None:
+    """Validates: Requirements 6.1, 8.1, 8.2
+
+    This mirrors the Asset Studio quick-evaluate path, which creates NO
+    metadata-vector or license rows and instead carries the churn feature facts
+    (pedigree / production scale / exclusivity) on the snapshot. When those facts
+    are present on ``inputs``, ``_resolve_churn`` uses them in preference to the
+    metadata-vector and license-term repositories, so a snapshot WITHOUT churn
+    computes CALCULATED and matches the domain value for those carried facts.
+
+    The repos here are intentionally populated with *different* facts (lower
+    pedigree/scale, non-exclusive) that would yield a different churn; the carried
+    Aurora facts (8.5 / 9.0 / exclusive, ORIGINAL_SERIES, heat 65) must win and
+    produce 2.11, confirming precedence rather than the repo-derived value.
+    """
+    title = FakeTitle(title_id=uuid.uuid4(), asset_type="ORIGINAL_SERIES")
+    engine, title_id, projections, _ = _build_engine(
+        _inputs(
+            churn_reduction_pct=None,
+            talent_pedigree_score=Decimal("8.5"),
+            production_scale_metric=Decimal("9.0"),
+            is_exclusive=True,
+        ),
+        title=title,
+        # DB rows carry conflicting facts that must be ignored in favor of the
+        # snapshot facts carried on inputs.
+        metadata_vectors=[
+            FakeMetadataVector(
+                talent_pedigree_score=Decimal("4.0"),
+                production_scale_metric=Decimal("3.5"),
+                extraction_status="SUCCESS",
+                created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            )
+        ],
+        license_terms=[FakeLicenseTerm(is_exclusive=False)],
+        telemetry={
+            ("DRAMA", "US"): _reading("0.65"),
+            ("DRAMA", "CA"): _reading("0.65"),
+        },
+        churn_model=_default_churn_model_json(),
+    )
+
+    result = await engine.evaluate(title_id)
+    detail = result["churn_detail"]
+
+    assert detail is not None
+    assert detail.method == "CALCULATED"
+    # Carried Aurora facts win (8.5 / 9.0 / exclusive) -> 2.11, not the repo set.
+    assert result["churn_reduction_pct"] == Decimal("2.11")
+    assert "pedigree" not in detail.missing_features
+    assert "production_scale" not in detail.missing_features
+
+    # The exclusivity lift is present (carried is_exclusive=True won over the
+    # non-exclusive license term).
+    excl = next(c for c in detail.breakdown if c.key == "exclusivity_lift")
+    assert excl.points == Decimal("0.25")
+
+    churn_model = projections.created["explanation"]["churn_model"]
+    assert churn_model["churn_method"] == "CALCULATED"
+    assert _sum_breakdown(churn_model["churn_breakdown"]) == Decimal("2.11")
+
+
+async def test_supplied_snapshot_churn_is_supplied_even_with_carried_facts() -> None:
+    """Validates: Requirements 4.1, 8.1
+
+    Mirrors the quick-evaluate SUPPLIED path: when the snapshot carries an
+    explicit churn value, resolution is SUPPLIED (used exactly, no breakdown),
+    regardless of any carried feature facts.
+    """
+    title = FakeTitle(title_id=uuid.uuid4(), asset_type="ORIGINAL_SERIES")
+    engine, title_id, projections, _ = _build_engine(
+        _inputs(
+            churn_reduction_pct=Decimal("3.25"),
+            talent_pedigree_score=Decimal("8.5"),
+            production_scale_metric=Decimal("9.0"),
+            is_exclusive=True,
+        ),
+        title=title,
+        churn_model=_default_churn_model_json(),
+    )
+
+    result = await engine.evaluate(title_id)
+    detail = result["churn_detail"]
+
+    assert detail is not None
+    assert detail.method == "SUPPLIED"
+    assert result["churn_reduction_pct"] == Decimal("3.25")
+    assert detail.breakdown is None
+    churn_model = projections.created["explanation"]["churn_model"]
+    assert churn_model["churn_method"] == "SUPPLIED"
+    assert churn_model["churn_breakdown"] is None
