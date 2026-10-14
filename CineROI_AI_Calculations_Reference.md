@@ -18,7 +18,8 @@ A set of financial drivers that describe a title's modeled economics:
 - `ltv` - lifetime value contribution (subscription side)
 - `churn_reduction_value` - a scalar multiplied into LTV (subscription term)
 - `watch_time_elasticity`, `cpm`, `ad_impressions` - the advertising-side drivers
-- `churn_reduction_pct` - modeled monthly % of subscribers retained
+- `churn_reduction_pct` - modeled monthly % of subscribers retained; calculated by the churn
+  model from the title's features (or supplied explicitly), see Section 6
 - `monthly_margin` and `milestone_schedule` - the cash-flow drivers for payback
 - plus the title's own stored facts: `acquisition_cost_or_budget`, `native_currency`,
   `projected_viewing_hours`, `asset_type`, `target_territories`, `talent_pedigree_score`.
@@ -171,13 +172,102 @@ Same operand order as the multiple, so it agrees by construction:
 
 ## 6. Guardrail 3 - Churn Mitigation
 
-- **Value:** `churn_reduction_pct` - the modeled monthly cohort churn-reduction percentage
-  (a Layer-A driver; not computed from other guardrail values).
+### 6.0 How the churn number is produced (the Churn_Mitigation_Model)
+
+`churn_reduction_pct` - the modeled monthly cohort churn-reduction percentage - is no longer
+a hard-coded Layer-A literal. It is **CALCULATED** by a transparent, deterministic, additive
+model from a title's observable features, *unless* an explicit value is **SUPPLIED** (then it
+is used exactly). The math lives in the pure domain module `backend/app/domain/churn.py` and
+is covered by property-based tests.
+
+- **Additive formula (CALCULATED path):**
+  `churn% = intercept + asset_offset + pedigree_weight x pedigree + scale_weight x production_scale + exclusivity_lift (if exclusive) + telemetry_weight x telemetry_heat`
+  then **clamped to [0.10, 5.00]** and rounded to **2 decimals HALF_UP**. All feature weights
+  are non-negative.
+- Each numeric feature is first clamped to its valid domain: pedigree and production scale to
+  `[0, 10]`, telemetry heat to `[0, 100]`.
+- `telemetry_heat` is the mean, over the title's target territories that have a cached reading
+  for the title's genre, of `social_sentiment_index x 100` (converting the stored 0-1 index to
+  a 0-100 scale), rounded to 2 dp HALF_UP. Territories with no reading are excluded; a title
+  with no readings at all has a missing telemetry heat.
+
+> **Illustrative coefficients.** The default coefficients below are *tuned to the five demo
+> titles, not fitted to real subscriber-outcome data.* They are deliberately simple and
+> explainable, not a trained model.
+
+#### Default coefficients
+
+| Parameter | Value |
+|---|---|
+| intercept (base platform rate) | 0.15 |
+| asset offset - ORIGINAL_SERIES | 0.35 |
+| asset offset - CO_PRODUCTION | 0.45 |
+| asset offset - ORIGINAL_FILM | 0.20 |
+| asset offset - LICENSED_LIBRARY | 0.00 |
+| pedigree_weight (per point) | 0.09 |
+| scale_weight (per point) | 0.03 |
+| exclusivity_lift (if exclusive) | 0.25 |
+| telemetry_weight (per point of heat) | 0.005 |
+| output clamp bounds | [0.10, 5.00] |
+
+#### Feature sources and precedence
+
+Each feature is resolved from **explicit snapshot facts first**, then from stored data:
+
+- **pedigree / production scale / exclusivity:** the title's explicit snapshot facts
+  (`talent_pedigree_score`, `production_scale_metric`, `is_exclusive`) when present; otherwise
+  the title's latest SUCCESS metadata vector (pedigree, production scale) and the title's
+  license terms (exclusivity).
+- **asset type:** read from the title row.
+- **telemetry heat:** computed from `market_telemetry_cache` by the mean-x100 rule above.
+- A **missing** numeric feature contributes **0** and is flagged in the result's
+  `missing_features` list (the method stays CALCULATED). An unknown asset type applies a zero
+  offset and is flagged. Unknown exclusivity is treated as not exclusive.
+
+#### Supplied value wins
+
+- A finite numeric `churn_reduction_pct` supplied in the title deal snapshot or the
+  quick-evaluate payload is used **exactly as given - no clamp, no re-round** - and the method
+  is **SUPPLIED** (a supplied `0` counts as supplied). A blank / null / non-numeric /
+  non-finite supplied value is treated as "not supplied" and falls through to CALCULATED. A
+  legacy snapshot that already carries a churn value continues to report SUPPLIED until it is
+  reseeded without one.
+- The quick-evaluate request accepts an optional `churn_reduction_pct` in `[0, 100]`; when
+  present it is SUPPLIED, otherwise the Asset Studio path is CALCULATED.
+
+#### Borderline sensitivity flag
+
+- When the resolved churn (CALCULATED or SUPPLIED) lies in the inclusive band `[1.45, 1.55]`,
+  the result is flagged borderline with the message
+  **"Borderline Sensitivity: within 0.05% of the 1.50% hurdle"**. The flag is informational
+  only - it never changes the pass/breach result, the dominant factor, or the recommendation.
+
+#### Parameter storage and versioning
+
+- The coefficients live in the active model version's `guardrail_params["churn_model"]`
+  (JSONB - no migration). They are versioned with the model, and carried forward **unchanged**
+  when calibration forks a new version (calibration never re-fits churn). If
+  `guardrail_params["churn_model"]` is absent or structurally invalid, the engine falls back
+  to the built-in defaults and records `params_source = DEFAULTS`.
+
+#### Persisted explanation (the `churn_model` object)
+
+The persisted `financial_projections.explanation` carries a `churn_model` object:
+`churn_method` (CALCULATED | SUPPLIED), `is_borderline`, `params_source`
+(MODEL_VERSION | DEFAULTS), `model_version_id`, `missing_features`, and `churn_breakdown` (the
+per-feature points: `base_platform_rate`, `asset_cadence`, `talent_pedigree_contribution`,
+`production_scale_contribution`, `exclusivity_lift`, `market_telemetry_heat`, plus a
+`bounds_adjustment` entry when clamping/rounding changed the value so the entries always sum to
+the final value). When SUPPLIED, `churn_breakdown` is null and `missing_features` is empty.
+
+### 6.1 The churn guardrail check (unchanged)
+
+- **Value:** the resolved `churn_reduction_pct` from the model above (CALCULATED or SUPPLIED).
 - **Threshold:** `1.5` percent.
 - **Breach test:** breach if and only if `churn_reduction_pct < 1.5` (strictly).
 - **Correctable:** **NO.** This is the one structural check - no price change affects it, so
   a single churn breach forces a PASS.
-- **Worked example (Vintage Reruns):** `0.9 < 1.5` -> BREACH (non-correctable).
+- **Worked example (Vintage Reruns):** model-computed `0.88 < 1.5` -> BREACH (non-correctable).
 
 ---
 
@@ -325,7 +415,11 @@ above then consume them unchanged.
   - `ltv = 0.85 x numerator`, `churn_reduction_value = 1` (so the SVOD term is just LTV)
   - `watch_time_elasticity = 1.0`, `cpm = 12.0`,
     `ad_impressions = (0.15 x numerator) / (1.0 x 12.0)`
-- `churn_reduction_pct = round(1.0 + quality x 2.0, 2)`  (ranges 1.0% .. 3.0%)
+- `churn_reduction_pct` is no longer derived by a placeholder formula here. It now comes from
+  the shared Churn_Mitigation_Model (Section 6): **SUPPLIED** when the form provides a value,
+  otherwise **CALCULATED** from the title's features. The production-scale feature fed to the
+  model is derived with the same shared helper that feeds the metadata radar, so the explained
+  model input equals the production scale shown on the radar.
 - `target_payback = round(11 - quality x 4)` months (ranges 7 .. 11; higher pedigree -> sooner)
 - `monthly_margin = round(cost / target_payback, 2)`; a single milestone of the full cost at
   month 1, so cumulative contribution dips to -cost then climbs by `monthly_margin`/month and
@@ -343,9 +437,12 @@ the seed generator engineers the drivers:
   zero at exactly `payback_target` months.
 - **Territory weighting:** the drivers are divided by the resulting `ltv_weight` /
   `cpm_weight` so that applying the weights reproduces the intended LTV multiple.
-- **Churn / verdict labels** were set so each seeded title recomputes to its stored verdict:
-  3 GREENLIGHT (Aurora, Monsoon, Echoes), 1 NEGOTIATE HARD (The Ledger), 1 PASS (Vintage
-  Reruns).
+- **Churn** is no longer a seed literal: the seed generator imports the Churn_Mitigation_Model
+  (Section 6) and computes each title's `churn_reduction_pct` from its seeded features
+  (pedigree / production scale / exclusivity / asset type / telemetry heat), so the stored
+  value equals a live recompute. The illustrative coefficients are tuned so the five titles
+  keep their verdicts: 3 GREENLIGHT (Aurora 2.11%, Monsoon 1.76%, Echoes 1.96%), 1 NEGOTIATE
+  HARD (The Ledger 1.62%), 1 PASS (Vintage Reruns 0.88%, the only churn breach).
 
 ---
 
@@ -356,7 +453,7 @@ the seed generator engineers the drivers:
 | Normalized cost | cost x rate | - | 2 dp HALF_UP |
 | CPVH | cost_usd / viewing_hours | <= 0.18 premium / <= 0.05 library | 4 dp HALF_UP |
 | LTV-to-Cost | (churn_val x wLTV + elast x wCPM x impr) / cost | >= 3.2 | exact (string) |
-| Churn mitigation | modeled monthly % | >= 1.5% | as supplied |
+| Churn mitigation | calculated by the churn model (or supplied) | >= 1.5% | 2 dp HALF_UP, clamp [0.10, 5.00] (supplied used exactly) |
 | Payback | first month cumulative contribution > 0 | <= 12 months | integer month |
 | Shortfall | \|distance\| / \|threshold\| | - | exact |
 | Target ceiling | min(cost x ceiling/cpvh, cost x mult/3.2) | - | whole USD HALF_UP |

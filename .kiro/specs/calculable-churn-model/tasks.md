@@ -142,7 +142,7 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Add `churn-breakdown.test.tsx` (renders rows, bounds-adjustment row, unavailable tag, SUPPLIED note, borderline pill). Update affected accordion/report tests.
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 13.3_
 
-- [~] 16. Documentation
+- [x] 16. Documentation
   - Update the user guide (the "How Numbers Are Calculated" tab and the Guardrail 3 explainer), `CineROI_AI_Calculations_Reference.md`, and `CineROI_AI_Complete_Knowledge_Base.md` to describe the additive model, the supplied-value override, the borderline flag, the feature sources, and the parameter storage, with churn numbers consistent with the regenerated seed. Label the coefficients illustrative.
   - _Requirements: 3.5, 9.7, 12.1, 12.2, 12.3_
 

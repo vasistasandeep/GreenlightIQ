@@ -114,8 +114,9 @@ const GLOSSARY: GlossaryGroup[] = [
       { term: "CPVH Ceiling", def: "The maximum allowed CPVH: 0.18 USD for premium originals, 0.05 USD for library titles. Over it = breach." },
       { term: "LTV-to-Cost Multiple", def: "((Churn Reduction Value x LTV) + (Watch-Time Elasticity x CPM x Ad Impressions)) / Acquisition Cost. Dollars of value returned per dollar spent." },
       { term: "LTV Hurdle", def: "The minimum acceptable LTV-to-Cost multiple: 3.2x over a 12-24 month window. Below it = breach." },
-      { term: "Churn Mitigation", def: "The modeled monthly cohort churn-reduction percentage a title delivers. Must be at least 1.5%." },
+      { term: "Churn Mitigation", def: "The monthly cohort churn-reduction percentage a title delivers. Calculated by an additive model from the title's features (asset type, pedigree, production scale, exclusivity, market buzz) - or supplied directly, in which case it is used exactly. Must be at least 1.5%. The model coefficients are illustrative, tuned to the demo titles." },
       { term: "Churn Mitigation Threshold", def: "The 1.5% minimum churn reduction a title must clear." },
+      { term: "Borderline Sensitivity", def: "A flag shown when the churn number lands within 0.05% of the 1.5% hurdle (the 1.45%-1.55% band). Informational only - it never changes the verdict." },
       { term: "Payback Horizon", def: "Months until a title reaches positive contribution margin (pays for itself). Target 9-12; over 12 = breach." },
       { term: "Guardrail", def: "One of the four quantitative financial checks a title must pass to be greenlit." },
       { term: "Breach", def: "A guardrail check whose value crosses its threshold in the wrong direction (a fail)." },
@@ -438,19 +439,30 @@ function GuardrailsTab() {
         n={3}
         name="Keeps Subscribers (Churn Mitigation)"
         question="Does having this title stop people from cancelling their subscription?"
-        formula="Churn reduction  =  modeled % of subscribers kept each month"
-        line={<>Must keep at least <span className="text-emerald-300">1.5% of subscribers</span> from cancelling each month. Below that is a breach.</>}
+        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz"
+        line={
+          <>
+            The churn number is <span className="text-slate-100">calculated</span> by adding up
+            small contributions from the title&apos;s features (illustrative coefficients, tuned
+            to the demo titles) - unless a buyer types a known figure, which is then used
+            exactly. It must keep at least{" "}
+            <span className="text-emerald-300">1.5% of subscribers</span> from cancelling each
+            month; below that is a breach. If it lands within 0.05% of the 1.5% line, the
+            scorecard shows a &quot;Borderline Sensitivity&quot; note (it never changes the
+            verdict).
+          </>
+        }
         worked={
           <>
-            <span className="font-medium text-slate-100">Vintage Reruns Vol. 7</span> is
-            modeled to reduce cancellations by only
-            {" "}<span className="text-slate-100">0.9%</span> a month.
+            <span className="font-medium text-slate-100">Vintage Reruns Vol. 7</span> is a cheap
+            library title with low pedigree and no exclusivity, so the model lands at only
+            {" "}<span className="text-slate-100">0.88%</span> a month.
             <div className="mt-1 font-mono text-xs text-rose-300">
-              0.9% &lt; 1.5% required
+              0.88% &lt; 1.5% required
             </div>
           </>
         }
-        result="0.9% misses the 1.5% floor. Important: paying less does NOT make a title more loved - so this breach can't be fixed by negotiating. One of these forces a PASS."
+        result="0.88% misses the 1.5% floor. Important: paying less does NOT make a title more loved - so this breach can't be fixed by negotiating. One of these forces a PASS."
         resultOk={false}
       />
 
@@ -625,9 +637,9 @@ function CalculationsTab() {
       />
       <CalcBlock
         title="3. Keeps Subscribers (Churn Mitigation)"
-        formula="Value = modeled monthly % of subscribers kept from cancelling"
-        rule={<>Must be at least <span className="text-emerald-300">1.5%</span>. Below = breach. <span className="text-rose-300">Not correctable</span> - no price change makes a title stickier, so one churn breach forces a PASS.</>}
-        worked={<>Vintage Reruns: 0.9% &lt; 1.5% -&gt; <span className="text-rose-300">BREACH</span> (non-correctable).</>}
+        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz"
+        rule={<>The monthly churn-reduction % is <span className="text-slate-100">calculated</span> by adding small, explained contributions from the title&apos;s features, then capped between 0.10% and 5.00% (illustrative coefficients, tuned to the demo titles). A buyer can instead <span className="text-slate-100">supply</span> a known figure, which is used exactly. Must be at least <span className="text-emerald-300">1.5%</span>; below = breach. A number within 0.05% of 1.5% shows a borderline note (it never changes the verdict). <span className="text-rose-300">Not correctable</span> - no price change makes a title stickier, so one churn breach forces a PASS.</>}
+        worked={<>Vintage Reruns: model-computed 0.88% &lt; 1.5% -&gt; <span className="text-rose-300">BREACH</span> (non-correctable). The Ledger: 1.62% &ge; 1.5% -&gt; PASS.</>}
       />
       <CalcBlock
         title="4. Pays for Itself (Payback Horizon)"

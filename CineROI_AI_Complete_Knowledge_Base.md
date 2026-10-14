@@ -110,10 +110,23 @@ all four to earn a straight GREENLIGHT. Every monetary amount is converted to US
 ### 3.3 Guardrail 3 - Keeps Subscribers (Churn Mitigation)
 
 - **Question:** Does having this title stop people from cancelling their subscription?
-- **Formula:** modeled monthly cohort churn-reduction percentage.
+- **How the number is produced:** rather than a single hard-coded figure, the churn-reduction
+  percentage is **calculated** by a transparent, additive model from the title's observable
+  features. It starts from a small base platform rate and adds a contribution for the asset
+  type, the talent pedigree, the production scale, exclusivity, and market buzz (telemetry) -
+  each contribution explained point-by-point - then caps the result between 0.10% and 5.00%.
+  If a buyer **supplies** a known churn figure directly, that value is used exactly and the
+  model step is skipped.
+- **Illustrative, not fitted:** the model's coefficients are tuned to the five demo titles for
+  a coherent showcase; they are not fitted to real subscriber-outcome data.
+- **Borderline flag:** when the number lands right on the line (within 0.05% of 1.5%, i.e. in
+  the 1.45%-1.55% band), the scorecard shows an amber "Borderline Sensitivity" note so a
+  reviewer knows the greenlight-vs-pass outcome hinges on a fragile input. The flag is
+  informational and never changes the verdict.
 - **The line:** must keep at least **1.5% of subscribers** from cancelling each month.
   Below 1.5% is a breach.
-- **Worked example (Vintage Reruns Vol. 7):** modeled 0.9% reduction. 0.9% < 1.5% -> BREACH.
+- **Worked example (Vintage Reruns Vol. 7):** model-computed 0.88% reduction. 0.88% < 1.5% ->
+  BREACH.
 - **Correctable?** **NO.** Paying less does not make a title more loved. A churn breach is
   structural, and a single one forces a PASS.
 
@@ -175,7 +188,7 @@ the dashboard badge all agree for every one (the seed is self-consistent).
 - Original Series, cost **$42,000,000** (USD, no conversion), projected **250,000,000** hours.
 - CPVH: `42,000,000 / 250,000,000 = $0.168` <= $0.18 -> PASS.
 - Return: **3.8x** >= 3.2x -> PASS.
-- Churn: **2.1%** >= 1.5% -> PASS.
+- Churn: **2.11%** >= 1.5% -> PASS.
 - Payback: **11 months** <= 12 -> PASS.
 - Verdict: **GREENLIGHT**. Because it is a GREENLIGHT above $25M, it also needs dual
   sign-off from both the CCO and the CFO before it is final.
@@ -188,7 +201,7 @@ the dashboard badge all agree for every one (the seed is self-consistent).
   (price problem).
 - Step 3 - Return: total modeled value about $27,550,000. `27,550,000 / 9,500,000 = 2.9x`.
   Under 3.2x -> BREACH (price problem).
-- Step 4 - Churn: **1.6%** >= 1.5% -> PASS (the check a discount cannot fix - and it passes).
+- Step 4 - Churn: **1.62%** >= 1.5% -> PASS (the check a discount cannot fix - and it passes).
 - Step 5 - Payback: **15 months** > 12 -> BREACH (price problem).
 - Step 6 - Verdict: three breaches, all price-fixable; the one non-correctable check
   passes -> **NEGOTIATE HARD**. Dominant factor: CPVH.
@@ -202,7 +215,7 @@ the dashboard badge all agree for every one (the seed is self-consistent).
   projected **60,000,000** hours.
 - CPVH: `1,308,000 / 60,000,000 = $0.0218` <= $0.05 (library ceiling) -> PASS.
 - Return: **4.1x** >= 3.2x -> PASS.
-- Churn: **0.9%** < 1.5% -> BREACH (non-correctable - no price fixes a title that does not
+- Churn: **0.88%** < 1.5% -> BREACH (non-correctable - no price fixes a title that does not
   retain subscribers).
 - Payback: **8 months** <= 12 -> PASS.
 - Verdict: **PASS**. Three checks pass and it is dirt cheap per hour, but the one failure
@@ -211,12 +224,12 @@ the dashboard badge all agree for every one (the seed is self-consistent).
 ### 4.4 Monsoon Lanes - GREENLIGHT
 
 - Co-Production, **INR 18,000,000** -> normalized ~**$216,000**, projected 140,000,000 hours.
-- CPVH ~$0.0015, Return 3.35x, Churn 1.8%, Payback 12 months - all pass -> GREENLIGHT.
+- CPVH ~$0.0015, Return 3.35x, Churn 1.76%, Payback 12 months - all pass -> GREENLIGHT.
 
 ### 4.5 Echoes of 2019 - GREENLIGHT (historical, used for backtesting)
 
 - Original Series, cost **$30,000,000** (USD), projected 180,000,000 hours.
-- CPVH $0.1667, Return 3.5x, Churn 2.0%, Payback 10 months - all pass -> GREENLIGHT.
+- CPVH $0.1667, Return 3.5x, Churn 1.96%, Payback 10 months - all pass -> GREENLIGHT.
 
 **Demo verdict spread:** 3 GREENLIGHT (Aurora, Monsoon, Echoes), 1 NEGOTIATE HARD
 (The Ledger), 1 PASS (Vintage Reruns).
@@ -674,8 +687,10 @@ Requirement groups:
 - **CPVH (Cost per Viewing Hour):** Cost (USD) / Projected Viewing Hours. Lower is better.
   Ceiling $0.18 (premium) or $0.05 (library).
 - **LTV-to-Cost Multiple:** dollars of modeled value returned per dollar spent. Hurdle 3.2x.
-- **Churn Mitigation:** modeled monthly % of subscribers a title keeps from cancelling.
-  Floor 1.5%. A breach here is non-correctable.
+- **Churn Mitigation:** modeled monthly % of subscribers a title keeps from cancelling,
+  calculated by an additive model from the title's features (asset type, pedigree, production
+  scale, exclusivity, market buzz) or supplied directly. Floor 1.5%. A breach here is
+  non-correctable. The coefficients are illustrative, tuned to the demo titles.
 - **Payback Horizon:** months until a title's cumulative margin turns positive. Target
   9-12; over 12 breaches.
 - **Recommendation Status:** GREENLIGHT, NEGOTIATE_HARD, or PASS.
