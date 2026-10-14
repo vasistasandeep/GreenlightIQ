@@ -14,12 +14,13 @@ import { TopNav } from "@/components/layout/top-nav";
  * reached. Client component for the tab interaction; all content is static.
  */
 
-type TabId = "overview" | "features" | "guardrails" | "examples" | "glossary";
+type TabId = "overview" | "features" | "guardrails" | "calculations" | "examples" | "glossary";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "features", label: "Features & How-To" },
   { id: "guardrails", label: "The 4 Guardrails" },
+  { id: "calculations", label: "How Numbers Are Calculated" },
   { id: "examples", label: "Worked Examples" },
   { id: "glossary", label: "Glossary" },
 ];
@@ -537,6 +538,165 @@ function ExampleBlock({
       ) : null}
       <div className="mt-3 rounded-md border border-slate-700 bg-slate-800/40 p-3 text-sm text-slate-200">
         <span className="font-semibold">The takeaway: </span>{takeaway}
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// How Numbers Are Calculated tab
+// --------------------------------------------------------------------------- //
+
+/** A calculation block: the formula, the rule/threshold, and a worked number. */
+function CalcBlock({
+  title,
+  formula,
+  rule,
+  worked,
+}: {
+  title: string;
+  formula: string;
+  rule?: React.ReactNode;
+  worked?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+      <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+      <Formula>{formula}</Formula>
+      {rule ? <p className="mt-2 text-sm text-slate-400">{rule}</p> : null}
+      {worked ? (
+        <div className="mt-2 rounded-md border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-300">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Worked:{" "}
+          </span>
+          {worked}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CalculationsTab() {
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm leading-relaxed text-slate-300">
+        <p>
+          This is the exact math behind every number you see. It helps to think of it as
+          two layers.
+        </p>
+        <p className="mt-2">
+          <span className="font-medium text-slate-100">Layer A - the drivers:</span> a
+          title&apos;s modeled economics (its lifetime value, how many subscribers it keeps,
+          its ad potential, its payment schedule). For ingested titles these come from the
+          submitted deal; in the Asset Studio they are derived from what you type; in
+          production a financial-modeling pipeline and an NLP model supply them.
+        </p>
+        <p className="mt-2">
+          <span className="font-medium text-slate-100">Layer B - the verdict math:</span>{" "}
+          the fixed formulas below that turn those drivers into the four checks and the
+          final answer. This layer never changes - the same arithmetic runs every time.
+        </p>
+      </div>
+
+      <SectionHead note="Done once, up front, so every deal is judged on the same scale.">
+        Step 1 - Convert the cost to US dollars
+      </SectionHead>
+      <CalcBlock
+        title="Currency normalization"
+        formula="Normalized cost (USD) = native cost x exchange rate"
+        rule={<>Uses the dated rate; if the exact date is missing it falls back to the latest available rate. Rounded to 2 decimals.</>}
+        worked={<>Vintage Reruns: EUR 1,200,000 x 1.09 = <span className="text-emerald-300">$1,308,000</span>.</>}
+      />
+
+      <SectionHead note="The four checks. A title must clear all four for a straight GREENLIGHT.">
+        Step 2 - The four guardrails
+      </SectionHead>
+      <CalcBlock
+        title="1. Cost per Viewing Hour (CPVH)"
+        formula="CPVH = Cost (USD) / Projected Viewing Hours"
+        rule={<>Must be at or below <span className="text-emerald-300">$0.18/hour</span> (premium) or <span className="text-emerald-300">$0.05/hour</span> (library). Over the line = breach. Correctable by a lower price.</>}
+        worked={<>Aurora: 42,000,000 / 250,000,000 = <span className="text-emerald-300">$0.168</span> (PASS). The Ledger: 9,500,000 / 40,000,000 = <span className="text-rose-300">$0.2375</span> (BREACH).</>}
+      />
+      <CalcBlock
+        title="2. Return on Spend (LTV-to-Cost)"
+        formula="Multiple = ( (Churn Value x LTV) + (Elasticity x CPM x Ad Impressions) ) / Cost"
+        rule={<>The first bracket is subscription value, the second is advertising value; their sum is the total modeled value. CPM and LTV are first weighted by the title&apos;s territories (see Step 3). Must be <span className="text-emerald-300">3.2x or higher</span>. Correctable by a lower price.</>}
+        worked={<>The Ledger: total value approx $27,550,000; 27,550,000 / 9,500,000 = <span className="text-rose-300">2.9x</span> (BREACH, below 3.2x).</>}
+      />
+      <CalcBlock
+        title="3. Keeps Subscribers (Churn Mitigation)"
+        formula="Value = modeled monthly % of subscribers kept from cancelling"
+        rule={<>Must be at least <span className="text-emerald-300">1.5%</span>. Below = breach. <span className="text-rose-300">Not correctable</span> - no price change makes a title stickier, so one churn breach forces a PASS.</>}
+        worked={<>Vintage Reruns: 0.9% &lt; 1.5% -&gt; <span className="text-rose-300">BREACH</span> (non-correctable).</>}
+      />
+      <CalcBlock
+        title="4. Pays for Itself (Payback Horizon)"
+        formula="First month where (monthly margin x month) - cost paid so far turns positive"
+        rule={<>Walked month-by-month over the real milestone payment schedule, not a lump sum. Target <span className="text-emerald-300">9-12 months</span>; over 12 = breach. Correctable by a lower price.</>}
+        worked={<>Aurora: 11 months (PASS). The Ledger: 15 months (BREACH, over 12).</>}
+      />
+
+      <SectionHead note="Market conditions nudge the return math up or down by territory.">
+        Step 3 - Territory weighting (feeds the return check)
+      </SectionHead>
+      <CalcBlock
+        title="Per-territory multipliers, then averaged"
+        formula="cpm_weight = avg(licensing inflation);  ltv_weight = avg(1 + chart velocity / 100)"
+        rule={<>For each target territory the title&apos;s genre telemetry gives a CPM multiplier and an LTV multiplier; they are averaged across territories. A territory with no data contributes a neutral 1. Then weighted CPM = CPM x cpm_weight and weighted LTV = LTV x ltv_weight.</>}
+      />
+
+      <SectionHead note="How the four results combine into one answer.">
+        Step 4 - The verdict and the headline reason
+      </SectionHead>
+      <CalcBlock
+        title="Shortfall magnitude (ranks breaches on one scale)"
+        formula="Shortfall = | value - threshold | / threshold"
+        rule={<>Computed for each breached check so they are comparable. The breach with the largest shortfall is the <span className="text-slate-100">dominant factor</span> headlined on a PASS or NEGOTIATE HARD.</>}
+        worked={<>The Ledger CPVH: |0.2375 - 0.18| / 0.18 = <span className="text-slate-100">0.319</span>.</>}
+      />
+      <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
+        <p className="font-medium text-emerald-300">The verdict rule</p>
+        <ul className="mt-2 ml-4 list-disc space-y-1 text-slate-400 marker:text-emerald-400">
+          <li><span className="text-emerald-300">GREENLIGHT</span> - zero breaches.</li>
+          <li><span className="text-amber-300">NEGOTIATE HARD</span> - one or more breaches, and every one is correctable (a lower price fixes it).</li>
+          <li><span className="text-rose-300">PASS</span> - at least one breach is non-correctable (churn), or the data was too incomplete to classify.</li>
+        </ul>
+      </div>
+
+      <SectionHead note="For a NEGOTIATE HARD, the exact price to aim for.">
+        Step 5 - The negotiation target
+      </SectionHead>
+      <CalcBlock
+        title="Target purchase ceiling and implied discount"
+        formula="CPVH ceiling = cost x (0.18 / CPVH);  LTV ceiling = cost x (multiple / 3.2);  target = the smaller one"
+        rule={<>The highest price at which the price-driven checks would pass is the smaller of the two ceilings. The implied discount is (ask - target) / ask x 100.</>}
+        worked={<>The Ledger: CPVH ceiling 9,500,000 x (0.18/0.2375) = <span className="text-emerald-300">$7,200,000</span>; LTV ceiling 9,500,000 x (2.9/3.2) = $8,609,375; the binding target is <span className="text-emerald-300">$7,200,000</span>, a <span className="text-emerald-300">24.2%</span> discount off the $9.5M ask.</>}
+      />
+
+      <SectionHead note="Extra context figures shown on the scorecard.">
+        Supporting numbers
+      </SectionHead>
+      <CalcBlock
+        title="Retained subscribers (a modeled estimate)"
+        formula="Retained = modeled cohort size x (churn % / 100)"
+        rule={<>The modeled cohort size, when not supplied, is one modeled subscriber per whole USD of cost. Always labeled as a derived figure; it never affects the verdict.</>}
+      />
+      <CalcBlock
+        title="Model accuracy (MAPE) and self-tuning"
+        formula="MAPE = average of | (actual - predicted) / actual | x 100"
+        rule={<>The backtest accuracy metric; pairs with a zero actual are excluded. Lower is better. Above 10% triggers calibration, which re-tunes the two feature weights (they always sum to 1.00) and forks a new, immutable model version so past decisions stay reproducible.</>}
+      />
+      <CalcBlock
+        title="Estimated viewing hours (Asset Studio, when left blank)"
+        formula="hours = cost / ( ceiling x (0.70 + pedigree/10 x 0.25) )"
+        rule={<>Only used when you do not supply viewing hours. It targets a cost-per-hour at 70-95% of the ceiling (stronger titles higher), so a quality title is not failed just for a missing input. The seeded demo titles use real stored hours, not this estimate.</>}
+        worked={<>$10M premium original, pedigree 8: target CPVH 0.18 x 0.90 = 0.162; hours = 10,000,000 / 0.162 approx 61.7M.</>}
+      />
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-xs text-slate-500">
+        Every figure uses exact decimal arithmetic (no floating-point drift). CPVH rounds to
+        4 decimals, money to 2, the discount to 1, and MAPE to 2. For the full technical
+        reference see the Calculations Reference document in the repository.
       </div>
     </div>
   );
@@ -1095,6 +1255,7 @@ export default function GuidePage() {
           {tab === "overview" ? <OverviewTab /> : null}
           {tab === "features" ? <FeaturesTab /> : null}
           {tab === "guardrails" ? <GuardrailsTab /> : null}
+          {tab === "calculations" ? <CalculationsTab /> : null}
           {tab === "examples" ? <ExamplesTab /> : null}
           {tab === "glossary" ? <GlossaryTab /> : null}
         </div>

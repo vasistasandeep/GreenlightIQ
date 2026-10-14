@@ -6,6 +6,13 @@
 > real worked numbers, the testing strategy, and the full build history. This document is
 > written to be read start-to-finish or queried piece by piece.
 
+> For the exact formula, threshold, rounding, and worked example behind EVERY computed
+> number (currency normalization, the four guardrails, territory weighting, shortfall,
+> the verdict rule, negotiation ceilings, cohort, MAPE, calibration weights, viewing-hours
+> estimation, and the demo driver derivations), see the companion document
+> **CineROI_AI_Calculations_Reference.md**. The same content is in the in-portal guide
+> under the "How Numbers Are Calculated" tab.
+
 ---
 
 ## 1. Executive Summary (Read This First)
