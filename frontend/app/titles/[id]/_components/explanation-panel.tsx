@@ -18,6 +18,10 @@ export interface ExplanationPanelProps {
 }
 
 export function ExplanationPanel({ explanation }: ExplanationPanelProps) {
+  // The stored explanation (from GET /valuation) may omit `checks`; only a live
+  // recompute carries the full per-check array. Default to an empty list so the
+  // panel degrades to its empty state instead of throwing.
+  const checks = explanation?.checks ?? [];
   return (
     <section
       aria-labelledby="explanation-panel-heading"
@@ -27,7 +31,7 @@ export function ExplanationPanel({ explanation }: ExplanationPanelProps) {
         Why this recommendation
       </h2>
 
-      {!explanation || explanation.checks.length === 0 ? (
+      {!explanation || checks.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No recommendation explanation is available for this title.
         </p>
@@ -74,7 +78,7 @@ export function ExplanationPanel({ explanation }: ExplanationPanelProps) {
                 </tr>
               </thead>
               <tbody>
-                {explanation.checks.map((check) => {
+                {checks.map((check) => {
                   const isDominant = explanation.dominant_factor === check.name;
                   return (
                     <tr key={check.name} className="border-b last:border-b-0">

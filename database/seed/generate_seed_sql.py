@@ -237,6 +237,78 @@ def _json(obj) -> str:
     return q(json.dumps(obj, sort_keys=True, separators=(",", ":")))
 
 
+def _seed_explanation(atype, cpvh, ltv, churn, payback):
+    """Build an engine-shaped Explanation (with a full `checks` array) for the seed.
+
+    Decimal-ish values are emitted as strings to match how the engine serializes
+    them into JSONB. Shortfall is the normalized distance past the threshold for a
+    breached check (|distance| / threshold); None when the check passes.
+    """
+    ceiling = 0.05 if atype == "LICENSED_LIBRARY" else 0.18
+    cpvh_f, ltv_f, churn_f, pay_i = float(cpvh), float(ltv), float(churn), int(payback)
+
+    def shortfall(distance: float, threshold: float):
+        return f"{abs(distance) / threshold:.6f}" if threshold else f"{abs(distance):.6f}"
+
+    cpvh_breach = cpvh_f > ceiling
+    ltv_breach = ltv_f < 3.2
+    churn_breach = churn_f < 1.5
+    pay_breach = pay_i > 12
+
+    checks = [
+        {
+            "name": "CPVH",
+            "computed_value": f"{cpvh_f:.4f}",
+            "threshold": f"{ceiling:.2f}",
+            "passed": not cpvh_breach,
+            "breached": cpvh_breach,
+            "shortfall_magnitude": shortfall(cpvh_f - ceiling, ceiling) if cpvh_breach else None,
+            "correctable": True if cpvh_breach else None,
+        },
+        {
+            "name": "LTV_TO_COST",
+            "computed_value": f"{ltv_f:.4f}",
+            "threshold": "3.2",
+            "passed": not ltv_breach,
+            "breached": ltv_breach,
+            "shortfall_magnitude": shortfall(3.2 - ltv_f, 3.2) if ltv_breach else None,
+            "correctable": True if ltv_breach else None,
+        },
+        {
+            "name": "CHURN_MITIGATION",
+            "computed_value": f"{churn_f:.2f}",
+            "threshold": "1.5",
+            "passed": not churn_breach,
+            "breached": churn_breach,
+            "shortfall_magnitude": shortfall(1.5 - churn_f, 1.5) if churn_breach else None,
+            "correctable": False if churn_breach else None,
+        },
+        {
+            "name": "PAYBACK_HORIZON",
+            "computed_value": str(pay_i),
+            "threshold": "12",
+            "passed": not pay_breach,
+            "breached": pay_breach,
+            "shortfall_magnitude": shortfall(float(pay_i - 12), 12.0) if pay_breach else None,
+            "correctable": True if pay_breach else None,
+        },
+    ]
+
+    # Dominant factor: the breached check with the largest normalized shortfall.
+    breaches = [c for c in checks if c["breached"]]
+    dominant = None
+    if breaches:
+        dominant = max(
+            breaches, key=lambda c: float(c["shortfall_magnitude"] or 0)
+        )["name"]
+
+    return {
+        "checks": checks,
+        "dominant_factor": dominant,
+        "unclassifiable": False,
+    }
+
+
 def render() -> str:
     out: list[str] = []
     w = out.append
@@ -474,11 +546,13 @@ def render() -> str:
         rate_map = {"USD": 1.0, "INR": 0.012, "EUR": 1.09, "GBP": 1.27}
         normalized = f"{float(cost) * rate_map[cur]:.2f}"
         rate_label = f"rate-{cur}-USD-2024-01-02"
-        explanation = {
-            "cpvh": {"value": cpvh, "status": "PASS" if rec != "PASS" else "BREACH"},
-            "ltv_to_cost": {"value": ltv},
-            "recommendation": rec,
-        }
+        # Build a full, engine-shaped explanation with a per-guardrail `checks`
+        # array so the title page renders the real breakdown (and so GET
+        # /valuation never returns a `checks`-less explanation the UI must guard
+        # against). Thresholds and correctable classification mirror the engine:
+        # CPVH ceiling 0.18 premium / 0.05 library; LTV >= 3.2; churn >= 1.5;
+        # payback <= 12. CPVH/LTV/payback breaches are correctable, churn is not.
+        explanation = _seed_explanation(atype, cpvh, ltv, churn, payback)
         rows.append(
             f"  ('{det_uuid(label + '-fp')}', '{det_uuid(label)}', "
             f"'{det_uuid(label + '-v1')}', {cpvh}, {ltv}, {churn}, {payback}, "

@@ -181,4 +181,16 @@ describe("ExplanationPanel (R30.4)", () => {
       screen.getByText(/No recommendation explanation is available/i),
     ).toBeInTheDocument();
   });
+
+  it("does not throw when the explanation object omits the checks key entirely", () => {
+    // Regression: the stored explanation from GET /valuation for a seeded title
+    // carries no `checks` array; the panel must degrade, not crash.
+    const noChecks = { recommendation: "GREENLIGHT" } as unknown as Explanation;
+    expect(() =>
+      render(<ExplanationPanel explanation={noChecks} />),
+    ).not.toThrow();
+    expect(
+      screen.getByText(/No recommendation explanation is available/i),
+    ).toBeInTheDocument();
+  });
 });

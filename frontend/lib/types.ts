@@ -68,11 +68,16 @@ export interface GuardrailCheck {
  * status (R30.1) plus the dominant contributing factor (R30.3).
  */
 export interface Explanation {
-  checks: GuardrailCheck[];
+  /**
+   * Per-guardrail checks (R30.1). Present on a freshly computed valuation; the
+   * stored explanation returned by `GET /valuation/{id}` for a seeded/ingested
+   * title may omit it, so consumers MUST treat it as possibly undefined.
+   */
+  checks?: GuardrailCheck[];
   /** Name of the breached check with the largest shortfall, or `null` (R30.3). */
-  dominant_factor: GuardrailName | string | null;
+  dominant_factor?: GuardrailName | string | null;
   /** `true` when a breach could not be classified as correctable (R8.4). */
-  unclassifiable: boolean;
+  unclassifiable?: boolean;
 }
 
 /**

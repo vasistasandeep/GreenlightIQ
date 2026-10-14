@@ -34,7 +34,7 @@ import {
 } from "./format";
 
 function findCheck(explanation: Explanation | null, name: string) {
-  return explanation?.checks.find((c) => c.name === name) ?? null;
+  return explanation?.checks?.find((c) => c.name === name) ?? null;
 }
 
 interface AccordionSectionProps {

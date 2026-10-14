@@ -32,7 +32,7 @@ const SAFEGUARD_BY_CHECK: Record<string, string> = {
 
 /** Derive levers from the explanation when the server did not supply them. */
 function fallbackLevers(explanation: Explanation | null): CounterProposalLever[] {
-  if (!explanation) {
+  if (!explanation || !explanation.checks) {
     return [];
   }
   return explanation.checks

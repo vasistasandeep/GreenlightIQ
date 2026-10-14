@@ -132,7 +132,7 @@ export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
         {/* Four quantitative checks */}
         <Panel title="Four Quantitative Checks">
           <div className="flex flex-col">
-            {result.explanation.checks.map((c) => (
+            {(result.explanation?.checks ?? []).map((c) => (
               <CheckRow key={c.name} check={c} />
             ))}
           </div>
