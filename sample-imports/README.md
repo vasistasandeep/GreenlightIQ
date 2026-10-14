@@ -28,12 +28,16 @@ Batch Slate** tab to bring a whole slate of titles into the pipeline in one go.
 
 1. Open the portal and go to **Asset Studio** (`/studio`).
 2. Switch to the **Batch Slate** tab.
-3. Either click **Upload a slate file** and choose `slate.csv` or `slate.json`, or open the
-   file, copy its contents, and paste them into the text box. (Uploading a `.json` file sets
-   the format to JSON automatically; `.csv` sets CSV.)
-4. Press **Ingest slate**. A spinner tracks the background job; when it finishes you will see
+3. (Optional, for your own slates) Click **Download CSV template** to get
+   `cineroi-slate-template.csv` - it carries the header row, every allowed value as a
+   `#` comment hint, and three example titles. Fill in your rows and remove the examples.
+4. Either click **Upload a slate file** and choose a `.csv`/`.json` (one of the samples
+   here, or your filled-in template), or open the file, copy its contents, and paste them
+   into the text box. (Uploading a `.json` file sets the format to JSON automatically;
+   `.csv` sets CSV.)
+5. Press **Ingest slate**. A spinner tracks the background job; when it finishes you will see
    **Accepted N, rejected M** with a reason per rejected row.
-5. Open the **Dashboard** to see the newly ingested titles in the grid.
+6. Open the **Dashboard** to see the newly ingested titles in the grid.
 
 You can also import straight from the API (same path the Batch Slate tab uses):
 

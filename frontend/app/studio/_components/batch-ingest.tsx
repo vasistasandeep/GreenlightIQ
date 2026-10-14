@@ -18,6 +18,43 @@ type Format = "csv" | "json";
 
 const POLL_MS = 1500;
 
+// Downloadable CSV template for the Batch Slate uploader. Columns and allowed
+// values mirror sample-imports/README.md ("The fields"). The leading `#` lines
+// are hints; the ingest pipeline ignores comment lines, so the file imports
+// as-is after the user fills in their own rows.
+const CSV_TEMPLATE_HINTS = [
+  "# CineROI AI - Batch Slate template. Fill in one row per title, then upload this file in Asset Studio -> Batch Slate.",
+  "# Remove these # hint lines or leave them (they are ignored on import). Keep the header row below.",
+  "# title_name            Required. The title.",
+  "# asset_type            ORIGINAL_SERIES | ORIGINAL_FILM | LICENSED_LIBRARY | CO_PRODUCTION. Blank -> LICENSED_LIBRARY.",
+  "# acquisition_cost_or_budget  Required. Native-currency amount, 0.01 .. 999999999.99.",
+  "# native_currency       USD | INR | EUR | GBP. Blank -> USD.",
+  "# target_territories    Semicolon-delimited, e.g. IN;SEA (use ; not , so it stays in one cell).",
+  "# genre_tag             Free text, e.g. cricket, drama, documentary. Drives the genre churn driver.",
+  "# content_format        live-sports | live-event | reality-competition | scripted-series | original-film | documentary | library.",
+  "# projected_viewing_hours  Optional. Estimated total hours watched; drives Cost-per-Viewing-Hour.",
+];
+const CSV_TEMPLATE_HEADER =
+  "title_name,asset_type,acquisition_cost_or_budget,native_currency,target_territories,genre_tag,content_format,projected_viewing_hours";
+const CSV_TEMPLATE_ROWS = [
+  "Bharat T20 Smash 2026,LICENSED_LIBRARY,304200000.00,INR,IN,cricket,live-sports,296000000.00",
+  "Monsoon Heirs,ORIGINAL_SERIES,52000000.00,INR,IN;SEA,drama,scripted-series,41000000.00",
+  "The Tide Keepers,ORIGINAL_FILM,34000000.00,USD,US;GB,sci-fi,original-film,9000000.00",
+];
+
+function downloadCsvTemplate() {
+  const body = [...CSV_TEMPLATE_HINTS, CSV_TEMPLATE_HEADER, ...CSV_TEMPLATE_ROWS].join("\n") + "\n";
+  const blob = new Blob([body], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cineroi-slate-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function BatchIngest() {
   const [format, setFormat] = useState<Format>("csv");
   const [content, setContent] = useState("");
@@ -110,6 +147,20 @@ export function BatchIngest() {
             {f}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-col gap-1 text-sm">
+        <span className="text-slate-400">New to the format? Start from a template</span>
+        <button
+          type="button"
+          onClick={downloadCsvTemplate}
+          className="inline-flex w-fit items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+        >
+          <span aria-hidden="true">&#8595;</span> Download CSV template
+        </button>
+        <span className="text-xs text-slate-500">
+          Includes the header row, allowed values as comment hints, and 3 example titles. Fill it in, then upload it below.
+        </span>
       </div>
 
       <label className="flex flex-col gap-1 text-sm">

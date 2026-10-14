@@ -300,7 +300,9 @@ Where titles enter the pipeline and get an instant verdict.
   auto-submitted).
 - **Batch Slate tab** - upload or paste a CSV/JSON catalog of titles in one go; it is
   processed asynchronously and returns an accepted/rejected summary with a reason per
-  rejected row.
+  rejected row. A **Download CSV template** button provides a ready-made
+  `cineroi-slate-template.csv` (header row + allowed-value comment hints + three example
+  titles) so first-time users can start from the correct shape.
 - **Instant scorecard** - the right pane renders the recommendation, the four checks, a
   metadata radar, and a payback chart, with a link to the full deep-dive.
 
