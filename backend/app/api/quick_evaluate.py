@@ -31,7 +31,7 @@ import io
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field, field_validator
@@ -71,6 +71,10 @@ class QuickEvaluateRequest(BaseModel):
     synopsis: str = Field(..., min_length=1)
     genre_tag: str | None = Field(default=None)
     projected_viewing_hours: Decimal | None = Field(default=None, ge=Decimal("0"))
+    # calculable-churn-model (R16): the unit the projected-viewing-hours value is
+    # expressed in. The handler normalizes to hours (minutes/60, seconds/3600)
+    # before valuation, so a buyer can type the figure in whatever unit they have.
+    viewing_hours_unit: Literal["hours", "minutes", "seconds"] = Field(default="hours")
     talent_pedigree_score: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("10"))
     license_duration_months: int | None = Field(default=None, ge=1)
     is_exclusive: bool = Field(default=False)
@@ -334,11 +338,15 @@ async def quick_evaluate(
     titles = TitleRepository(session)
     versions = TitleVersionRepository(session)
 
-    viewing_hours = (
-        body.projected_viewing_hours
-        if body.projected_viewing_hours is not None and body.projected_viewing_hours > 0
-        else _estimate_viewing_hours(body)
-    )
+    # Normalize the entered viewing-hours figure to hours by its unit (R16.2):
+    # minutes / 60, seconds / 3600. A blank value falls back to the estimate.
+    if body.projected_viewing_hours is not None and body.projected_viewing_hours > 0:
+        _divisor = {"hours": Decimal("1"), "minutes": Decimal("60"), "seconds": Decimal("3600")}[
+            body.viewing_hours_unit
+        ]
+        viewing_hours = body.projected_viewing_hours / _divisor
+    else:
+        viewing_hours = _estimate_viewing_hours(body)
 
     title = Title(
         title_name=body.title_name,

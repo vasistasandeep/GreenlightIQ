@@ -16,6 +16,42 @@ const ASSET_TYPES: { value: AssetType; label: string }[] = [
 
 const CURRENCIES = ["USD", "INR", "EUR", "GBP"];
 
+// Canonical genres with a churn-model weight (see the Churn_Mitigation_Model).
+// The field is an editable dropdown: a custom typed value still works and falls
+// back to the model's neutral genre weight.
+const GENRES = [
+  "Crime",
+  "Crime-Biopic",
+  "Drama",
+  "Thriller",
+  "Reality",
+  "Mystery",
+  "Sci-Fi",
+  "Fantasy",
+  "Biopic",
+  "Romance",
+  "Action",
+  "Adventure",
+  "Historical",
+  "War",
+  "Horror",
+  "Sports",
+  "Family",
+  "Animation",
+  "Anthology",
+  "Comedy",
+  "Documentary",
+  "Kids",
+  "Musical",
+  "Western",
+];
+
+const VIEWING_UNITS: { value: "hours" | "minutes" | "seconds"; label: string }[] = [
+  { value: "hours", label: "hrs" },
+  { value: "minutes", label: "min" },
+  { value: "seconds", label: "sec" },
+];
+
 const TERRITORIES = [
   { code: "IN", label: "India" },
   { code: "NA", label: "North America" },
@@ -85,6 +121,7 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
   const [synopsis, setSynopsis] = useState("");
   const [genre, setGenre] = useState("");
   const [viewingHours, setViewingHours] = useState("");
+  const [viewingUnit, setViewingUnit] = useState<"hours" | "minutes" | "seconds">("hours");
   const [pedigree, setPedigree] = useState("5.0");
   const [duration, setDuration] = useState("24");
   const [exclusive, setExclusive] = useState(true);
@@ -172,6 +209,7 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
       synopsis: synopsis.trim(),
       genre_tag: genre.trim() || null,
       projected_viewing_hours: viewingHours ? Number(viewingHours) : null,
+      viewing_hours_unit: viewingUnit,
       talent_pedigree_score: pedigree ? Number(pedigree) : null,
       license_duration_months: duration ? Number(duration) : null,
       is_exclusive: exclusive,
@@ -267,13 +305,24 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="f-genre" className={labelCls}>Genre &amp; Tags</label>
-          <input id="f-genre" className={fieldCls} value={genre}
-            onChange={(e) => setGenre(e.target.value)} placeholder="Crime-Noir" />
+          <input id="f-genre" className={fieldCls} value={genre} list="genre-options"
+            onChange={(e) => setGenre(e.target.value)} placeholder="Crime" />
+          <datalist id="genre-options">
+            {GENRES.map((g) => <option key={g} value={g} />)}
+          </datalist>
         </div>
         <div>
-          <label htmlFor="f-hours" className={labelCls}>Viewing Hours (opt.)</label>
-          <input id="f-hours" className={fieldCls} inputMode="decimal" value={viewingHours}
-            onChange={(e) => setViewingHours(e.target.value)} placeholder="estimated" />
+          <label htmlFor="f-hours" className={labelCls}>Viewing (opt.)</label>
+          <div className="flex gap-2">
+            <input id="f-hours" className={fieldCls} inputMode="decimal" value={viewingHours}
+              onChange={(e) => setViewingHours(e.target.value)} placeholder="estimated"
+              aria-label="Projected viewing figure" />
+            <select className={cn(fieldCls, "w-20")} value={viewingUnit}
+              onChange={(e) => setViewingUnit(e.target.value as "hours" | "minutes" | "seconds")}
+              aria-label="Viewing unit">
+              {VIEWING_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 

@@ -118,6 +118,10 @@ def _churn_model_params_json() -> dict:
         "telemetry_weight": str(p.telemetry_weight),
         "min_churn": str(p.min_churn),
         "max_churn": str(p.max_churn),
+        # Genre driver + neutral defaults (calculable-churn-model Addendum A).
+        "genre_offsets": {k: str(v) for k, v in p.genre_offsets.items()},
+        "genre_default": str(p.genre_default),
+        "telemetry_neutral": str(p.telemetry_neutral),
     }
 
 
@@ -306,6 +310,7 @@ def _title_churn_result(label: str, atype: str, genre: str, territories: list[st
         production_scale=Decimal(scale),
         is_exclusive=_EXCLUSIVE_BY_TITLE.get(label, False),
         telemetry_heat=_telemetry_heat(genre, territories),
+        genre=genre,
     )
     return calculate_churn_mitigation(
         features, DEFAULT_CHURN_MODEL_PARAMS, "MODEL_VERSION"
@@ -454,8 +459,8 @@ def _self_check() -> None:
     tolerances = {
         # label: (low, high) inclusive bounds the computed churn must fall in
         "title-aurora": (Decimal("2.06"), Decimal("2.15")),
-        "title-echoes": (Decimal("1.95"), Decimal("2.05")),
-        "title-monsoon": (Decimal("1.75"), Decimal("1.85")),
+        "title-echoes": (Decimal("1.94"), Decimal("2.04")),
+        "title-monsoon": (Decimal("1.74"), Decimal("1.84")),
         "title-ledger": (Decimal("1.60"), Decimal("1.65")),
         "title-reruns": (Decimal("0.80"), Decimal("0.90")),
     }

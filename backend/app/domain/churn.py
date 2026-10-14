@@ -10,6 +10,7 @@ percentage is the additive sum of per-feature contributions:
   + scale_weight     * production scale     (score clamped to [0, 10])
   + exclusivity_lift  (when the title is exclusive, else 0)
   + telemetry_weight * Telemetry_Heat       (heat clamped to [0, 100])
+  + genre weight      (per-genre, else a neutral default)
 
 Every point of a calculated result is traceable to a feature via the ordered
 :class:`ChurnContribution` breakdown; a single ``bounds_adjustment`` entry
@@ -17,6 +18,12 @@ absorbs the clamp delta and any quantization residual so the breakdown always
 conserves to the final value at 2 dp. An explicitly supplied finite value
 overrides the calculation exactly (SUPPLIED), and values within +/- 0.05 of the
 1.5 percent hurdle are flagged borderline.
+
+Two features degrade gracefully rather than scoring zero (which would penalize a
+data gap): a missing Telemetry_Heat uses a neutral mid-value, and an unknown or
+absent genre uses a neutral default weight. Both are reported in
+``assumed_features`` (distinct from ``missing_features``, which is reserved for
+pedigree / production scale / asset type that genuinely contribute 0 when absent).
 
 The coefficients in :data:`DEFAULT_CHURN_MODEL_PARAMS` are Illustrative_Coefficients:
 tuned to the five demo titles, not fitted to real subscriber-outcome data.
@@ -30,7 +37,7 @@ application framework.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 __all__ = [
@@ -38,11 +45,15 @@ __all__ = [
     "BORDERLINE_BAND",
     "MIN_CHURN",
     "MAX_CHURN",
+    "DEFAULT_GENRE_OFFSETS",
+    "DEFAULT_GENRE_WEIGHT",
+    "DEFAULT_TELEMETRY_NEUTRAL",
     "DEFAULT_CHURN_MODEL_PARAMS",
     "ChurnModelParams",
     "ChurnFeatures",
     "ChurnContribution",
     "ChurnResult",
+    "normalize_genre",
     "is_borderline",
     "coerce_supplied",
     "parse_params",
@@ -72,11 +83,70 @@ _ASSET_TYPES = (
     "LICENSED_LIBRARY",
 )
 
+# Canonical per-genre churn weights (retention propensity, pct points). Keys are
+# normalized (lowercased, spaces/underscores -> hyphen). Serialized / returning
+# formats (crime, drama, thriller, reality) retain subscribers more than
+# one-and-done formats (documentary, kids, musical), so they weigh more. These
+# are Illustrative_Coefficients tuned to the demo, not fitted to real data.
+DEFAULT_GENRE_OFFSETS: Mapping[str, Decimal] = {
+    "crime": Decimal("0.18"),
+    "crime-biopic": Decimal("0.17"),
+    "drama": Decimal("0.15"),
+    "thriller": Decimal("0.15"),
+    "reality": Decimal("0.15"),
+    "mystery": Decimal("0.14"),
+    "sci-fi": Decimal("0.12"),
+    "fantasy": Decimal("0.12"),
+    "biopic": Decimal("0.11"),
+    "romance": Decimal("0.10"),
+    "action": Decimal("0.10"),
+    "adventure": Decimal("0.09"),
+    "historical": Decimal("0.09"),
+    "war": Decimal("0.09"),
+    "horror": Decimal("0.08"),
+    "sports": Decimal("0.08"),
+    "family": Decimal("0.07"),
+    "animation": Decimal("0.07"),
+    "anthology": Decimal("0.07"),
+    "comedy": Decimal("0.05"),
+    "documentary": Decimal("0.05"),
+    "kids": Decimal("0.05"),
+    "musical": Decimal("0.05"),
+    "western": Decimal("0.05"),
+}
+
+# Neutral genre weight for an unknown / absent genre (mid of the range, not 0 and
+# not the max), so a title in an unseeded genre still gets a rational score.
+DEFAULT_GENRE_WEIGHT = Decimal("0.10")
+
+# Neutral Telemetry_Heat (0-100 scale) used when no cached reading exists, so a
+# data gap does not score as zero buzz.
+DEFAULT_TELEMETRY_NEUTRAL = Decimal("50")
+
 _SOURCE_MODEL_VERSION = "MODEL_VERSION"
 _SOURCE_DEFAULTS = "DEFAULTS"
 
 _METHOD_CALCULATED = "CALCULATED"
 _METHOD_SUPPLIED = "SUPPLIED"
+
+
+def normalize_genre(genre: str | None) -> str | None:
+    """Normalize a genre label to its lookup key (lowercased, trimmed, hyphenated).
+
+    Spaces and underscores collapse to a single hyphen so "Crime Biopic",
+    "crime_biopic", and "crime-biopic" all map to the same key. Returns ``None``
+    for a blank/absent genre.
+    """
+    if genre is None:
+        return None
+    text = genre.strip().lower()
+    if not text:
+        return None
+    for sep in (" ", "_"):
+        text = text.replace(sep, "-")
+    while "--" in text:
+        text = text.replace("--", "-")
+    return text or None
 
 
 @dataclass(frozen=True)
@@ -92,22 +162,28 @@ class ChurnModelParams:
     telemetry_weight: Decimal
     min_churn: Decimal
     max_churn: Decimal
+    genre_offsets: Mapping[str, Decimal] = field(default_factory=dict)
+    genre_default: Decimal = DEFAULT_GENRE_WEIGHT
+    telemetry_neutral: Decimal = DEFAULT_TELEMETRY_NEUTRAL
 
 
 @dataclass(frozen=True)
 class ChurnFeatures:
     """A title's observable features fed to the model.
 
-    A ``None`` numeric feature is treated as missing (contributes 0). An unknown
-    or ``None`` ``asset_type`` yields a zero asset offset. ``is_exclusive`` is a
-    plain bool: unknown exclusivity is represented as ``False`` by the caller.
+    A ``None`` numeric feature (pedigree / production scale) is treated as
+    missing (contributes 0). An unknown or ``None`` ``asset_type`` yields a zero
+    asset offset. ``is_exclusive`` is a plain bool. ``telemetry_heat`` of ``None``
+    uses the neutral default (not 0). ``genre`` of ``None`` / unknown uses the
+    neutral genre default.
     """
 
     asset_type: str | None
     pedigree: Decimal | None
     production_scale: Decimal | None
     is_exclusive: bool
-    telemetry_heat: Decimal | None  # 0-100 scale; None -> missing
+    telemetry_heat: Decimal | None  # 0-100 scale; None -> neutral default
+    genre: str | None = None  # unknown/absent -> neutral genre default
 
 
 @dataclass(frozen=True)
@@ -132,14 +208,15 @@ class ChurnResult:
     missing_features: tuple[str, ...]
     params_source: str  # "MODEL_VERSION" | "DEFAULTS"
     unclamped: Decimal | None  # pre-clamp calculated value (None when SUPPLIED)
+    assumed_features: tuple[str, ...] = ()  # used a neutral default (not a real reading)
 
 
 DEFAULT_CHURN_MODEL_PARAMS = ChurnModelParams(
-    intercept=Decimal("0.15"),
+    intercept=Decimal("0.03"),
     asset_offsets={
         "ORIGINAL_SERIES": Decimal("0.35"),
         "CO_PRODUCTION": Decimal("0.45"),
-        "ORIGINAL_FILM": Decimal("0.20"),
+        "ORIGINAL_FILM": Decimal("0.15"),
         "LICENSED_LIBRARY": Decimal("0.00"),
     },
     pedigree_weight=Decimal("0.09"),
@@ -148,6 +225,9 @@ DEFAULT_CHURN_MODEL_PARAMS = ChurnModelParams(
     telemetry_weight=Decimal("0.005"),
     min_churn=MIN_CHURN,
     max_churn=MAX_CHURN,
+    genre_offsets=DEFAULT_GENRE_OFFSETS,
+    genre_default=DEFAULT_GENRE_WEIGHT,
+    telemetry_neutral=DEFAULT_TELEMETRY_NEUTRAL,
 )
 
 
@@ -200,15 +280,44 @@ def _coerce_param(raw: object) -> Decimal | None:
     return value
 
 
+def _parse_genre_offsets(raw: object) -> Mapping[str, Decimal] | None:
+    """Parse a genre_offsets mapping of non-negative Decimals, else ``None``.
+
+    An absent mapping is tolerated by the caller (falls back to defaults). A
+    present-but-malformed mapping (non-mapping, or any negative/non-numeric
+    weight) is rejected so the whole param set falls back to defaults.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        return _REJECT  # type: ignore[return-value]
+    offsets: dict[str, Decimal] = {}
+    for key, value in raw.items():
+        weight = _coerce_param(value)
+        if weight is None:
+            return _REJECT  # type: ignore[return-value]
+        norm = normalize_genre(str(key))
+        if norm is not None:
+            offsets[norm] = weight
+    return offsets
+
+
+# Sentinel distinguishing "absent" (use defaults) from "present but invalid"
+# (reject the whole param block) for genre_offsets.
+_REJECT: Mapping[str, Decimal] = {"__reject__": Decimal("-1")}
+
+
 def parse_params(raw: Mapping | None) -> tuple[ChurnModelParams, str]:
     """Parse a ``churn_model`` mapping into (:class:`ChurnModelParams`, source).
 
     Returns ``(params, "MODEL_VERSION")`` on a valid parse, else
     ``(DEFAULT_CHURN_MODEL_PARAMS, "DEFAULTS")`` (R3.2). A valid parse requires
-    the intercept, all four asset offsets, and every weight to coerce to finite
-    non-negative Decimals, and the bounds to be finite with
-    ``min_churn <= max_churn``. Any failure or any negative value falls back to
-    the defaults. Never raises.
+    the intercept, all four asset offsets, and every scalar weight to coerce to
+    finite non-negative Decimals, and the bounds to be finite with
+    ``min_churn <= max_churn``. The genre fields and telemetry_neutral are
+    optional: when absent they fall back to the built-in defaults; when present
+    they must be valid (non-negative), else the whole block falls back. Never
+    raises.
     """
     if not isinstance(raw, Mapping):
         return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
@@ -249,6 +358,28 @@ def parse_params(raw: Mapping | None) -> tuple[ChurnModelParams, str]:
             return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
         offsets[asset_type] = offset
 
+    # Optional genre offsets: absent -> defaults; present-invalid -> reject.
+    genre_offsets = _parse_genre_offsets(raw.get("genre_offsets"))
+    if genre_offsets is _REJECT:
+        return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
+    if genre_offsets is None:
+        genre_offsets = DEFAULT_GENRE_OFFSETS
+
+    # Optional neutral defaults: absent -> built-in; present must be valid.
+    if "genre_default" in raw:
+        genre_default = _coerce_param(raw.get("genre_default"))
+        if genre_default is None:
+            return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
+    else:
+        genre_default = DEFAULT_GENRE_WEIGHT
+
+    if "telemetry_neutral" in raw:
+        telemetry_neutral = _coerce_param(raw.get("telemetry_neutral"))
+        if telemetry_neutral is None:
+            return DEFAULT_CHURN_MODEL_PARAMS, _SOURCE_DEFAULTS
+    else:
+        telemetry_neutral = DEFAULT_TELEMETRY_NEUTRAL
+
     params = ChurnModelParams(
         intercept=intercept,  # type: ignore[arg-type]
         asset_offsets=offsets,
@@ -258,6 +389,9 @@ def parse_params(raw: Mapping | None) -> tuple[ChurnModelParams, str]:
         telemetry_weight=telemetry_weight,  # type: ignore[arg-type]
         min_churn=min_churn,  # type: ignore[arg-type]
         max_churn=max_churn,  # type: ignore[arg-type]
+        genre_offsets=genre_offsets,
+        genre_default=genre_default,  # type: ignore[arg-type]
+        telemetry_neutral=telemetry_neutral,  # type: ignore[arg-type]
     )
     return params, _SOURCE_MODEL_VERSION
 
@@ -281,21 +415,22 @@ def calculate_churn_mitigation(
     params: ChurnModelParams,
     params_source: str = _SOURCE_DEFAULTS,
 ) -> ChurnResult:
-    """Compute the additive churn-reduction percentage from ``features`` (R1, R2).
+    """Compute the additive churn-reduction percentage from ``features`` (R1, R2, R14, R15).
 
     Numeric feature domains are clamped before use (pedigree/scale to [0, 10],
-    heat to [0, 100]); a ``None`` numeric feature contributes 0 and is recorded
-    in ``missing_features``. An unknown/``None`` asset type yields a zero offset
-    and adds ``"asset_type"`` to ``missing_features``. Each contribution is
-    computed at full precision then quantized to 2 dp half-up. The result is
-    clamped to the parameter bounds and rounded; a ``bounds_adjustment`` entry
-    (included only when nonzero) absorbs the clamp delta and quantization
-    residual so the breakdown sums exactly to the final value (R1.8).
-
-    ``params_source`` is attached verbatim to the result; callers that resolve
-    params via :func:`parse_params` pass the source through.
+    heat to [0, 100]). A ``None`` pedigree/production-scale contributes 0 and is
+    recorded in ``missing_features``; an unknown/``None`` asset type yields a
+    zero offset and adds ``"asset_type"`` to ``missing_features``. A ``None``
+    telemetry heat uses ``params.telemetry_neutral`` (R15) and an unknown/absent
+    genre uses ``params.genre_default`` (R14.3); both are recorded in
+    ``assumed_features`` (they still contribute, just from a neutral default).
+    Each contribution is computed at full precision then quantized to 2 dp
+    half-up. The result is clamped to the parameter bounds and rounded; a
+    ``bounds_adjustment`` entry (only when nonzero) absorbs the clamp delta and
+    quantization residual so the breakdown sums exactly to the final value (R1.8).
     """
     missing: list[str] = []
+    assumed: list[str] = []
 
     # Base platform rate (intercept).
     base_full = params.intercept
@@ -341,18 +476,35 @@ def calculate_churn_mitigation(
         excl_input = Decimal("0")
     excl_points = _quantize(excl_full)
 
-    # Market telemetry heat.
+    # Market telemetry heat: a missing reading uses the neutral default (R15).
     if features.telemetry_heat is None or not features.telemetry_heat.is_finite():
-        heat_input: Decimal | None = None
-        heat_full = Decimal("0")
-        missing.append("telemetry_heat")
+        heat_input = _clamp(params.telemetry_neutral, _HEAT_MIN, _HEAT_MAX)
+        heat_full = params.telemetry_weight * heat_input
+        assumed.append("telemetry_heat")
     else:
         heat_input = _clamp(features.telemetry_heat, _HEAT_MIN, _HEAT_MAX)
         heat_full = params.telemetry_weight * heat_input
     heat_points = _quantize(heat_full)
 
+    # Genre affinity: unknown/absent genre uses the neutral default (R14.3).
+    norm_genre = normalize_genre(features.genre)
+    if norm_genre is not None and norm_genre in params.genre_offsets:
+        genre_full = params.genre_offsets[norm_genre]
+        genre_input: Decimal | None = genre_full
+    else:
+        genre_full = params.genre_default
+        genre_input = genre_full
+        assumed.append("genre")
+    genre_points = _quantize(genre_full)
+
     unclamped = (
-        base_full + offset_full + pedigree_full + scale_full + excl_full + heat_full
+        base_full
+        + offset_full
+        + pedigree_full
+        + scale_full
+        + excl_full
+        + heat_full
+        + genre_full
     )
     clamped = _clamp(unclamped, params.min_churn, params.max_churn)
     final = _quantize(clamped)
@@ -364,6 +516,7 @@ def calculate_churn_mitigation(
         + scale_points
         + excl_points
         + heat_points
+        + genre_points
     )
     bounds_adjustment = final - feature_points_sum
 
@@ -410,6 +563,13 @@ def calculate_churn_mitigation(
             coefficient=params.telemetry_weight,
             points=heat_points,
         ),
+        ChurnContribution(
+            key="genre_affinity",
+            label="Genre Affinity",
+            input=genre_input,
+            coefficient=None,
+            points=genre_points,
+        ),
     ]
 
     if bounds_adjustment != 0:
@@ -431,6 +591,7 @@ def calculate_churn_mitigation(
         missing_features=tuple(missing),
         params_source=params_source,
         unclamped=unclamped,
+        assumed_features=tuple(assumed),
     )
 
 
@@ -458,5 +619,6 @@ def resolve_churn(
             missing_features=(),
             params_source=params_source,
             unclamped=None,
+            assumed_features=(),
         )
     return calculate_churn_mitigation(features, params, params_source)

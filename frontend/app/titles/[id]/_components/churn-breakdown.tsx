@@ -31,7 +31,18 @@ const FEATURE_ROWS: { key: string; label: string }[] = [
   { key: "production_scale_contribution", label: "Production Scale Contribution" },
   { key: "exclusivity_lift", label: "Exclusivity Lift" },
   { key: "market_telemetry_heat", label: "Market Telemetry Heat" },
+  { key: "genre_affinity", label: "Genre Affinity" },
 ];
+
+/**
+ * Breakdown keys that an `assumed_features` entry can refer to. An assumed
+ * feature used a neutral default (no real reading) rather than being missing:
+ * a missing market-telemetry reading, or an unknown/absent genre (R14.3, R15.2).
+ */
+const ASSUMED_FEATURE_ALIASES: Record<string, string[]> = {
+  market_telemetry_heat: ["telemetry_heat"],
+  genre_affinity: ["genre"],
+};
 
 /**
  * Breakdown keys that a `missing_features` entry can refer to. A feature may be
@@ -81,10 +92,16 @@ export function ChurnBreakdown({ churnModel }: ChurnBreakdownProps) {
     churnModel.churn_method === "SUPPLIED" || churnModel.churn_breakdown == null;
   const breakdown = churnModel.churn_breakdown ?? {};
   const missing = new Set(churnModel.missing_features ?? []);
+  const assumed = new Set(churnModel.assumed_features ?? []);
 
   function isMissing(key: string): boolean {
     const aliases = MISSING_FEATURE_ALIASES[key] ?? [];
     return aliases.some((alias) => missing.has(alias));
+  }
+
+  function isAssumed(key: string): boolean {
+    const aliases = ASSUMED_FEATURE_ALIASES[key] ?? [];
+    return aliases.some((alias) => assumed.has(alias));
   }
 
   const showBoundsRow =
@@ -131,6 +148,9 @@ export function ChurnBreakdown({ churnModel }: ChurnBreakdownProps) {
             <tbody>
               {FEATURE_ROWS.map(({ key, label }) => {
                 const missingRow = isMissing(key);
+                // "Assumed" means a neutral default was used (no real reading),
+                // distinct from "unavailable" (missing -> contributes 0).
+                const assumedRow = !missingRow && isAssumed(key);
                 const value = missingRow ? "0.00" : breakdown[key];
                 return (
                   <tr key={key} className="border-b last:border-b-0">
@@ -142,6 +162,13 @@ export function ChurnBreakdown({ churnModel }: ChurnBreakdownProps) {
                       {missingRow ? (
                         <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                           unavailable
+                        </span>
+                      ) : null}
+                      {assumedRow ? (
+                        <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          {key === "genre_affinity"
+                            ? "neutral (unlisted genre)"
+                            : "neutral (no market data)"}
                         </span>
                       ) : null}
                     </th>

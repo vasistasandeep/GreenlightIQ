@@ -23,13 +23,15 @@ function calculatedModel(overrides: Partial<ChurnModel> = {}): ChurnModel {
     model_version_id: "mv-1",
     missing_features: [],
     churn_breakdown: {
-      base_platform_rate: "0.15",
+      base_platform_rate: "0.03",
       asset_cadence: "0.35",
       talent_pedigree_contribution: "0.77",
       production_scale_contribution: "0.27",
       exclusivity_lift: "0.25",
       market_telemetry_heat: "0.33",
+      genre_affinity: "0.15",
     },
+    assumed_features: [],
     ...overrides,
   };
 }
@@ -46,12 +48,13 @@ describe("ChurnBreakdown (R10)", () => {
 
     const table = screen.getByRole("table");
     const rows: [string, string][] = [
-      ["Base Platform Rate", "+0.15"],
+      ["Base Platform Rate", "+0.03"],
       ["Asset Cadence", "+0.35"],
       ["Talent Pedigree Contribution", "+0.77"],
       ["Production Scale Contribution", "+0.27"],
       ["Exclusivity Lift", "+0.25"],
       ["Market Telemetry Heat", "+0.33"],
+      ["Genre Affinity", "+0.15"],
     ];
     for (const [label, points] of rows) {
       const row = within(table).getByText(label).closest("tr")!;
@@ -152,6 +155,44 @@ describe("ChurnBreakdown (R10)", () => {
     );
     await openDisclosure();
     expect(screen.getByText(BORDERLINE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it("tags a neutral-telemetry row 'neutral (no market data)' not 'unavailable' (R15.2)", async () => {
+    render(
+      <ChurnBreakdown
+        churnModel={calculatedModel({
+          assumed_features: ["telemetry_heat"],
+          churn_breakdown: {
+            ...calculatedModel().churn_breakdown!,
+            market_telemetry_heat: "0.25",
+          },
+        })}
+      />,
+    );
+    await openDisclosure();
+    const table = screen.getByRole("table");
+    const row = within(table).getByText("Market Telemetry Heat").closest("tr")!;
+    expect(within(row).getByText(/neutral \(no market data\)/i)).toBeInTheDocument();
+    expect(within(row).queryByText("unavailable")).not.toBeInTheDocument();
+    expect(within(row).getByText("+0.25")).toBeInTheDocument();
+  });
+
+  it("tags an unlisted-genre row 'neutral (unlisted genre)' (R14.3)", async () => {
+    render(
+      <ChurnBreakdown
+        churnModel={calculatedModel({
+          assumed_features: ["genre"],
+          churn_breakdown: {
+            ...calculatedModel().churn_breakdown!,
+            genre_affinity: "0.10",
+          },
+        })}
+      />,
+    );
+    await openDisclosure();
+    const table = screen.getByRole("table");
+    const row = within(table).getByText("Genre Affinity").closest("tr")!;
+    expect(within(row).getByText(/neutral \(unlisted genre\)/i)).toBeInTheDocument();
   });
 
   it("renders nothing when churnModel is null or undefined (R7.6)", () => {

@@ -152,23 +152,23 @@ The waves below group tasks that can proceed in parallel once their dependencies
 
 ## Tasks (Addendum A: genre driver, neutral telemetry, viewing-hours units)
 
-- [ ] 18. Extend the churn domain: genre driver + neutral telemetry
+- [x] 18. Extend the churn domain: genre driver + neutral telemetry
   - In `backend/app/domain/churn.py`: add `genre_offsets: Mapping[str, Decimal]`, `genre_default: Decimal`, and `telemetry_neutral: Decimal` to `ChurnModelParams`; add `genre: str | None` to `ChurnFeatures`; add `assumed_features: tuple[str, ...]` to `ChurnResult`. Add a `genre_affinity` contribution to the additive sum (genre key normalized lowercased/trimmed; unknown/absent -> `genre_default`, listed in `assumed_features`). When `telemetry_heat is None`, use `telemetry_neutral` (default 50) for the contribution and list `telemetry_heat` in `assumed_features` (not `missing_features`). Update `DEFAULT_CHURN_MODEL_PARAMS` to the re-tuned values (intercept 0.03, ORIGINAL_FILM offset 0.15, genre table + genre_default 0.10 + telemetry_neutral 50). Extend `parse_params` to validate the new fields (missing -> built-in defaults). Keep `bounds_adjustment` conservation exact.
   - _Requirements: 14.1, 14.2, 14.3, 15.1, 15.2_
 
-- [ ] 19. Update churn property + seed-regression tests for the new drivers
+- [x] 19. Update churn property + seed-regression tests for the new drivers
   - Extend `tests/domain/test_churn_properties.py`: genre monotonicity (a higher genre weight never decreases churn), neutral-telemetry (None heat -> telemetry_neutral contribution and `telemetry_heat` in assumed_features, not missing), conservation still exact with the genre row, and parse_params fallback for genre_offsets/genre_default/telemetry_neutral. Update `tests/domain/test_seed_churn_regression.py` to the new tolerances (Aurora 2.11, Echoes 1.99, Monsoon 1.79, Ledger 1.60, Reruns 0.81) keeping the 3/1/1 verdict split.
   - _Requirements: 14.4, 15.3, 13.1, 13.2_
 
-- [ ] 20. Engine + provider + explanation wiring for genre and assumed features
+- [x] 20. Engine + provider + explanation wiring for genre and assumed features
   - In `backend/app/engines/guardrails.py`: resolve the genre feature (title.genre_tag, else snapshot) into `ChurnFeatures.genre`; keep the telemetry resolver returning `None` when no reading (the neutral substitution lives in the pure model). Extend `_churn_model_json` to emit the `genre_affinity` breakdown row and an `assumed_features` array; the market-telemetry row carries the neutral input when assumed. In `app/api/deps.py` `SnapshotValuationInputProvider`, surface the genre if needed. Update `tests/engines/test_churn_resolution.py` for the genre row, the neutral-telemetry assumed case, and the new seeded values. Keep the full backend suite green.
   - _Requirements: 14.1, 14.6, 15.1, 15.2, 7.2_
 
-- [ ] 21. Quick-evaluate genre + viewing-hours units; regenerate seed
+- [x] 21. Quick-evaluate genre + viewing-hours units; regenerate seed
   - In `backend/app/api/quick_evaluate.py`: add `viewing_hours_unit: Literal["hours","minutes","seconds"] = "hours"` and normalize `projected_viewing_hours` to hours before use; pass the title genre into the churn feature path (snapshot carries genre_tag already via the title). In `database/seed/generate_seed_sql.py`: import the updated defaults (self-check asserts no drift), embed `genre_offsets`/`genre_default`/`telemetry_neutral`, recompute the five churns, and add `genre_affinity`/`assumed_features` to the seeded explanation. Regenerate `02_seed_data.sql`; `--check` must pass.
   - _Requirements: 16.1, 16.2, 16.3, 14.1, 9.1, 9.5, 9.6_
 
-- [ ] 22. Frontend: genre dropdown, viewing-hours unit, breakdown rows, docs
+- [x] 22. Frontend: genre dropdown, viewing-hours unit, breakdown rows, docs
   - `frontend/app/studio` form: replace the free-text genre input with an editable dropdown of the canonical genres (datalist or select-with-custom), and add a unit `<select>` (hours/minutes/seconds) beside viewing hours. `churn-breakdown.tsx`: render the `genre_affinity` row and label a neutral-telemetry row "neutral (no market data)" using the `assumed_features` list (vs "unavailable" for truly missing). Update `lib/types.ts` ChurnModel with `assumed_features`. Update docs (Calculations Reference, Knowledge Base, guide) with the genre driver, neutral-telemetry rule, viewing-hours units, and the new five churn numbers. Run frontend typecheck/lint/vitest and the full backend suite; rebuild + verify Scam-1992-style title now GREENLIGHTs.
   - _Requirements: 14.5, 14.6, 15.2, 16.1, 12.1, 12.2, 12.3_
 

@@ -82,6 +82,12 @@ export interface ChurnModel {
   /** Feature keys that were missing and contributed zero (R2, R10.4). */
   missing_features?: string[];
   /**
+   * Feature keys that used a neutral default rather than a real reading: a
+   * missing market-telemetry reading or an unknown/absent genre (R14.3, R15.2).
+   * Distinct from `missing_features` (which score zero).
+   */
+  assumed_features?: string[];
+  /**
    * Per-feature contributions keyed by feature name (points as JSON strings).
    * `null` for a SUPPLIED result or a scaled what-if scenario (R10.3).
    */
@@ -476,6 +482,8 @@ export interface QuickEvaluateRequest {
   synopsis: string;
   genre_tag?: string | null;
   projected_viewing_hours?: number | null;
+  /** Unit the viewing-hours value is in; the backend normalizes to hours (R16). */
+  viewing_hours_unit?: "hours" | "minutes" | "seconds";
   talent_pedigree_score?: number | null;
   license_duration_months?: number | null;
   is_exclusive: boolean;

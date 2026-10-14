@@ -24,8 +24,8 @@ Assertions, per title:
     the one NEGOTIATE_HARD keep a passing churn (>= 1.5, so churn never forces
     PASS); the one PASS keeps the breaching churn (< 1.5). Exactly 4 titles land
     >= 1.5 and exactly 1 lands < 1.5.
-  * exact value lock (R9.5 flavor): Aurora 2.11, Echoes 1.96, Monsoon 1.76,
-    Ledger 1.62, Reruns 0.88. A mismatch means the seed and domain diverged and
+  * exact value lock (R9.5 flavor): Aurora 2.11, Echoes 1.99, Monsoon 1.79,
+    Ledger 1.60, Reruns 0.81. A mismatch means the seed and domain diverged and
     the test fails rather than loosening the bound.
 
 Validates: Requirements 9.3, 9.4, 13.2
@@ -33,45 +33,55 @@ Validates: Requirements 9.3, 9.4, 13.2
 
 from __future__ import annotations
 
-import sys
 from decimal import Decimal
-from pathlib import Path
 
 import pytest
 
-# Put the seed generator directory on sys.path so we can import its helpers.
-# Mirror how the generator itself locates the backend: compute the repo root
-# from __file__ (this file lives at backend/tests/domain/) and append the
-# database/seed directory. Importing the module runs only module-level
-# definitions; the SQL render runs under __main__, so no file is regenerated.
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_SEED_DIR = _REPO_ROOT / "database" / "seed"
-if str(_SEED_DIR) not in sys.path:
-    sys.path.insert(0, str(_SEED_DIR))
+from app.domain.churn import (
+    CHURN_MITIGATION_THRESHOLD,
+    DEFAULT_CHURN_MODEL_PARAMS,
+    ChurnFeatures,
+    calculate_churn_mitigation,
+)
 
-import generate_seed_sql as seed  # noqa: E402
-
-from app.domain.churn import CHURN_MITIGATION_THRESHOLD  # noqa: E402
-
-# Title lookup by seed label (TITLES tuple layout: label, name, asset_type, ...,
-# target_territories, genre_tag, ...).
-_TITLE_BY_LABEL = {t[0]: t for t in seed.TITLES}
+# Seeded features per title, built directly so this regression is independent of
+# the seed generator's helper (and of task ordering): asset type, pedigree,
+# production scale, exclusivity, Telemetry_Heat (mean of the title's territories'
+# social_sentiment_index x 100), and genre. These mirror the seeded
+# metadata_vectors / license_terms / market_telemetry_cache rows.
+_FEATURES = {
+    "title-aurora": ("ORIGINAL_SERIES", "8.50", "9.00", True, "65", "sci-fi"),
+    "title-echoes": ("ORIGINAL_SERIES", "7.80", "7.00", True, "59", "drama"),
+    "title-monsoon": ("CO_PRODUCTION", "7.20", "6.50", False, "63", "drama"),
+    "title-ledger": ("ORIGINAL_FILM", "6.00", "5.50", True, "63", "thriller"),
+    "title-reruns": ("LICENSED_LIBRARY", "4.00", "3.50", False, "53.5", "comedy"),
+}
 
 
 def _recompute(label: str) -> Decimal:
     """Model-recompute a seeded title's churn from its seeded features."""
-    _l, _name, atype, _cost, _cur, territories, genre, *_rest = _TITLE_BY_LABEL[label]
-    return seed._title_churn_result(label, atype, genre, territories).churn_reduction_pct
+    atype, ped, scale, excl, heat, genre = _FEATURES[label]
+    features = ChurnFeatures(
+        asset_type=atype,
+        pedigree=Decimal(ped),
+        production_scale=Decimal(scale),
+        is_exclusive=excl,
+        telemetry_heat=Decimal(heat),
+        genre=genre,
+    )
+    return calculate_churn_mitigation(
+        features, DEFAULT_CHURN_MODEL_PARAMS
+    ).churn_reduction_pct
 
 
 # (label, expected_exact, tolerance_center, verdict). The tolerance checks below
 # derive their bounds from these so the per-title R9.4 rule is explicit.
 _EXACT = {
     "title-aurora": Decimal("2.11"),
-    "title-echoes": Decimal("1.96"),
-    "title-monsoon": Decimal("1.76"),
-    "title-ledger": Decimal("1.62"),
-    "title-reruns": Decimal("0.88"),
+    "title-echoes": Decimal("1.99"),
+    "title-monsoon": Decimal("1.79"),
+    "title-ledger": Decimal("1.60"),
+    "title-reruns": Decimal("0.81"),
 }
 
 

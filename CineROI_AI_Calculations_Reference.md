@@ -181,15 +181,25 @@ is used exactly). The math lives in the pure domain module `backend/app/domain/c
 is covered by property-based tests.
 
 - **Additive formula (CALCULATED path):**
-  `churn% = intercept + asset_offset + pedigree_weight x pedigree + scale_weight x production_scale + exclusivity_lift (if exclusive) + telemetry_weight x telemetry_heat`
+  `churn% = intercept + asset_offset + pedigree_weight x pedigree + scale_weight x production_scale + exclusivity_lift (if exclusive) + telemetry_weight x telemetry_heat + genre_weight`
   then **clamped to [0.10, 5.00]** and rounded to **2 decimals HALF_UP**. All feature weights
   are non-negative.
 - Each numeric feature is first clamped to its valid domain: pedigree and production scale to
   `[0, 10]`, telemetry heat to `[0, 100]`.
 - `telemetry_heat` is the mean, over the title's target territories that have a cached reading
   for the title's genre, of `social_sentiment_index x 100` (converting the stored 0-1 index to
-  a 0-100 scale), rounded to 2 dp HALF_UP. Territories with no reading are excluded; a title
-  with no readings at all has a missing telemetry heat.
+  a 0-100 scale), rounded to 2 dp HALF_UP. Territories with no reading are excluded. When a
+  title has NO reading at all, the model uses a **neutral default of 50** (not 0) so a data gap
+  does not unfairly push the title toward a PASS; the feature is reported as *assumed* (neutral),
+  distinct from a genuinely missing feature.
+- `genre_weight` is a per-genre coefficient (serialized/returning formats such as crime, drama,
+  thriller, reality retain subscribers more than one-and-done formats such as documentary, kids,
+  musical). An unknown or absent genre uses a **neutral default of 0.10** and is reported as
+  *assumed*. The weights are stored under `guardrail_params["churn_model"]["genre_offsets"]`.
+- Default coefficients: `intercept 0.03`; asset offsets ORIGINAL_SERIES 0.35 / CO_PRODUCTION 0.45
+  / ORIGINAL_FILM 0.15 / LICENSED_LIBRARY 0.00; `pedigree_weight 0.09`; `scale_weight 0.03`;
+  `exclusivity_lift 0.25`; `telemetry_weight 0.005`; `genre_default 0.10`; `telemetry_neutral 50`.
+  These are Illustrative_Coefficients tuned to the five demo titles, not fitted to real data.
 
 > **Illustrative coefficients.** The default coefficients below are *tuned to the five demo
 > titles, not fitted to real subscriber-outcome data.* They are deliberately simple and
@@ -254,9 +264,9 @@ Each feature is resolved from **explicit snapshot facts first**, then from store
 
 The persisted `financial_projections.explanation` carries a `churn_model` object:
 `churn_method` (CALCULATED | SUPPLIED), `is_borderline`, `params_source`
-(MODEL_VERSION | DEFAULTS), `model_version_id`, `missing_features`, and `churn_breakdown` (the
+(MODEL_VERSION | DEFAULTS), `model_version_id`, `missing_features`, `assumed_features` (features that used a neutral default - a missing telemetry reading or an unlisted genre), and `churn_breakdown` (the
 per-feature points: `base_platform_rate`, `asset_cadence`, `talent_pedigree_contribution`,
-`production_scale_contribution`, `exclusivity_lift`, `market_telemetry_heat`, plus a
+`production_scale_contribution`, `exclusivity_lift`, `market_telemetry_heat`, `genre_affinity`, plus a
 `bounds_adjustment` entry when clamping/rounding changed the value so the entries always sum to
 the final value). When SUPPLIED, `churn_breakdown` is null and `missing_features` is empty.
 
@@ -267,7 +277,7 @@ the final value). When SUPPLIED, `churn_breakdown` is null and `missing_features
 - **Breach test:** breach if and only if `churn_reduction_pct < 1.5` (strictly).
 - **Correctable:** **NO.** This is the one structural check - no price change affects it, so
   a single churn breach forces a PASS.
-- **Worked example (Vintage Reruns):** model-computed `0.88 < 1.5` -> BREACH (non-correctable).
+- **Worked example (Vintage Reruns):** model-computed `0.81 < 1.5` -> BREACH (non-correctable).
 
 ---
 
@@ -400,6 +410,11 @@ missing input):
 > For the five seeded demo titles, viewing hours are real stored inputs (e.g. Aurora's
 > 250,000,000), not estimated.
 
+The Asset Studio viewing-hours input is **unit-aware**: the buyer enters a value and picks a
+unit (hours / minutes / seconds), and the quick-evaluate handler normalizes it to hours
+(`minutes / 60`, `seconds / 3600`) before the CPVH math. A blank value still falls back to the
+estimate above.
+
 ---
 
 ## 13. Instant-Evaluation Modeled Drivers (Asset Studio quick-evaluate)
@@ -441,8 +456,8 @@ the seed generator engineers the drivers:
   (Section 6) and computes each title's `churn_reduction_pct` from its seeded features
   (pedigree / production scale / exclusivity / asset type / telemetry heat), so the stored
   value equals a live recompute. The illustrative coefficients are tuned so the five titles
-  keep their verdicts: 3 GREENLIGHT (Aurora 2.11%, Monsoon 1.76%, Echoes 1.96%), 1 NEGOTIATE
-  HARD (The Ledger 1.62%), 1 PASS (Vintage Reruns 0.88%, the only churn breach).
+  keep their verdicts: 3 GREENLIGHT (Aurora 2.11%, Monsoon 1.79%, Echoes 1.99%), 1 NEGOTIATE
+  HARD (The Ledger 1.60%), 1 PASS (Vintage Reruns 0.81%, the only churn breach).
 
 ---
 

@@ -644,3 +644,173 @@ def test_results_landing_on_same_value_share_borderline_flag(
     assert high_a != high_b
     assert a.churn_reduction_pct == b.churn_reduction_pct
     assert a.is_borderline == b.is_borderline
+
+
+# ---------------------------------------------------------------------------
+# Addendum A: genre driver, neutral telemetry, normalize_genre, params fallback
+# ---------------------------------------------------------------------------
+
+from app.domain.churn import (  # noqa: E402
+    DEFAULT_GENRE_OFFSETS,
+    DEFAULT_GENRE_WEIGHT,
+    DEFAULT_TELEMETRY_NEUTRAL,
+    normalize_genre,
+)
+
+
+def _features(genre=None, telemetry_heat=Decimal("50")):
+    """A fully-present, in-domain ChurnFeatures with a tunable genre/heat."""
+    return ChurnFeatures(
+        asset_type="ORIGINAL_SERIES",
+        pedigree=Decimal("6"),
+        production_scale=Decimal("6"),
+        is_exclusive=True,
+        telemetry_heat=telemetry_heat,
+        genre=genre,
+    )
+
+
+# Feature: calculable-churn-model, Property 14: Genre monotonicity
+@settings(max_examples=200)
+@given(data=st.data())
+def test_higher_genre_weight_never_decreases_churn(data: st.DataObject) -> None:
+    """Validates: Requirements 13.1, 14.1
+
+    For two genres whose default weights satisfy w_lo <= w_hi (all other features
+    equal), the churn computed for the higher-weight genre is >= the lower one.
+    """
+    g1 = data.draw(st.sampled_from(sorted(DEFAULT_GENRE_OFFSETS)))
+    g2 = data.draw(st.sampled_from(sorted(DEFAULT_GENRE_OFFSETS)))
+    lo, hi = sorted([g1, g2], key=lambda g: DEFAULT_GENRE_OFFSETS[g])
+    churn_lo = calculate_churn_mitigation(_features(genre=lo), DEFAULT_CHURN_MODEL_PARAMS)
+    churn_hi = calculate_churn_mitigation(_features(genre=hi), DEFAULT_CHURN_MODEL_PARAMS)
+    assert churn_hi.churn_reduction_pct >= churn_lo.churn_reduction_pct
+
+
+# Feature: calculable-churn-model, Property 15: Neutral telemetry default
+def test_missing_telemetry_uses_neutral_default_and_is_assumed() -> None:
+    """Validates: Requirements 13.1, 15.1, 15.2
+
+    A None telemetry heat contributes telemetry_weight * telemetry_neutral (not
+    0), and "telemetry_heat" is reported in assumed_features, not missing_features.
+    """
+    result = calculate_churn_mitigation(
+        _features(genre="drama", telemetry_heat=None), DEFAULT_CHURN_MODEL_PARAMS
+    )
+    heat = next(c for c in result.breakdown if c.key == "market_telemetry_heat")
+    expected = (
+        DEFAULT_CHURN_MODEL_PARAMS.telemetry_weight
+        * DEFAULT_CHURN_MODEL_PARAMS.telemetry_neutral
+    ).quantize(Decimal("0.01"))
+    assert heat.input == DEFAULT_TELEMETRY_NEUTRAL
+    assert heat.points == expected
+    assert "telemetry_heat" in result.assumed_features
+    assert "telemetry_heat" not in result.missing_features
+
+
+def test_present_telemetry_is_not_assumed() -> None:
+    """Validates: Requirements 15.2
+
+    A present telemetry reading is used as-is and is NOT in assumed_features.
+    """
+    result = calculate_churn_mitigation(
+        _features(genre="drama", telemetry_heat=Decimal("70")),
+        DEFAULT_CHURN_MODEL_PARAMS,
+    )
+    assert "telemetry_heat" not in result.assumed_features
+
+
+def test_unknown_genre_uses_default_and_is_assumed() -> None:
+    """Validates: Requirements 14.3
+
+    An unknown/absent genre contributes the neutral genre_default and is reported
+    in assumed_features; a known genre is not.
+    """
+    unknown = calculate_churn_mitigation(
+        _features(genre="totally-made-up"), DEFAULT_CHURN_MODEL_PARAMS
+    )
+    affinity = next(c for c in unknown.breakdown if c.key == "genre_affinity")
+    assert affinity.points == DEFAULT_GENRE_WEIGHT.quantize(Decimal("0.01"))
+    assert "genre" in unknown.assumed_features
+
+    known = calculate_churn_mitigation(
+        _features(genre="crime"), DEFAULT_CHURN_MODEL_PARAMS
+    )
+    assert "genre" not in known.assumed_features
+
+
+# Feature: calculable-churn-model, Property 5 (addendum): optional-param fallback
+def test_params_without_new_fields_still_parse_with_defaults() -> None:
+    """Validates: Requirements 3.2, 14.2, 15.1
+
+    A churn_model dict WITHOUT genre_offsets / genre_default / telemetry_neutral
+    parses to MODEL_VERSION and fills those from the built-in defaults.
+    """
+    raw = {
+        "intercept": "0.03",
+        "asset_offsets": {
+            "ORIGINAL_SERIES": "0.35",
+            "CO_PRODUCTION": "0.45",
+            "ORIGINAL_FILM": "0.15",
+            "LICENSED_LIBRARY": "0.00",
+        },
+        "pedigree_weight": "0.09",
+        "scale_weight": "0.03",
+        "exclusivity_lift": "0.25",
+        "telemetry_weight": "0.005",
+        "min_churn": "0.10",
+        "max_churn": "5.00",
+    }
+    params, source = parse_params(raw)
+    assert source == "MODEL_VERSION"
+    assert dict(params.genre_offsets) == dict(DEFAULT_GENRE_OFFSETS)
+    assert params.genre_default == DEFAULT_GENRE_WEIGHT
+    assert params.telemetry_neutral == DEFAULT_TELEMETRY_NEUTRAL
+
+
+def test_params_with_negative_genre_weight_fall_back_to_defaults() -> None:
+    """Validates: Requirements 1.3, 3.2, 14.2
+
+    A present genre_offsets with a negative weight (or a negative genre_default /
+    telemetry_neutral) rejects the whole block to DEFAULTS.
+    """
+    base = {
+        "intercept": "0.03",
+        "asset_offsets": {
+            "ORIGINAL_SERIES": "0.35",
+            "CO_PRODUCTION": "0.45",
+            "ORIGINAL_FILM": "0.15",
+            "LICENSED_LIBRARY": "0.00",
+        },
+        "pedigree_weight": "0.09",
+        "scale_weight": "0.03",
+        "exclusivity_lift": "0.25",
+        "telemetry_weight": "0.005",
+        "min_churn": "0.10",
+        "max_churn": "5.00",
+    }
+    neg_genre = {**base, "genre_offsets": {"drama": "-0.10"}}
+    _p, src = parse_params(neg_genre)
+    assert src == "DEFAULTS"
+
+    neg_default = {**base, "genre_default": "-0.01"}
+    _p2, src2 = parse_params(neg_default)
+    assert src2 == "DEFAULTS"
+
+    neg_neutral = {**base, "telemetry_neutral": "-5"}
+    _p3, src3 = parse_params(neg_neutral)
+    assert src3 == "DEFAULTS"
+
+
+def test_normalize_genre_maps_variants_to_one_key() -> None:
+    """Validates: Requirements 14.1
+
+    normalize_genre collapses case, spaces, and underscores to a single hyphen
+    key, and maps blank/None to None.
+    """
+    assert normalize_genre("Crime-Biopic") == "crime-biopic"
+    assert normalize_genre("Crime Biopic") == "crime-biopic"
+    assert normalize_genre("crime_biopic") == "crime-biopic"
+    assert normalize_genre("  DRAMA  ") == "drama"
+    assert normalize_genre("") is None
+    assert normalize_genre(None) is None

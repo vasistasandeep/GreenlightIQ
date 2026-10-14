@@ -287,6 +287,33 @@ def _sum_breakdown(breakdown: dict[str, str]) -> Decimal:
     return sum((Decimal(v) for v in breakdown.values()), Decimal("0"))
 
 
+def _domain_churn(
+    *,
+    asset_type: str = "ORIGINAL_SERIES",
+    pedigree: str = "8.5",
+    scale: str = "9.0",
+    exclusive: bool = True,
+    heat: str | None = "65",
+    genre: str | None = "DRAMA",
+) -> Decimal:
+    """Recompute the expected churn straight from the domain for the given
+    features, so the engine tests assert engine == domain rather than a hardcoded
+    number that drifts whenever the coefficients are re-tuned."""
+    from app.domain.churn import ChurnFeatures, calculate_churn_mitigation
+
+    features = ChurnFeatures(
+        asset_type=asset_type,
+        pedigree=Decimal(pedigree),
+        production_scale=Decimal(scale),
+        is_exclusive=exclusive,
+        telemetry_heat=None if heat is None else Decimal(heat),
+        genre=genre,
+    )
+    return calculate_churn_mitigation(
+        features, DEFAULT_CHURN_MODEL_PARAMS
+    ).churn_reduction_pct
+
+
 # --------------------------------------------------------------------------- #
 # 1. SUPPLIED wins over features (R4.1)
 # --------------------------------------------------------------------------- #
@@ -376,18 +403,18 @@ async def test_calculated_from_features_matches_domain() -> None:
 
     assert detail is not None
     assert detail.method == "CALCULATED"
-    assert result["churn_reduction_pct"] == Decimal("2.11")
+    assert result["churn_reduction_pct"] == _domain_churn()
     assert detail.params_source == "MODEL_VERSION"
     assert detail.breakdown is not None
 
     # The per-feature points conserve to the final value exactly (R1.8).
     points_sum = sum((c.points for c in detail.breakdown), Decimal("0"))
-    assert points_sum == Decimal("2.11")
+    assert points_sum == result["churn_reduction_pct"]
 
     # Persisted breakdown mirrors it and sums as Decimals to churn_reduction_pct.
     churn_model = projections.created["explanation"]["churn_model"]
     assert churn_model["churn_method"] == "CALCULATED"
-    assert _sum_breakdown(churn_model["churn_breakdown"]) == Decimal("2.11")
+    assert _sum_breakdown(churn_model["churn_breakdown"]) == result["churn_reduction_pct"]
 
 
 # --------------------------------------------------------------------------- #
@@ -444,7 +471,7 @@ async def test_latest_success_metadata_vector_is_used() -> None:
     assert detail is not None
     assert detail.method == "CALCULATED"
     # Picks pedigree 8.5 / scale 9.0 (newest SUCCESS) -> 2.11, not the older row.
-    assert result["churn_reduction_pct"] == Decimal("2.11")
+    assert result["churn_reduction_pct"] == _domain_churn()
     assert "pedigree" not in detail.missing_features
     assert "production_scale" not in detail.missing_features
 
@@ -502,15 +529,18 @@ async def test_telemetry_heat_is_mean_of_available_readings() -> None:
 # --------------------------------------------------------------------------- #
 
 
-async def test_telemetry_missing_when_no_territory_has_reading() -> None:
-    """Validates: Requirements 6.5
+async def test_telemetry_missing_uses_neutral_default() -> None:
+    """Validates: Requirements 15.1, 15.2
 
     When no target territory has a cached reading for the genre, Telemetry_Heat
-    is treated as missing: it appears in missing_features, contributes 0, and no
+    is NOT scored zero (which would penalize a data gap): it uses the neutral
+    default (50) and is reported in assumed_features, not missing_features. No
     exception is raised (the empty-mean guard holds).
     """
+    from app.domain.churn import DEFAULT_TELEMETRY_NEUTRAL
+
     title = FakeTitle(title_id=uuid.uuid4(), asset_type="ORIGINAL_SERIES")
-    engine, title_id, _, _ = _build_engine(
+    engine, title_id, projections, _ = _build_engine(
         _inputs(churn_reduction_pct=None),
         title=title,
         metadata_vectors=[
@@ -530,10 +560,18 @@ async def test_telemetry_missing_when_no_territory_has_reading() -> None:
     detail = result["churn_detail"]
 
     assert detail is not None
-    assert "telemetry_heat" in detail.missing_features
+    assert "telemetry_heat" not in detail.missing_features
+    assert "telemetry_heat" in detail.assumed_features
     heat = next(c for c in detail.breakdown if c.key == "market_telemetry_heat")
-    assert heat.input is None
-    assert heat.points == Decimal("0.00")
+    assert heat.input == DEFAULT_TELEMETRY_NEUTRAL
+    expected = (
+        DEFAULT_CHURN_MODEL_PARAMS.telemetry_weight * DEFAULT_TELEMETRY_NEUTRAL
+    ).quantize(Decimal("0.01"))
+    assert heat.points == expected
+    # The persisted explanation lists telemetry as assumed, not missing.
+    cm = projections.created["explanation"]["churn_model"]
+    assert "telemetry_heat" in cm["assumed_features"]
+    assert "telemetry_heat" not in cm["missing_features"]
 
 
 # --------------------------------------------------------------------------- #
@@ -575,7 +613,7 @@ async def test_defaults_fallback_when_churn_model_params_absent() -> None:
     assert detail is not None
     assert detail.method == "CALCULATED"
     assert detail.params_source == "DEFAULTS"
-    assert result["churn_reduction_pct"] == Decimal("2.11")
+    assert result["churn_reduction_pct"] == _domain_churn()
     assert projections.created["explanation"]["churn_model"]["params_source"] == "DEFAULTS"
 
 
@@ -624,6 +662,7 @@ async def test_persisted_explanation_shape_for_calculated() -> None:
         "params_source",
         "model_version_id",
         "missing_features",
+        "assumed_features",
         "churn_breakdown",
     }
     assert churn_model["churn_method"] == "CALCULATED"
@@ -639,6 +678,7 @@ async def test_persisted_explanation_shape_for_calculated() -> None:
         "production_scale_contribution",
         "exclusivity_lift",
         "market_telemetry_heat",
+        "genre_affinity",
     }.issubset(breakdown.keys())
     # String values conserve to the final churn_reduction_pct.
     assert _sum_breakdown(breakdown) == result["churn_reduction_pct"]
@@ -748,7 +788,7 @@ async def test_snapshot_facts_take_precedence_over_repositories() -> None:
     assert detail is not None
     assert detail.method == "CALCULATED"
     # Carried Aurora facts win (8.5 / 9.0 / exclusive) -> 2.11, not the repo set.
-    assert result["churn_reduction_pct"] == Decimal("2.11")
+    assert result["churn_reduction_pct"] == _domain_churn()
     assert "pedigree" not in detail.missing_features
     assert "production_scale" not in detail.missing_features
 
@@ -759,7 +799,7 @@ async def test_snapshot_facts_take_precedence_over_repositories() -> None:
 
     churn_model = projections.created["explanation"]["churn_model"]
     assert churn_model["churn_method"] == "CALCULATED"
-    assert _sum_breakdown(churn_model["churn_breakdown"]) == Decimal("2.11")
+    assert _sum_breakdown(churn_model["churn_breakdown"]) == result["churn_reduction_pct"]
 
 
 async def test_supplied_snapshot_churn_is_supplied_even_with_carried_facts() -> None:

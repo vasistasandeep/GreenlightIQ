@@ -939,6 +939,7 @@ class Guardrails_Engine:
                 production_scale=None,
                 is_exclusive=False,
                 telemetry_heat=None,
+                genre=None,
             )
             return resolve_churn(
                 inputs.churn_reduction_pct,
@@ -978,6 +979,7 @@ class Guardrails_Engine:
             production_scale=production_scale,
             is_exclusive=is_exclusive,
             telemetry_heat=telemetry_heat,
+            genre=getattr(title, "genre_tag", None),
         )
         return resolve_churn(inputs.churn_reduction_pct, features, params, source)
 
@@ -1292,6 +1294,11 @@ def _churn_model_json(
             str(model_version_id) if model_version_id is not None else None
         ),
         "missing_features": missing,
+        # Features that used a neutral default (a missing telemetry reading or an
+        # unknown/absent genre) rather than a real value (calculable-churn-model
+        # R14.3, R15.2). Distinct from missing_features, which score 0. Empty for
+        # a SUPPLIED value.
+        "assumed_features": list(churn_detail.assumed_features),
         "churn_breakdown": breakdown,
     }
 

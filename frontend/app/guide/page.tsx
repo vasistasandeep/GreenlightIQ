@@ -133,8 +133,8 @@ const GLOSSARY: GlossaryGroup[] = [
       { term: "Native Currency", def: "The currency the deal is quoted in: USD, INR, EUR, or GBP. Converted to USD using a dated exchange rate." },
       { term: "Target Territories", def: "The regions the title will be distributed in (India, North America, Europe, SE Asia, Global). Drives territory-weighted CPM/LTV." },
       { term: "Logline / Synopsis", def: "The narrative premise. Feeds feature extraction (Narrative DNA, affective tone). Required." },
-      { term: "Genre & Tags", def: "The genre classification (e.g. Crime-Noir). Used for market-telemetry lookups by genre and territory." },
-      { term: "Projected Viewing Hours", def: "Estimated total hours audiences will watch. Optional - if blank the engine estimates it. Drives CPVH." },
+      { term: "Genre & Tags", def: "The genre classification, chosen from a dropdown (a custom value still works). Drives market-telemetry lookups AND a per-genre churn-affinity weight: serialized/returning formats (crime, drama, thriller, reality) retain subscribers more than one-and-done formats. An unlisted genre uses a neutral weight." },
+      { term: "Projected Viewing Hours", def: "Estimated total hours audiences will watch, entered with a unit (hours / minutes / seconds) that is normalized to hours. Optional - if blank the engine estimates it. Drives CPVH." },
       { term: "Talent Pedigree", def: "A 0-10 score of cast/creator strength. Higher pedigree raises modeled value and recovers cost sooner." },
       { term: "License (months) / License Duration", def: "How long the content is licensed for. Bounds the windowing rules and the milestone schedule." },
       { term: "Exclusive SVOD", def: "Whether the license is exclusive (only this platform) vs non-exclusive. Exclusive windows command a premium value." },
@@ -439,7 +439,7 @@ function GuardrailsTab() {
         n={3}
         name="Keeps Subscribers (Churn Mitigation)"
         question="Does having this title stop people from cancelling their subscription?"
-        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz"
+        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz + genre affinity"
         line={
           <>
             The churn number is <span className="text-slate-100">calculated</span> by adding up
@@ -456,13 +456,13 @@ function GuardrailsTab() {
           <>
             <span className="font-medium text-slate-100">Vintage Reruns Vol. 7</span> is a cheap
             library title with low pedigree and no exclusivity, so the model lands at only
-            {" "}<span className="text-slate-100">0.88%</span> a month.
+            {" "}<span className="text-slate-100">0.81%</span> a month.
             <div className="mt-1 font-mono text-xs text-rose-300">
-              0.88% &lt; 1.5% required
+              0.81% &lt; 1.5% required
             </div>
           </>
         }
-        result="0.88% misses the 1.5% floor. Important: paying less does NOT make a title more loved - so this breach can't be fixed by negotiating. One of these forces a PASS."
+        result="0.81% misses the 1.5% floor. Important: paying less does NOT make a title more loved - so this breach can't be fixed by negotiating. One of these forces a PASS."
         resultOk={false}
       />
 
@@ -637,9 +637,9 @@ function CalculationsTab() {
       />
       <CalcBlock
         title="3. Keeps Subscribers (Churn Mitigation)"
-        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz"
-        rule={<>The monthly churn-reduction % is <span className="text-slate-100">calculated</span> by adding small, explained contributions from the title&apos;s features, then capped between 0.10% and 5.00% (illustrative coefficients, tuned to the demo titles). A buyer can instead <span className="text-slate-100">supply</span> a known figure, which is used exactly. Must be at least <span className="text-emerald-300">1.5%</span>; below = breach. A number within 0.05% of 1.5% shows a borderline note (it never changes the verdict). <span className="text-rose-300">Not correctable</span> - no price change makes a title stickier, so one churn breach forces a PASS.</>}
-        worked={<>Vintage Reruns: model-computed 0.88% &lt; 1.5% -&gt; <span className="text-rose-300">BREACH</span> (non-correctable). The Ledger: 1.62% &ge; 1.5% -&gt; PASS.</>}
+        formula="Churn % = base rate + asset type + pedigree + production scale + exclusivity + market buzz + genre affinity"
+        rule={<>The monthly churn-reduction % is <span className="text-slate-100">calculated</span> by adding small, explained contributions from the title&apos;s features, then capped between 0.10% and 5.00% (illustrative coefficients, tuned to the demo titles). A title with no market-buzz data or an unlisted genre uses a neutral default rather than zero, so a data gap never unfairly forces a PASS. A buyer can instead <span className="text-slate-100">supply</span> a known figure, which is used exactly. Must be at least <span className="text-emerald-300">1.5%</span>; below = breach. A number within 0.05% of 1.5% shows a borderline note (it never changes the verdict). <span className="text-rose-300">Not correctable</span> - no price change makes a title stickier, so one churn breach forces a PASS.</>}
+        worked={<>Vintage Reruns: model-computed 0.81% &lt; 1.5% -&gt; <span className="text-rose-300">BREACH</span> (non-correctable). The Ledger: 1.60% &ge; 1.5% -&gt; PASS.</>}
       />
       <CalcBlock
         title="4. Pays for Itself (Payback Horizon)"
