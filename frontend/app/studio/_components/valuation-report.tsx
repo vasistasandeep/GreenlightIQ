@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { GuardrailCheck, QuickEvaluateResponse } from "@/lib/types";
+import { ChurnBreakdown } from "@/app/titles/[id]/_components/churn-breakdown";
 import { StudioPayback } from "./studio-payback";
 import { StudioRadar } from "./studio-radar";
 import {
@@ -152,6 +153,9 @@ export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
                 A breach could not be classified; treat with caution.
               </p>
             ) : null}
+            <div className="text-slate-300">
+              <ChurnBreakdown churnModel={result.explanation?.churn_model} />
+            </div>
           </Panel>
 
           <Panel title="Governance">

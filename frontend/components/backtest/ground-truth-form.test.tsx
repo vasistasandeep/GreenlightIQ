@@ -53,6 +53,9 @@ describe("GroundTruthForm (R16.1)", () => {
     expect(
       screen.getByLabelText("Actual LTV-to-Cost multiple"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Actual churn reduction (%)"),
+    ).toBeInTheDocument();
   });
 
   it("submits a shaped request with the selected title id and entered actuals (R1.3, R1.5)", async () => {
@@ -96,6 +99,42 @@ describe("GroundTruthForm (R16.1)", () => {
     expect(request.metrics).toEqual([
       { metric_name: "cpvh", actual_value: 0.09 },
     ]);
+  });
+
+  it("includes the churn_reduction metric when the churn field is filled (R11.3)", async () => {
+    const user = userEvent.setup();
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-123");
+    await user.type(
+      screen.getByLabelText("Actual churn reduction (%)"),
+      "1.8",
+    );
+    await user.click(screen.getByRole("button", { name: /Run audit/i }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(lastRequest(onSubmit).metrics).toContainEqual({
+      metric_name: "churn_reduction",
+      actual_value: 1.8,
+    });
+  });
+
+  it("omits the churn_reduction metric when the churn field is left blank (R11.3)", async () => {
+    const user = userEvent.setup();
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-123");
+    await user.type(screen.getByLabelText("Actual CPVH"), "0.12");
+    // Leave churn (and LTV) blank.
+    await user.click(screen.getByRole("button", { name: /Run audit/i }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const metricNames = lastRequest(onSubmit).metrics.map((m) => m.metric_name);
+    expect(metricNames).not.toContain("churn_reduction");
   });
 
   describe("title selection gating (R1.4, R2.4)", () => {

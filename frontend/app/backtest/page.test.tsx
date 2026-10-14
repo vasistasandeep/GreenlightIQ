@@ -160,7 +160,10 @@ describe("BacktestStudioPage", () => {
     getDashboardSummary.mockResolvedValue(summaryWith());
     backtestAudit.mockResolvedValue({
       title_id: "t-pred",
-      metrics: [{ metric: "cpvh", predicted: 0.1, actual: 0.12, excluded: false }],
+      metrics: [
+        { metric: "cpvh", predicted: 0.1, actual: 0.12, excluded: false },
+        { metric: "churn_reduction", predicted: 1.8, actual: 1.6, excluded: false },
+      ],
       mape: 12.5,
       no_eligible_metrics: false,
     });
@@ -185,6 +188,9 @@ describe("BacktestStudioPage", () => {
     await user.click(screen.getByRole("button", { name: /Run audit/i }));
 
     expect(await screen.findByText(/Prediction Error \(MAPE\)/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Churn reduction - predicted/i),
+    ).toBeInTheDocument();
     await waitFor(() => expect(getTitleDecision).toHaveBeenCalledWith("t-pred"));
     await waitFor(() => expect(getFinalization).toHaveBeenCalledWith("proj-1"));
   });

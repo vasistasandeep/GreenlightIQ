@@ -32,12 +32,15 @@ import type {
  * MAPE server-side (R11.7) and should be entered explicitly.
  */
 
-/** The audited metrics surfaced in the form, matching the design (CPVH + LTV). */
+/** Local field keys for the audited metrics surfaced in this form. */
+type AuditedMetricKey = "cpvh" | "ltv_to_cost_multiple" | "churn_reduction";
+
+/** The audited metrics surfaced in the form (CPVH, LTV, and churn — R11.3). */
 const AUDITED_METRICS: {
   /** Local field key / predicted-value selector in this form. */
-  key: "cpvh" | "ltv_to_cost_multiple";
+  key: AuditedMetricKey;
   /** Canonical metric name the backend audit pairs with its prediction. */
-  metricName: "cpvh" | "ltv_to_cost";
+  metricName: "cpvh" | "ltv_to_cost" | "churn_reduction";
   label: string;
   hint: string;
 }[] = [
@@ -52,6 +55,12 @@ const AUDITED_METRICS: {
     metricName: "ltv_to_cost",
     label: "Actual LTV-to-Cost multiple",
     hint: "Realized lifetime-value-to-cost ratio",
+  },
+  {
+    key: "churn_reduction",
+    metricName: "churn_reduction",
+    label: "Actual churn reduction (%)",
+    hint: "Observed monthly churn reduction (%)",
   },
 ];
 
@@ -75,6 +84,11 @@ export interface GroundTruthFormProps {
    * Null/undefined renders the read-only CPVH field as "pending until audit".
    */
   predictedCpvh?: number | null;
+  /**
+   * Predicted churn reduction for the audited title, known only after the audit
+   * returns (like CPVH). Null/undefined renders the field as "pending".
+   */
+  predictedChurn?: number | null;
   /** Submit the shaped ground-truth request; resolves when the audit returns. */
   onSubmit: (request: BacktestAuditRequest) => void | Promise<void>;
   /** True while an audit request is in flight; disables the controls. */
@@ -86,6 +100,7 @@ export function GroundTruthForm({
   titles,
   titlesStatus,
   predictedCpvh,
+  predictedChurn,
   onSubmit,
   submitting = false,
   className,
@@ -159,17 +174,18 @@ export function GroundTruthForm({
   }
 
   /** The read-only "previous" (predicted) value for a given audited metric. */
-  function predictedFor(key: "cpvh" | "ltv_to_cost_multiple"): string {
+  function predictedFor(key: AuditedMetricKey): string {
     if (!selectedTitle) {
       return "Select a title";
     }
     if (key === "ltv_to_cost_multiple") {
       return formatPredicted(selectedTitle.ltv_to_cost_multiple);
     }
-    // CPVH is only known once the audit has run.
-    return predictedCpvh === null || predictedCpvh === undefined
+    // CPVH and churn are only known once the audit has run.
+    const predicted = key === "churn_reduction" ? predictedChurn : predictedCpvh;
+    return predicted === null || predicted === undefined
       ? "Available after audit"
-      : formatPredicted(predictedCpvh);
+      : formatPredicted(predicted);
   }
 
   return (

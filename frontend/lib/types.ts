@@ -62,6 +62,33 @@ export interface GuardrailCheck {
 }
 
 /**
+ * The Churn_Mitigation_Model explanation attached to a recommendation (R10).
+ *
+ * Mirrors the backend `churn_model` object persisted inside the explanation
+ * JSON. `churn_breakdown` is `null` for a SUPPLIED result (and for a scaled
+ * what-if scenario); its values are per-feature percentage points serialized as
+ * JSON strings. A pre-feature stored explanation omits this object entirely, so
+ * consumers MUST treat it as possibly absent (R7.6).
+ */
+export interface ChurnModel {
+  /** How the churn-reduction percentage was obtained. */
+  churn_method: "CALCULATED" | "SUPPLIED";
+  /** `true` when the resolved value lies within [1.45, 1.55] of the hurdle (R5). */
+  is_borderline: boolean;
+  /** Whether the params came from the model version or the built-in defaults (R3.3). */
+  params_source?: string;
+  /** The model version in effect when churn was resolved, or `null` (R3.3). */
+  model_version_id?: string | null;
+  /** Feature keys that were missing and contributed zero (R2, R10.4). */
+  missing_features?: string[];
+  /**
+   * Per-feature contributions keyed by feature name (points as JSON strings).
+   * `null` for a SUPPLIED result or a scaled what-if scenario (R10.3).
+   */
+  churn_breakdown?: Record<string, string> | null;
+}
+
+/**
  * Structured explainability payload for a recommendation (R30).
  *
  * Mirrors the backend `Explanation`: every guardrail check with its pass/breach
@@ -78,6 +105,12 @@ export interface Explanation {
   dominant_factor?: GuardrailName | string | null;
   /** `true` when a breach could not be classified as correctable (R8.4). */
   unclassifiable?: boolean;
+  /**
+   * The Churn_Mitigation_Model explanation (R10). Absent on a pre-feature stored
+   * explanation; `null` is also tolerated. Rides on both the title scorecard's
+   * `explanation` and the quick-evaluate response's `explanation`.
+   */
+  churn_model?: ChurnModel | null;
 }
 
 /**

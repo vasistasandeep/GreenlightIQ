@@ -24,6 +24,7 @@ import {
 } from "recharts";
 
 import type { Explanation, ValuationScorecard } from "@/lib/types";
+import { ChurnBreakdown } from "./churn-breakdown";
 import { PaybackTimeline } from "./payback-timeline";
 import {
   formatMultiple,
@@ -256,6 +257,7 @@ export function FinancialAccordion({ scorecard }: FinancialAccordionProps) {
               ) : null}
             </p>
           ) : null}
+          <ChurnBreakdown churnModel={scorecard.explanation?.churn_model} />
         </AccordionSection>
 
         <AccordionSection

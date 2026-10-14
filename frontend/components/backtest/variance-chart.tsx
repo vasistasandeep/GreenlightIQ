@@ -30,6 +30,7 @@ const METRIC_LABELS: Record<string, string> = {
   cpvh: "CPVH",
   ltv_to_cost: "LTV-to-Cost",
   ltv_to_cost_multiple: "LTV-to-Cost",
+  churn_reduction: "Churn reduction",
 };
 
 function labelFor(metric: string): string {

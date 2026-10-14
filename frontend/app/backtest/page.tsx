@@ -190,6 +190,36 @@ export default function BacktestStudioPage() {
       ? Number(predictedCpvhRaw)
       : null;
 
+  // The churn row (metric "churn_reduction") carries predicted/actual churn once
+  // the audit returns; surface predicted churn to the form (like CPVH) and build
+  // a predicted/actual/variance readout consistent with the MAPE rules (R11.5).
+  const churnRow =
+    audit?.metrics.find((m) => m.metric === "churn_reduction") ?? null;
+  const churnPredicted = churnRow ? Number(churnRow.predicted) : null;
+  const churnActual = churnRow ? Number(churnRow.actual) : null;
+  const predictedChurn =
+    churnPredicted !== null && Number.isFinite(churnPredicted)
+      ? churnPredicted
+      : null;
+  const churnReadout =
+    churnRow &&
+    churnPredicted !== null &&
+    churnActual !== null &&
+    Number.isFinite(churnPredicted) &&
+    Number.isFinite(churnActual)
+      ? {
+          predicted: churnPredicted,
+          actual: churnActual,
+          variance: churnActual - churnPredicted,
+          // Absolute percentage error, matching the server-side MAPE rule that
+          // excludes zero actuals (the chart flags the same pair as excluded).
+          absError:
+            churnRow.excluded || churnActual === 0
+              ? null
+              : Math.abs((churnActual - churnPredicted) / churnActual) * 100,
+        }
+      : null;
+
   return (
     <AppShell>
       <header className="mb-6">
@@ -207,6 +237,7 @@ export default function BacktestStudioPage() {
             titles={titles}
             titlesStatus={titlesStatus}
             predictedCpvh={predictedCpvh}
+            predictedChurn={predictedChurn}
             onSubmit={handleAudit}
             submitting={auditing}
           />
@@ -239,6 +270,35 @@ export default function BacktestStudioPage() {
                     {Number(audit.mape).toFixed(2)}%
                   </span>{" "}
                   <span className="text-xs">(lower is better)</span>
+                </p>
+              ) : null}
+              {churnReadout ? (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Churn reduction - predicted{" "}
+                  <span className="font-semibold text-foreground">
+                    {churnReadout.predicted.toFixed(2)}%
+                  </span>
+                  , actual{" "}
+                  <span className="font-semibold text-foreground">
+                    {churnReadout.actual.toFixed(2)}%
+                  </span>
+                  , variance{" "}
+                  <span className="font-semibold text-foreground">
+                    {churnReadout.variance >= 0 ? "+" : ""}
+                    {churnReadout.variance.toFixed(2)}%
+                  </span>
+                  {churnReadout.absError !== null ? (
+                    <>
+                      {" "}
+                      (abs error{" "}
+                      <span className="font-semibold text-foreground">
+                        {churnReadout.absError.toFixed(2)}%
+                      </span>
+                      )
+                    </>
+                  ) : (
+                    <span className="text-xs"> (excluded from MAPE)</span>
+                  )}
                 </p>
               ) : null}
             </div>

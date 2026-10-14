@@ -132,11 +132,11 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Add optional `actual_churn_reduction_pct: Decimal | None` to `BacktestAuditRequest`; in the audit handler append a `{"metric_name": "churn_reduction", "actual_value": ...}` metric when present, and require at least one metric from either source. Add an API test for the alias and the "at least one metric" rule.
   - _Requirements: 11.1, 11.2, 11.5_
 
-- [~] 14. Backtest frontend churn support
+- [x] 14. Backtest frontend churn support
   - `frontend/components/backtest/ground-truth-form.tsx`: add an optional "Actual churn reduction (%)" input mapped to metric `churn_reduction`. `variance-chart.tsx`: add `churn_reduction: "Churn reduction"` to `METRIC_LABELS`. `app/backtest/page.tsx`: surface churn predicted/actual/variance. Update the related vitest tests.
   - _Requirements: 11.3, 11.4, 11.5_
 
-- [~] 15. Frontend types and Churn Drivers Breakdown
+- [x] 15. Frontend types and Churn Drivers Breakdown
   - `lib/types.ts`: add a `ChurnModel` interface and attach `churn_model?: ChurnModel | null` to `Explanation`.
   - Add `frontend/app/titles/[id]/_components/churn-breakdown.tsx`: a native `<details>`/`<summary>` disclosure rendering a semantic table of the six feature rows (label + text points), a `bounds_adjustment` row when present, an "unavailable" tag for missing features, a "Supplied directly (not calculated)" note when SUPPLIED, and the amber borderline pill with the exact message and a decorative (`aria-hidden`) warning glyph. Place it in the "Churn mitigation impact" section of `financial-accordion.tsx` and mirror it in `studio/_components/valuation-report.tsx`.
   - Add `churn-breakdown.test.tsx` (renders rows, bounds-adjustment row, unavailable tag, SUPPLIED note, borderline pill). Update affected accordion/report tests.

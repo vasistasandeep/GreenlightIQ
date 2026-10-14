@@ -83,6 +83,21 @@ describe("VarianceChart (R16.2)", () => {
     expect(labels).toEqual(["CPVH", "LTV-to-Cost"]);
   });
 
+  it("labels the churn metric with a human-readable name (R11.4)", () => {
+    render(
+      <VarianceChart
+        metrics={[
+          { metric: "churn_reduction", predicted: 1.8, actual: 1.6, excluded: false },
+        ]}
+      />,
+    );
+
+    const labels = screen
+      .getAllByTestId("row-label")
+      .map((n) => n.textContent);
+    expect(labels).toEqual(["Churn reduction"]);
+  });
+
   it("charts both the Predicted and Actual series side by side", () => {
     render(<VarianceChart metrics={METRICS} />);
 
