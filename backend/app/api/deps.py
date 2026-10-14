@@ -375,6 +375,7 @@ def get_guardrails_engine(
     from app.repositories.exchange_rates import ExchangeRateRepository
     from app.repositories.financial_projections import FinancialProjectionRepository
     from app.repositories.license_terms import LicenseTermRepository
+    from app.repositories.metadata_vectors import MetadataVectorRepository
     from app.repositories.model_versions import ModelVersionRepository
     from app.repositories.telemetry import TelemetryRepository
     from app.repositories.titles import TitleRepository
@@ -388,6 +389,7 @@ def get_guardrails_engine(
         model_versioning_engine=ModelVersioningEngine(ModelVersionRepository(session)),
         audit_service=audit,
         input_provider=input_provider,
+        metadata_vector_repo=MetadataVectorRepository(session),
     )
 
 
