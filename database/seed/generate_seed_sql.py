@@ -35,7 +35,22 @@ import math
 import random
 import sys
 import uuid
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
+
+# Import the pure churn domain so the seed and the Guardrails_Engine share one
+# implementation (calculable-churn-model R9.2/R9.5). The module is stdlib-only
+# (Decimal/dataclasses/typing) so this adds no heavy dependency and keeps the
+# generator runnable as `python database/seed/generate_seed_sql.py`.
+_BACKEND = Path(__file__).resolve().parent.parent.parent / "backend"
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
+
+from app.domain.churn import (  # noqa: E402
+    DEFAULT_CHURN_MODEL_PARAMS,
+    ChurnFeatures,
+    calculate_churn_mitigation,
+)
 
 DIMS = 1536
 HERE = Path(__file__).resolve().parent
@@ -85,6 +100,27 @@ USERS = [
     ("user-cfo", "Fran Finance", "CFO", ["US", "IN", "GB", "DE", "FR"]),
 ]
 
+def _churn_model_params_json() -> dict:
+    """Serialize :data:`DEFAULT_CHURN_MODEL_PARAMS` into the JSON object stored
+    under ``guardrail_params["churn_model"]`` (calculable-churn-model R9.2).
+
+    Derived programmatically from the imported domain defaults so the embedded
+    seed JSON can never drift from the engine's parameters. Decimals are emitted
+    as strings for exactness; ``parse_params`` coerces each via ``Decimal(str(x))``.
+    """
+    p = DEFAULT_CHURN_MODEL_PARAMS
+    return {
+        "intercept": str(p.intercept),
+        "asset_offsets": {k: str(v) for k, v in p.asset_offsets.items()},
+        "pedigree_weight": str(p.pedigree_weight),
+        "scale_weight": str(p.scale_weight),
+        "exclusivity_lift": str(p.exclusivity_lift),
+        "telemetry_weight": str(p.telemetry_weight),
+        "min_churn": str(p.min_churn),
+        "max_churn": str(p.max_churn),
+    }
+
+
 # Initial active model version — weights sum to exactly 1.00 (R12.2, R26.1).
 MODEL_VERSION = {
     "label": "model-version-initial",
@@ -96,6 +132,10 @@ MODEL_VERSION = {
         "ltv_to_cost_min": 3.2,
         "churn_mitigation_min_pct": 1.5,
         "payback_target_months": [9, 12],
+        # Illustrative churn-model coefficients, versioned with the active model
+        # (calculable-churn-model R3.1/R9.2). Carried forward unchanged on
+        # calibration forks; read by the engine via parse_params.
+        "churn_model": _churn_model_params_json(),
     },
 }
 
@@ -218,6 +258,83 @@ def _title_weights(genre: str, territories: list[str]) -> tuple[float, float]:
     return (sum(cpm_mults) / len(cpm_mults), sum(ltv_mults) / len(ltv_mults))
 
 
+def _telemetry_heat(genre: str, territories: list[str]) -> Decimal | None:
+    """Replicate the engine's Telemetry_Heat for the seed (R6.3-R6.5).
+
+    The mean, over the title's target territories that have a cached
+    ``social_sentiment_index`` for the genre, of that index multiplied by 100,
+    rounded to 2 decimal places half-up. Territories with no reading are
+    excluded; a title with no readings at all yields ``None`` (a missing feature).
+    """
+    readings: list[Decimal] = []
+    for terr in territories:
+        reading = _TELEMETRY_BY_PAIR.get((genre, terr))
+        if reading is None:
+            continue
+        sentiment = reading[0]
+        readings.append(Decimal(sentiment) * Decimal("100"))
+    if not readings:
+        return None
+    mean = sum(readings) / Decimal(len(readings))
+    return mean.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+# Seeded per-title feature inputs for the churn model (R9.5). Pedigree/scale come
+# from `scores`, exclusivity from `LICENSE_TERMS`, asset type and genre/territories
+# from `TITLES`. Built once so the snapshot/projection/explanation agree.
+_PEDIGREE_SCALE = {
+    "title-aurora": ("8.50", "9.00"),
+    "title-monsoon": ("7.20", "6.50"),
+    "title-ledger": ("6.00", "5.50"),
+    "title-reruns": ("4.00", "3.50"),
+    "title-echoes": ("7.80", "7.00"),
+}
+_EXCLUSIVE_BY_TITLE = {label: exclusive for label, _d, exclusive, _w, _m in LICENSE_TERMS}
+
+
+def _title_churn_result(label: str, atype: str, genre: str, territories: list[str]):
+    """Compute the model Churn_Result for a seeded title (R9.5).
+
+    Builds :class:`ChurnFeatures` from the seeded features and runs the shared
+    :func:`calculate_churn_mitigation`, so the stored projection and explanation
+    exactly match a live engine recompute.
+    """
+    pedigree, scale = _PEDIGREE_SCALE[label]
+    features = ChurnFeatures(
+        asset_type=atype,
+        pedigree=Decimal(pedigree),
+        production_scale=Decimal(scale),
+        is_exclusive=_EXCLUSIVE_BY_TITLE.get(label, False),
+        telemetry_heat=_telemetry_heat(genre, territories),
+    )
+    return calculate_churn_mitigation(
+        features, DEFAULT_CHURN_MODEL_PARAMS, "MODEL_VERSION"
+    )
+
+
+def _churn_model_explanation(churn_result) -> dict:
+    """Build the flat ``churn_model`` object embedded in the seeded explanation,
+    matching the engine's ``_churn_model_json`` shape for a CALCULATED result
+    (calculable-churn-model R7.2/R9.5).
+
+    Decimals are rendered as strings; ``bounds_adjustment`` is included only when
+    the breakdown carries it (the domain omits a zero adjustment). The
+    ``model_version_id`` is the seeded active model version id.
+    """
+    breakdown = {
+        contribution.key: str(contribution.points)
+        for contribution in churn_result.breakdown
+    }
+    return {
+        "churn_method": churn_result.method,
+        "is_borderline": churn_result.is_borderline,
+        "params_source": "MODEL_VERSION",
+        "model_version_id": str(det_uuid(MODEL_VERSION["label"])),
+        "missing_features": list(churn_result.missing_features),
+        "churn_breakdown": breakdown,
+    }
+
+
 CLUSTERS = [
     ("cluster-prestige-drama", "Prestige Drama Loyalists",
      "Subscribers who favor award-season dramas and limited series."),
@@ -237,12 +354,17 @@ def _json(obj) -> str:
     return q(json.dumps(obj, sort_keys=True, separators=(",", ":")))
 
 
-def _seed_explanation(atype, cpvh, ltv, churn, payback):
+def _seed_explanation(atype, cpvh, ltv, churn, payback, churn_result=None):
     """Build an engine-shaped Explanation (with a full `checks` array) for the seed.
 
     Decimal-ish values are emitted as strings to match how the engine serializes
     them into JSONB. Shortfall is the normalized distance past the threshold for a
     breached check (|distance| / threshold); None when the check passes.
+
+    ``churn`` is the model-computed churn value stored on the projection, so the
+    CHURN_MITIGATION check agrees with the stored column. When ``churn_result`` is
+    supplied, a flat ``churn_model`` object matching the engine's shape is embedded
+    (calculable-churn-model R7.2/R9.5).
     """
     ceiling = 0.05 if atype == "LICENSED_LIBRARY" else 0.18
     cpvh_f, ltv_f, churn_f, pay_i = float(cpvh), float(ltv), float(churn), int(payback)
@@ -302,14 +424,53 @@ def _seed_explanation(atype, cpvh, ltv, churn, payback):
             breaches, key=lambda c: float(c["shortfall_magnitude"] or 0)
         )["name"]
 
-    return {
+    explanation = {
         "checks": checks,
         "dominant_factor": dominant,
         "unclassifiable": False,
     }
+    if churn_result is not None:
+        explanation["churn_model"] = _churn_model_explanation(churn_result)
+    return explanation
+
+
+def _self_check() -> None:
+    """Guard the invariants the regenerated seed must hold.
+
+    * The embedded ``churn_model`` JSON parses back to the imported defaults, so
+      it can never drift from the domain parameters (calculable-churn-model R9.2).
+    * The five seeded titles keep their verdict-preserving churn tolerances
+      (R9.3/R9.4): Aurora/Echoes/Monsoon strictly above 1.5, Ledger in
+      [1.60, 1.65], Vintage Reruns in [0.80, 0.90].
+    """
+    from app.domain.churn import parse_params
+
+    parsed, source = parse_params(MODEL_VERSION["guardrail_params"]["churn_model"])
+    assert source == "MODEL_VERSION", "embedded churn_model failed to parse"
+    assert parsed == DEFAULT_CHURN_MODEL_PARAMS, (
+        "embedded churn_model JSON drifted from DEFAULT_CHURN_MODEL_PARAMS"
+    )
+
+    tolerances = {
+        # label: (low, high) inclusive bounds the computed churn must fall in
+        "title-aurora": (Decimal("2.06"), Decimal("2.15")),
+        "title-echoes": (Decimal("1.95"), Decimal("2.05")),
+        "title-monsoon": (Decimal("1.75"), Decimal("1.85")),
+        "title-ledger": (Decimal("1.60"), Decimal("1.65")),
+        "title-reruns": (Decimal("0.80"), Decimal("0.90")),
+    }
+    title_by_label = {t[0]: t for t in TITLES}
+    for label, (low, high) in tolerances.items():
+        t = title_by_label[label]
+        _l, _n, atype, _c, _cur, terrs, genre, *_rest = t
+        value = _title_churn_result(label, atype, genre, terrs).churn_reduction_pct
+        assert low <= value <= high, (
+            f"{label} churn {value} outside tolerance [{low}, {high}]"
+        )
 
 
 def render() -> str:
+    _self_check()
     out: list[str] = []
     w = out.append
 
@@ -464,7 +625,11 @@ def render() -> str:
             "watch_time_elasticity": 1.0,
             "cpm": cpm,
             "ad_impressions": ad_impressions,
-            "churn_reduction_pct": float(churn),
+            # No churn_reduction_pct here: the seed intentionally omits a supplied
+            # churn so every seeded title resolves as CALCULATED and the engine
+            # computes churn from the model (calculable-churn-model R9.1). Pedigree,
+            # production scale, and exclusivity are resolved from the seeded
+            # metadata_vectors / license_terms rows at recompute time.
             # Payback is milestone-based (R7.1, R22.2): the engine walks the
             # schedule month by month and returns the first month where
             # margin*month exceeds the cumulative outflow. With the full cost
@@ -552,10 +717,18 @@ def render() -> str:
         # against). Thresholds and correctable classification mirror the engine:
         # CPVH ceiling 0.18 premium / 0.05 library; LTV >= 3.2; churn >= 1.5;
         # payback <= 12. CPVH/LTV/payback breaches are correctable, churn is not.
-        explanation = _seed_explanation(atype, cpvh, ltv, churn, payback)
+        # Churn is computed by the model from the seeded features (R9.5), not the
+        # old TITLES literal. The stored column, the CHURN_MITIGATION check, and
+        # the embedded churn_model breakdown all use this one value so a live
+        # recompute reproduces the seeded row exactly.
+        churn_result = _title_churn_result(label, atype, genre, terrs)
+        model_churn = str(churn_result.churn_reduction_pct)
+        explanation = _seed_explanation(
+            atype, cpvh, ltv, model_churn, payback, churn_result
+        )
         rows.append(
             f"  ('{det_uuid(label + '-fp')}', '{det_uuid(label)}', "
-            f"'{det_uuid(label + '-v1')}', {cpvh}, {ltv}, {churn}, {payback}, "
+            f"'{det_uuid(label + '-v1')}', {cpvh}, {ltv}, {model_churn}, {payback}, "
             f"{q(rec)}, {normalized}, '{det_uuid(rate_label)}', "
             f"'{det_uuid(MODEL_VERSION['label'])}', {_json(explanation)}::jsonb)"
         )

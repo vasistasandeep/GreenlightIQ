@@ -118,13 +118,13 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - Confirm `POST /valuation/calculate` and `GET /valuation/{title_id}` carry the `churn_model` object (computed and persisted respectively) with no re-run on GET; add/extend a test that a persisted explanation without `churn_model` still serializes (treated as absent).
   - _Requirements: 7.3, 7.6_
 
-- [~] 11. Regenerate the seed with model-computed churn
+- [x] 11. Regenerate the seed with model-computed churn
   - In `database/seed/generate_seed_sql.py`: resolve the backend path with `Path(__file__).resolve().parent.parent.parent / "backend"` inserted on `sys.path`, import `DEFAULT_CHURN_MODEL_PARAMS` and `calculate_churn_mitigation` from `app.domain.churn`; embed `guardrail_params["churn_model"]` from those defaults with a self-check assertion that the embedded JSON matches the imported defaults.
   - Remove `churn_reduction_pct` from every title snapshot. Compute each title's churn via `calculate_churn_mitigation` from the seeded features (pedigree/scale from `scores`, exclusivity from `LICENSE_TERMS`, asset type from `TITLES`, telemetry heat from `TELEMETRY` via the same mean-x100 rule), write it into the stored projection, and extend `_seed_explanation` to embed the matching `churn_model` object.
   - Regenerate `02_seed_data.sql`; run `python database/seed/generate_seed_sql.py --check` and confirm "up to date".
   - _Requirements: 3.4, 9.1, 9.2, 9.5, 9.6_
 
-- [~] 12. Seed verdict-stability regression test
+- [x] 12. Seed verdict-stability regression test
   - Add a backend test that recomputes churn for the five seeded titles from their features and asserts the tolerances (Aurora within 0.05 of 2.10; Echoes 2.00; Monsoon 1.80; Ledger in [1.60, 1.65]; Reruns in [0.80, 0.90]) and the resulting verdicts (3 GREENLIGHT, 1 NEGOTIATE_HARD, 1 PASS).
   - _Requirements: 9.3, 9.4, 13.2_
 
