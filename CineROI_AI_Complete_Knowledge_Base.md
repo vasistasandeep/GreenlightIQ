@@ -253,7 +253,7 @@ the dashboard badge all agree for every one (the seed is self-consistent).
 ## 5. The Screens (Frontend Surfaces)
 
 The portal is a Next.js App Router application with a shared dark theme and top navigation.
-The logo returns to the landing page. Five routes:
+The logo returns to the landing page. Six route areas, plus a cross-cutting chat assistant:
 
 ### 5.1 Landing Page (`/`)
 Entry point with navigation into the four working areas.

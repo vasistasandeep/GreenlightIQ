@@ -416,6 +416,45 @@ the inputs (source snapshot), the parameters (stamped version), and the result (
 
 ---
 
+## 7b. The Chat Assistant (read-only, grounded)
+
+A floating chat assistant is available on every page. It answers two kinds of question -
+data questions (a title's verdict, guardrail checks, churn, the portfolio) and how-to/concept
+questions (how to upload a slate, what CPVH means) - and is designed so a generative model can
+never contaminate the deterministic decision core.
+
+```mermaid
+flowchart LR
+    Q["User question
+    (+ title scope, recent turns)"] --> API["POST /api/v1/chat
+    (read-only, RBAC-gated)"]
+    API --> G["GroundingService
+    gather real data + help snippets"]
+    G --> D[("existing repositories
+    scorecard / decision / churn / portfolio")]
+    G --> K["Knowledge Base
+    curated how-to / concept snippets"]
+    G --> CTX["Grounded context + sources"]
+    CTX --> P["Chat Provider
+    (mock now; hosted/self-hosted later)"]
+    P --> A["Answer + source citations"]
+```
+
+How the risks are neutralized:
+
+- **Read-only:** the endpoint runs no engine and writes nothing - no verdict, number, or
+  audit entry is produced by the assistant. The engine stays the sole source of every value.
+- **Grounded or honest:** answers come only from the retrieved context (real records plus
+  curated help snippets); with nothing relevant retrieved, the assistant says it does not know.
+- **Confidential-safe:** grounding omits confidential fields for roles without clearance, so
+  the model never receives what the user could not see.
+- **Governance redirect:** any ask to override, greenlight, or change a number is redirected
+  to the audited controls on the title page.
+- **Swappable model:** a single provider interface; the shipped default is a zero-cost,
+  no-key, deterministic mock, so the whole flow runs in CI and demos without external calls.
+
+---
+
 ## 8. Trust, Security, and Honesty
 
 - **Deterministic and explainable:** the same inputs always yield the same verdict, and

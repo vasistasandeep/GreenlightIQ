@@ -114,6 +114,16 @@ class Settings(BaseSettings):
         }
     )
 
+    # --- Chat assistant (Data_Chat_Assistant) ---
+    #: Which Chat_Provider backs the read-only chat assistant. Empty/"mock"
+    #: (default) selects the in-process MockChatProvider: no API key, no network,
+    #: deterministic answers composed from the grounded context. A later increment
+    #: adds hosted/self-hosted providers selected by this value.
+    chat_provider: str = Field(default="mock")
+    #: Max number of trailing conversation turns the chat endpoint will use from
+    #: a request's history (the backend is stateless; the client keeps the thread).
+    chat_history_max_turns: int = Field(default=6)
+
     # --- Logging ---
     log_level: str = Field(default="INFO")
     log_json: bool = Field(default=False)

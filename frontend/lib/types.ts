@@ -527,3 +527,27 @@ export interface QuickEvaluateResponse {
   governance: Governance;
   metadata_profile: MetadataProfile;
 }
+
+
+// --------------------------------------------------------------------------- //
+// Data Chat Assistant (read-only, grounded chat over data + how-to knowledge)
+// --------------------------------------------------------------------------- //
+
+/** One prior turn in the client-maintained conversation history. */
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Request body for POST /api/v1/chat. */
+export interface ChatRequest {
+  message: string;
+  title_id?: string | null;
+  history?: ChatTurn[];
+}
+
+/** Response from POST /api/v1/chat: the answer plus its grounding sources. */
+export interface ChatResponse {
+  answer: string;
+  sources: string[];
+}

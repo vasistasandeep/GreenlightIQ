@@ -1,0 +1,99 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Create the provider interface, mock provider, and system prompt": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010910443
+      },
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010923092
+      }
+    ],
+    "2. Property/unit tests for the provider and system prompt": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010910750
+      }
+    ],
+    "3. Create the GroundingService": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010910925
+      },
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010935451
+      }
+    ],
+    "4. Tests for the GroundingService": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010911158
+      }
+    ],
+    "5. Create the chat endpoint": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010911371
+      }
+    ],
+    "6. Tests for the chat endpoint": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010911555
+      }
+    ],
+    "7. Mount the chat router": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010911785
+      }
+    ],
+    "8. Frontend api-client method and types": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010912014
+      }
+    ],
+    "9. Build the chat widget": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010912434
+      }
+    ],
+    "10. Tests for the chat widget": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010912788
+      }
+    ],
+    "11. Documentation and NotebookLM export": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010913014
+      }
+    ],
+    "12. End-to-end verification": [
+      {
+        "executionId": "d7880cb4-fa4c-402b-b638-6c33f69c15bf",
+        "chatSessionId": "sess_d68d1252-38df-4aab-9c1e-d3c10acc79dc",
+        "timestamp": 1792010913370
+      }
+    ]
+  }
+}

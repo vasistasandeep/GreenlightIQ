@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI
 
-from app.api import audit, auth, calibration, dashboard, decisions, health, jobs, versions
+from app.api import audit, auth, calibration, chat, dashboard, decisions, health, jobs, versions
 from app.core.config import get_settings
 
 __all__ = ["register_support_routers", "build_support_router"]
@@ -42,6 +42,7 @@ _PREFIXED_ROUTERS: tuple[APIRouter, ...] = (
     versions.router,
     calibration.router,
     dashboard.router,
+    chat.router,
 )
 
 

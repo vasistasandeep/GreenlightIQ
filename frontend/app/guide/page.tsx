@@ -1031,6 +1031,18 @@ function FeaturesTab() {
         ]}
         tip={<>Rejected rows never block the batch - accepted + rejected always equals what you submitted.</>}
       />
+      <HowTo
+        title="Ask the chat assistant (data + how-to)"
+        where="Any page - the chat button, bottom-right"
+        what="A read-only assistant that explains your data and how to use the portal. It only reports what the platform already shows and never changes a decision."
+        steps={[
+          <>Click the chat button in the bottom-right corner of any page.</>,
+          <>Ask a data question (e.g. <span className="font-medium text-slate-100">&quot;why did The Ledger get NEGOTIATE HARD?&quot;</span>) or a how-to/concept question (e.g. <span className="font-medium text-slate-100">&quot;how do I upload a slate?&quot;</span>, <span className="font-medium text-slate-100">&quot;what is CPVH?&quot;</span>).</>,
+          <>On a title page it answers about that title automatically; elsewhere it uses the portfolio or your named title.</>,
+          <>Each answer lists its sources (title scorecard, portfolio, or a help topic) so you can see it is grounded, not guessed.</>,
+        ]}
+        tip={<>It cannot override, greenlight, or change any number - those stay on the audited governance controls. If it does not have the answer, it says so rather than inventing one.</>}
+      />
 
       <SectionHead note="Everything you can do on a single title's page.">
         On the Title page

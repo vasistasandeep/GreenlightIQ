@@ -15,6 +15,8 @@ import type {
   BacktestAuditResponse,
   CalibrationApplyRequest,
   CalibrationApplyResponse,
+  ChatRequest,
+  ChatResponse,
   DashboardSummary,
   DecisionActionResult,
   FinalizationStatus,
@@ -441,5 +443,19 @@ export const api = {
       `/decisions/${decisionId}/demo-sign-off`,
       { method: "POST", body: { role }, ...options },
     );
+  },
+
+  /**
+   * POST /api/v1/chat - ask the read-only, grounded chat assistant. It answers
+   * data questions (verdicts, churn, the portfolio) and how-to/concept questions
+   * from the platform's own data and help content, and returns the source
+   * identifiers it used. It never changes any decision or number.
+   */
+  chat(request: ChatRequest, options?: RequestOptions) {
+    return apiFetch<ChatResponse>("/chat", {
+      method: "POST",
+      body: request,
+      ...options,
+    });
   },
 };
