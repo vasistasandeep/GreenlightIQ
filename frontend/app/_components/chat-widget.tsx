@@ -69,6 +69,7 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastFailed, setLastFailed] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -98,6 +99,7 @@ export function ChatWidget() {
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setInput("");
     setError(null);
+    setLastFailed(null);
     setPending(true);
 
     try {
@@ -115,12 +117,23 @@ export function ChatWidget() {
           followUps: res.follow_ups ?? [],
         },
       ]);
+      setLastFailed(null);
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.envelope?.message ?? err.message
-          : "The assistant could not be reached. Please try again.";
+      // Degrade gracefully: a timeout or an unavailable provider should never
+      // dead-end. Show a plain-language message and let the user retry the
+      // exact question they just asked.
+      let msg = "The assistant could not be reached. Please try again.";
+      if (err instanceof ApiError) {
+        if (err.status === 503) {
+          msg =
+            "The assistant is busy right now (a slow model can take a while). " +
+            "Try again, or switch to the fast built-in assistant.";
+        } else {
+          msg = err.envelope?.message ?? err.message;
+        }
+      }
       setError(msg);
+      setLastFailed(text);
     } finally {
       setPending(false);
     }
@@ -282,9 +295,19 @@ export function ChatWidget() {
           </div>
 
           {error ? (
-            <p role="alert" className="px-4 py-1 text-xs text-rose-400">
-              {error}
-            </p>
+            <div role="alert" className="flex items-center justify-between gap-2 px-4 py-1.5 text-xs text-rose-400">
+              <span>{error}</span>
+              {lastFailed ? (
+                <button
+                  type="button"
+                  onClick={() => void sendText(lastFailed)}
+                  disabled={pending}
+                  className="shrink-0 rounded-md border border-rose-500/40 px-2 py-0.5 font-medium text-rose-200 hover:bg-rose-500/10 disabled:opacity-50"
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
           <div className="flex items-center gap-2 border-t border-slate-800 px-3 py-3">
