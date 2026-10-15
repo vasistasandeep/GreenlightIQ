@@ -72,4 +72,33 @@ describe("ChatWidget", () => {
     open();
     expect(screen.getByText(/Portfolio overview - read-only/)).toBeInTheDocument();
   });
+
+  it("renders follow-up chips and sends one when clicked", async () => {
+    chat
+      .mockResolvedValueOnce({
+        answer: "The Ledger is NEGOTIATE HARD.",
+        sources: ["title:abc"],
+        follow_ups: ["How is The Ledger's churn calculated?"],
+      })
+      .mockResolvedValueOnce({
+        answer: "Churn is built additively from several drivers.",
+        sources: ["doc:concept-churn"],
+        follow_ups: [],
+      });
+    open();
+
+    fireEvent.change(screen.getByLabelText("Ask the assistant"), {
+      target: { value: "tell me about The Ledger" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    const chip = await screen.findByRole("button", {
+      name: /How is The Ledger's churn calculated\?/,
+    });
+    expect(chip).toBeInTheDocument();
+
+    fireEvent.click(chip);
+    await waitFor(() => expect(chat).toHaveBeenCalledTimes(2));
+    expect(chat.mock.calls[1][0].message).toMatch(/How is The Ledger's churn/);
+  });
 });

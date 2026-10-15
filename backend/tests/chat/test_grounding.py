@@ -159,3 +159,18 @@ async def test_grounding_performs_no_writes():
     # Fakes count writes; none should have happened.
     assert svc._titles.writes == 0
     assert svc._projections.writes == 0
+
+
+@pytest.mark.asyncio
+async def test_title_answer_suggests_followups():
+    svc, _ = _service()
+    ctx = await svc.gather("tell me about The Ledger")
+    assert len(ctx.follow_ups) > 0
+    assert any("Ledger" in f for f in ctx.follow_ups)
+
+
+@pytest.mark.asyncio
+async def test_greeting_suggests_starter_followups():
+    svc, _ = _service()
+    ctx = await svc.gather("hi")
+    assert len(ctx.follow_ups) > 0

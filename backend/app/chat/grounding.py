@@ -32,11 +32,13 @@ class GroundedContext:
 
     ``text`` is a compact plain-text block the provider reads; ``sources`` are
     opaque identifiers (``title:<id>``, ``projection:latest``, ``doc:<id>``,
-    ``portfolio``) surfaced to the caller for traceability.
+    ``portfolio``) surfaced to the caller for traceability; ``follow_ups`` are
+    suggested next questions the UI can render as one-click chips.
     """
 
     text: str
     sources: tuple[str, ...]
+    follow_ups: tuple[str, ...] = ()
 
     @property
     def is_empty(self) -> bool:
@@ -122,7 +124,8 @@ class GroundingService:
                 sources.extend(port_sources)
 
         # 3) Knowledge context (how-to / concepts), always consulted.
-        for snippet in self._kb.search(message):
+        matched_snippets = self._kb.search(message)
+        for snippet in matched_snippets:
             parts.append(f"[Help: {snippet.title}] {snippet.body}")
             sources.append(f"doc:{snippet.id}")
 
@@ -149,7 +152,59 @@ class GroundingService:
             parts.append(_CAPABILITY_MENU)
             sources.append("doc:assistant-intro")
 
-        return GroundedContext(text="\n\n".join(parts).strip(), sources=tuple(sources))
+        follow_ups = self._follow_ups(
+            title=title,
+            snippet_ids=[s.id for s in matched_snippets],
+            sources=sources,
+        )
+        return GroundedContext(
+            text="\n\n".join(parts).strip(),
+            sources=tuple(sources),
+            follow_ups=tuple(follow_ups),
+        )
+
+    def _follow_ups(self, *, title, snippet_ids: list[str], sources: list[str]) -> list[str]:
+        """Suggest up to 3 relevant next questions based on what was retrieved.
+
+        Deterministic and purely presentational - the suggestions are plain
+        strings the UI can send back as a new question.
+        """
+        out: list[str] = []
+        name = getattr(title, "title_name", None)
+
+        if name:
+            # Title in scope -> drill-downs about that specific title.
+            out.append(f"How is {name}'s churn mitigation calculated?")
+            out.append(f"What price would make {name} clear?")
+            out.append(f"Which guardrail breached hardest for {name}?")
+        else:
+            # Map concept/how-to snippets to natural neighbours.
+            neighbours = {
+                "concept-cpvh": "How is CPVH calculated?",
+                "concept-ltv": "What drives the LTV-to-Cost multiple?",
+                "concept-churn": "Why is a churn breach non-correctable?",
+                "concept-verdicts": "What's the difference between NEGOTIATE HARD and PASS?",
+                "concept-guardrails": "What is CPVH?",
+                "how-to-batch-slate": "What columns does the slate CSV need?",
+                "how-to-override": "Who is allowed to override a recommendation?",
+                "how-to-backtest-audit": "What is MAPE?",
+                "concept-content-format": "How does genre affect churn?",
+            }
+            for sid in snippet_ids:
+                if sid in neighbours and neighbours[sid] not in out:
+                    out.append(neighbours[sid])
+
+            # Portfolio-oriented or greeting -> broad starter questions.
+            if "portfolio" in sources or "doc:assistant-intro" in sources:
+                for q in (
+                    "Why did The Ledger get NEGOTIATE HARD?",
+                    "How many titles are GREENLIGHT?",
+                    "What is churn mitigation?",
+                ):
+                    if q not in out:
+                        out.append(q)
+
+        return out[:3]
 
     def _is_greeting_or_help(self, message: str) -> bool:
         q = (message or "").strip().lower()

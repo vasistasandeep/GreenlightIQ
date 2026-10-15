@@ -19,7 +19,7 @@ import { usePathname } from "next/navigation";
 import { api, ApiError } from "@/lib/api-client";
 import type { ChatResponse, ChatTurn } from "@/lib/types";
 
-type Message = ChatTurn & { sources?: string[] };
+type Message = ChatTurn & { sources?: string[]; followUps?: string[] };
 
 /** How many trailing turns to send (mirrors the backend bound). */
 const HISTORY_TURNS = 6;
@@ -108,7 +108,12 @@ export function ChatWidget() {
       });
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: res.answer, sources: res.sources },
+        {
+          role: "assistant",
+          content: res.answer,
+          sources: res.sources,
+          followUps: res.follow_ups ?? [],
+        },
       ]);
     } catch (err) {
       const msg =
@@ -215,30 +220,54 @@ export function ChatWidget() {
               </div>
             ) : null}
 
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={
-                  m.role === "user"
-                    ? "ml-auto w-fit max-w-[85%] rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-100"
-                    : "mr-auto w-fit max-w-[90%] rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                }
-              >
-                <p className="whitespace-pre-wrap">{m.content}</p>
-                {m.role === "assistant" && m.sources && m.sources.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {m.sources.map((s) => (
-                      <span
-                        key={s}
-                        className="inline-flex items-center rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400"
-                      >
-                        {sourceLabel(s)}
-                      </span>
-                    ))}
+            {messages.map((m, i) => {
+              const isLast = i === messages.length - 1;
+              const showFollowUps =
+                m.role === "assistant" &&
+                isLast &&
+                !pending &&
+                (m.followUps?.length ?? 0) > 0;
+              return (
+                <div key={i} className="space-y-2">
+                  <div
+                    className={
+                      m.role === "user"
+                        ? "ml-auto w-fit max-w-[85%] rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-100"
+                        : "mr-auto w-fit max-w-[90%] rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                    }
+                  >
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                    {m.role === "assistant" && m.sources && m.sources.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {m.sources.map((s) => (
+                          <span
+                            key={s}
+                            className="inline-flex items-center rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400"
+                          >
+                            {sourceLabel(s)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            ))}
+
+                  {showFollowUps ? (
+                    <div className="flex flex-wrap gap-1.5" aria-label="Suggested follow-up questions">
+                      {m.followUps!.map((q) => (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => void sendText(q)}
+                          className="inline-flex items-center gap-1 rounded-full border border-emerald-600/40 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-200 transition hover:border-emerald-500 hover:bg-emerald-500/20"
+                        >
+                          <span aria-hidden="true">&#8594;</span> {q}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
 
             {pending ? (
               <div className="mr-auto flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-400">

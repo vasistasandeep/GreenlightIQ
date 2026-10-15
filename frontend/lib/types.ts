@@ -550,4 +550,6 @@ export interface ChatRequest {
 export interface ChatResponse {
   answer: string;
   sources: string[];
+  /** Suggested next questions the UI renders as one-click chips. */
+  follow_ups?: string[];
 }

@@ -65,10 +65,12 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Outbound chat payload: the answer and its source identifiers (R1.6)."""
+    """Outbound chat payload: answer, source identifiers (R1.6), and suggested
+    one-click follow-up questions the UI can render as chips."""
 
     answer: str
     sources: list[str]
+    follow_ups: list[str] = Field(default_factory=list)
 
 
 @router.post(
@@ -118,4 +120,8 @@ async def chat(
             content=jsonable_encoder(envelope),
         )
 
-    return ChatResponse(answer=answer, sources=list(context.sources))
+    return ChatResponse(
+        answer=answer,
+        sources=list(context.sources),
+        follow_ups=list(context.follow_ups),
+    )
