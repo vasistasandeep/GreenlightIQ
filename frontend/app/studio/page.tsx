@@ -57,8 +57,8 @@ export default function AssetStudioPage() {
               aria-selected={tab === "single"}
               onClick={() => setTab("single")}
               className={
-                "rounded-md px-3 py-1.5 text-xs font-semibold uppercase " +
-                (tab === "single" ? "bg-emerald-500 text-emerald-950" : "bg-slate-800 text-slate-300")
+                "flex-1 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition " +
+                (tab === "single" ? "bg-emerald-500 text-emerald-950 shadow-sm" : "bg-slate-800 text-slate-400 hover:text-slate-200")
               }
             >
               Single Asset
@@ -69,8 +69,8 @@ export default function AssetStudioPage() {
               aria-selected={tab === "batch"}
               onClick={() => setTab("batch")}
               className={
-                "rounded-md px-3 py-1.5 text-xs font-semibold uppercase " +
-                (tab === "batch" ? "bg-emerald-500 text-emerald-950" : "bg-slate-800 text-slate-300")
+                "flex-1 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition " +
+                (tab === "batch" ? "bg-emerald-500 text-emerald-950 shadow-sm" : "bg-slate-800 text-slate-400 hover:text-slate-200")
               }
             >
               Batch Slate
@@ -116,9 +116,17 @@ export default function AssetStudioPage() {
               </div>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/40 px-6 py-16 text-center text-slate-500">
-              Enter an asset on the left and run the valuation to see the instant
-              executive scorecard.
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-800 bg-slate-900/40 px-6 py-16 text-center">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-500" aria-hidden>
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18" />
+                  <path d="M7 14l4-4 3 3 5-6" />
+                </svg>
+              </span>
+              <p className="max-w-xs text-sm text-slate-400">
+                Enter an asset on the left and run the valuation to see the instant
+                executive scorecard.
+              </p>
             </div>
           )}
         </main>

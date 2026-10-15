@@ -153,6 +153,7 @@ class GroundingService:
             sources.append("doc:assistant-intro")
 
         follow_ups = self._follow_ups(
+            message=message,
             title=title,
             snippet_ids=[s.id for s in matched_snippets],
             sources=sources,
@@ -163,48 +164,69 @@ class GroundingService:
             follow_ups=tuple(follow_ups),
         )
 
-    def _follow_ups(self, *, title, snippet_ids: list[str], sources: list[str]) -> list[str]:
-        """Suggest up to 3 relevant next questions based on what was retrieved.
+    def _follow_ups(
+        self, *, message: str, title, snippet_ids: list[str], sources: list[str]
+    ) -> list[str]:
+        """Suggest up to 3 relevant next questions that ADVANCE the conversation.
 
-        Deterministic and purely presentational - the suggestions are plain
-        strings the UI can send back as a new question.
+        Question-aware: suggestions never repeat what was just asked (normalized
+        match), so clicking a chip always moves to a genuinely new question.
+        Deterministic and purely presentational.
         """
-        out: list[str] = []
+        asked = self._norm(message)
+        candidates: list[str] = []
         name = getattr(title, "title_name", None)
 
         if name:
-            # Title in scope -> drill-downs about that specific title.
-            out.append(f"How is {name}'s churn mitigation calculated?")
-            out.append(f"What price would make {name} clear?")
-            out.append(f"Which guardrail breached hardest for {name}?")
+            # A pool of distinct title drill-downs; we drop whatever matches the
+            # question just asked so the chips keep changing as the user clicks.
+            candidates = [
+                f"How is {name}'s churn mitigation calculated?",
+                f"What price would make {name} clear?",
+                f"Which guardrail breached hardest for {name}?",
+                f"How does {name}'s CPVH compare to its ceiling?",
+                f"What is {name}'s LTV-to-Cost multiple?",
+                f"What content format and genre does {name} use?",
+                f"Is {name} a GREENLIGHT, NEGOTIATE HARD, or PASS - and why?",
+            ]
         else:
-            # Map concept/how-to snippets to natural neighbours.
             neighbours = {
-                "concept-cpvh": "How is CPVH calculated?",
-                "concept-ltv": "What drives the LTV-to-Cost multiple?",
-                "concept-churn": "Why is a churn breach non-correctable?",
-                "concept-verdicts": "What's the difference between NEGOTIATE HARD and PASS?",
-                "concept-guardrails": "What is CPVH?",
-                "how-to-batch-slate": "What columns does the slate CSV need?",
-                "how-to-override": "Who is allowed to override a recommendation?",
-                "how-to-backtest-audit": "What is MAPE?",
-                "concept-content-format": "How does genre affect churn?",
+                "concept-cpvh": ["What drives the LTV-to-Cost multiple?", "What is a good CPVH?"],
+                "concept-ltv": ["How is CPVH calculated?", "What is churn mitigation?"],
+                "concept-churn": ["Why is a churn breach non-correctable?", "How does content format affect churn?"],
+                "concept-verdicts": ["What's the difference between NEGOTIATE HARD and PASS?", "What are the four guardrails?"],
+                "concept-guardrails": ["What is CPVH?", "What is churn mitigation?"],
+                "concept-content-format": ["How does genre affect churn?", "What is churn mitigation?"],
+                "how-to-batch-slate": ["What columns does the slate CSV need?", "How do I evaluate a single title?"],
+                "how-to-override": ["Who is allowed to override a recommendation?", "How is an override audited?"],
+                "how-to-backtest-audit": ["What is MAPE?", "How does model calibration work?"],
             }
             for sid in snippet_ids:
-                if sid in neighbours and neighbours[sid] not in out:
-                    out.append(neighbours[sid])
-
-            # Portfolio-oriented or greeting -> broad starter questions.
+                candidates.extend(neighbours.get(sid, []))
             if "portfolio" in sources or "doc:assistant-intro" in sources:
-                for q in (
+                candidates.extend([
                     "Why did The Ledger get NEGOTIATE HARD?",
                     "How many titles are GREENLIGHT?",
                     "What is churn mitigation?",
-                ):
-                    if q not in out:
-                        out.append(q)
+                    "How do I upload a slate?",
+                    "What are the four guardrails?",
+                ])
 
-        return out[:3]
+        # De-dupe, drop the just-asked question, cap at 3.
+        out: list[str] = []
+        for q in candidates:
+            if self._norm(q) == asked:
+                continue
+            if q not in out:
+                out.append(q)
+            if len(out) == 3:
+                break
+        return out
+
+    @staticmethod
+    def _norm(text: str) -> str:
+        import re as _re
+        return _re.sub(r"[^a-z0-9 ]", "", (text or "").lower()).strip()
 
     def _is_greeting_or_help(self, message: str) -> bool:
         q = (message or "").strip().lower()
