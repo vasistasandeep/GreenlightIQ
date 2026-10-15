@@ -113,6 +113,11 @@ class MockChatProvider:
         if not context:
             return NO_INFORMATION
 
+        # A greeting / capability answer (the grounding attaches the assistant
+        # intro) reads better without the "for your question" framing.
+        if "[Assistant]" in context:
+            return context.replace("[Assistant] ", "").strip()
+
         # Grounded answer: lead with a direct line, then surface the retrieved
         # context so the user sees exactly what the answer rests on. Deterministic.
         intro = "Here's what the platform data and help content show"

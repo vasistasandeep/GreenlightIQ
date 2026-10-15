@@ -118,11 +118,31 @@ async def test_how_to_query_pulls_knowledge_doc_source():
 
 
 @pytest.mark.asyncio
-async def test_off_topic_yields_empty_context():
+async def test_off_topic_falls_back_to_helpful_menu():
+    # Rather than dead-ending, an unmatched question still offers the portfolio
+    # snapshot and a capability menu so the conversation stays useful.
     svc, _ = _service()
     ctx = await svc.gather("what is the weather in Mumbai tomorrow?")
-    assert ctx.is_empty
-    assert ctx.sources == ()
+    assert not ctx.is_empty
+    assert "doc:assistant-intro" in ctx.sources
+    assert "portfolio" in ctx.sources
+
+
+@pytest.mark.asyncio
+async def test_greeting_offers_portfolio_and_capabilities():
+    svc, _ = _service()
+    ctx = await svc.gather("hi")
+    assert "doc:assistant-intro" in ctx.sources
+    assert "portfolio" in ctx.sources
+    assert "CineROI Copilot" in ctx.text
+
+
+@pytest.mark.asyncio
+async def test_partial_name_resolves_title():
+    # "Ledger" (not the full "The Ledger") should still resolve the title.
+    svc, ledger_id = _service()
+    ctx = await svc.gather("tell me about Ledger")
+    assert f"title:{ledger_id}" in ctx.sources
 
 
 @pytest.mark.asyncio

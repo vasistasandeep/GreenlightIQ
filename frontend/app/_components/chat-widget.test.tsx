@@ -25,7 +25,7 @@ describe("ChatWidget", () => {
 
   function open() {
     render(<ChatWidget />);
-    fireEvent.click(screen.getByLabelText("Open assistant"));
+    fireEvent.click(screen.getByLabelText("Open CineROI Copilot"));
   }
 
   it("sends a message and renders the grounded answer with a source chip", async () => {
@@ -65,11 +65,11 @@ describe("ChatWidget", () => {
   it("reflects the title scope in the Context chip on a title page", () => {
     pathname.value = "/titles/7b1c3771-aaaa";
     open();
-    expect(screen.getByText(/Context: This title/)).toBeInTheDocument();
+    expect(screen.getByText(/This title - read-only/)).toBeInTheDocument();
   });
 
   it("shows the portfolio scope on non-title routes", () => {
     open();
-    expect(screen.getByText(/Context: Portfolio overview/)).toBeInTheDocument();
+    expect(screen.getByText(/Portfolio overview - read-only/)).toBeInTheDocument();
   });
 });

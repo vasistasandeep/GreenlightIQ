@@ -43,6 +43,18 @@ class GroundedContext:
         return not self.text.strip()
 
 
+_CAPABILITY_MENU = (
+    "[Assistant] I'm CineROI Copilot - a read-only helper. I can: "
+    "(1) explain any title's verdict and the four guardrail checks "
+    "(try 'why did The Ledger get NEGOTIATE HARD?'); "
+    "(2) summarize the portfolio ('how many titles are GREENLIGHT?'); "
+    "(3) explain churn, CPVH, LTV, payback, and the content-format/genre drivers; "
+    "(4) walk you through how-to tasks (uploading a slate, overrides, backtests, "
+    "the CSV template). Ask me anything along those lines, or name a title to dig in. "
+    "I report what the platform already computed and never change a decision."
+)
+
+
 def _num(value: object) -> str:
     if value is None:
         return "n/a"
@@ -114,7 +126,43 @@ class GroundingService:
             parts.append(f"[Help: {snippet.title}] {snippet.body}")
             sources.append(f"doc:{snippet.id}")
 
+        # 4) Greeting / vague-intent handling: a hello, a bare "help", or a
+        #    general "how it works" should never dead-end. Offer a live portfolio
+        #    snapshot plus a short menu of what the assistant can do, so every
+        #    conversation starts somewhere useful (not an "I don't know").
+        if self._is_greeting_or_help(message) and "portfolio" not in sources:
+            port_text, port_sources = await self._portfolio_context()
+            if port_text:
+                parts.append(port_text)
+                sources.extend(port_sources)
+            parts.append(_CAPABILITY_MENU)
+            sources.append("doc:assistant-intro")
+
+        # 5) Last-resort fallback: if nothing matched at all, still be helpful -
+        #    surface the portfolio snapshot and the capability menu rather than a
+        #    bare "I don't know", so the user always has a next step.
+        if not sources:
+            port_text, port_sources = await self._portfolio_context()
+            if port_text:
+                parts.append(port_text)
+                sources.extend(port_sources)
+            parts.append(_CAPABILITY_MENU)
+            sources.append("doc:assistant-intro")
+
         return GroundedContext(text="\n\n".join(parts).strip(), sources=tuple(sources))
+
+    def _is_greeting_or_help(self, message: str) -> bool:
+        q = (message or "").strip().lower()
+        if q in {"hi", "hello", "hey", "yo", "help", "start", "menu", "?", "hi!", "hello!"}:
+            return True
+        return any(
+            kw in q
+            for kw in (
+                "how it works", "how does this work", "what can you do",
+                "what can i ask", "get started", "getting started", "what do you do",
+                "who are you", "what is this",
+            )
+        )
 
     # --- resolution -------------------------------------------------------- #
 
@@ -138,9 +186,36 @@ class GroundingService:
             all_titles = await self._titles.list()
         except Exception:
             return None
-        matches = [t for t in all_titles if t.title_name and t.title_name.lower() in lowered]
-        if len(matches) == 1:
-            return matches[0]
+
+        # Exact full-name substring first (most precise).
+        exact = [t for t in all_titles if t.title_name and t.title_name.lower() in lowered]
+        if len(exact) == 1:
+            return exact[0]
+        if len(exact) > 1:
+            return None
+
+        # Otherwise match on the title's significant words, so "Ledger" resolves
+        # "The Ledger" and "Aurora" resolves "Aurora Protocol". A match requires
+        # every significant word of a title to appear in the message; the title
+        # with the most matched words wins when unambiguous.
+        _STOP = {"the", "a", "an", "of", "and", "vol", "vol.", "part", "ii", "iii"}
+        best = []
+        for t in all_titles:
+            if not t.title_name:
+                continue
+            words = [w for w in t.title_name.lower().replace(".", "").split() if w not in _STOP]
+            if not words:
+                continue
+            hits = sum(1 for w in words if w in lowered)
+            if hits > 0:
+                best.append((hits, len(words), t))
+        if not best:
+            return None
+        best.sort(key=lambda x: -x[0])
+        top = best[0][0]
+        leaders = [b for b in best if b[0] == top]
+        if len(leaders) == 1:
+            return leaders[0][2]
         return None
 
     def _mentions_portfolio(self, message: str) -> bool:
