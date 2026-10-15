@@ -160,16 +160,17 @@ export function ChatWidget() {
         aria-haspopup="dialog"
         aria-label={open ? "Close CineROI Copilot" : "Open CineROI Copilot"}
         title="CineROI Copilot"
-        className="group fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-emerald-950 shadow-xl shadow-emerald-900/40 ring-1 ring-white/10 transition-all duration-200 hover:scale-105 hover:shadow-emerald-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+        className="group fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/50 transition-all duration-200 hover:bg-emerald-400 hover:shadow-emerald-900/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-95"
       >
         {open ? (
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         ) : (
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />
-            <path d="M8.5 10.8l1.6 1.6 3.5-3.5" />
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
+            <path d="M12 3C7.03 3 3 6.58 3 11c0 2.3 1.1 4.36 2.86 5.8L5 21l4.5-1.7c.78.2 1.62.3 2.5.3 4.97 0 9-3.58 9-8s-4.03-8-9-8z" opacity="0.18" />
+            <path fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" d="M20.5 11c0 4.14-3.8 7.5-8.5 7.5-.9 0-1.77-.12-2.57-.35L5 19.5l1.1-3.9C4.78 14.3 3.5 12.78 3.5 11 3.5 6.86 7.3 3.5 12 3.5s8.5 3.36 8.5 7.5z" />
+            <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8.8 11.2l2 2 4-4.2" />
           </svg>
         )}
       </button>
