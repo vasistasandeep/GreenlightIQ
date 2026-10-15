@@ -31,9 +31,12 @@ export function TopNav() {
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         {/* Logo -> home */}
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 text-sm font-bold text-emerald-950">
-            C
+        <Link href="/" className="group flex items-center gap-2.5 shrink-0">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 text-emerald-950 shadow-sm shadow-emerald-900/40 ring-1 ring-white/10 transition group-hover:scale-105">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 17l6-6 4 4 7-8" />
+              <path d="M14 7h6v6" />
+            </svg>
           </span>
           <span className="text-base font-bold tracking-tight text-slate-100">
             CineROI<span className="text-emerald-400"> AI</span>

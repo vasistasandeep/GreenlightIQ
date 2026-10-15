@@ -22,7 +22,7 @@ const FULL_KPIS: DashboardKpis = {
 /** Locate the KPI card <div> that owns a given label. */
 function cardByLabel(label: string): HTMLElement {
   const labelNode = screen.getByText(label);
-  const card = labelNode.closest("div");
+  const card = labelNode.closest("[data-kpi-card]");
   expect(card).not.toBeNull();
   return card as HTMLElement;
 }

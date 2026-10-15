@@ -1,3 +1,5 @@
+import { TrendingUp, Layers, ShieldAlert, Target } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import type { DashboardKpis } from "@/lib/types";
 
@@ -43,21 +45,51 @@ function formatPercent(value: number | null): string {
   }).format(value);
 }
 
+type Accent = "emerald" | "sky" | "amber" | "violet";
+
+const ACCENT: Record<Accent, { ring: string; icon: string; glow: string }> = {
+  emerald: { ring: "border-emerald-500/20", icon: "bg-emerald-500/15 text-emerald-400", glow: "from-emerald-500/10" },
+  sky: { ring: "border-sky-500/20", icon: "bg-sky-500/15 text-sky-400", glow: "from-sky-500/10" },
+  amber: { ring: "border-amber-500/20", icon: "bg-amber-500/15 text-amber-400", glow: "from-amber-500/10" },
+  violet: { ring: "border-violet-500/20", icon: "bg-violet-500/15 text-violet-400", glow: "from-violet-500/10" },
+};
+
 interface KpiCardProps {
   label: string;
   value: string;
   hint: string;
+  accent: Accent;
+  icon: React.ReactNode;
 }
 
-/** A single KPI card: large value with a label and a short descriptive hint. */
-function KpiCard({ label, value, hint }: KpiCardProps) {
+/** A single KPI card: an accented icon, large value, label, and a short hint. */
+function KpiCard({ label, value, hint, accent, icon }: KpiCardProps) {
+  const a = ACCENT[accent];
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-5">
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">
+    <div
+      data-kpi-card
+      className={cn(
+        "group relative overflow-hidden rounded-xl border bg-slate-900/70 p-5 transition-colors hover:bg-slate-900",
+        a.ring,
+      )}
+    >
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent opacity-60",
+          a.glow,
+        )}
+        aria-hidden
+      />
+      <div className="relative flex items-start justify-between gap-3">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <span className={cn("inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", a.icon)} aria-hidden>
+          {icon}
+        </span>
+      </div>
+      <p className="relative mt-3 text-3xl font-semibold tabular-nums tracking-tight text-slate-50">
         {value}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      <p className="relative mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -80,21 +112,29 @@ export function KpiCards({ kpis, className }: KpiCardsProps) {
         label="Active Pipeline Valuation"
         value={formatUsd(kpis.active_pipeline_valuation_usd)}
         hint="Normalized acquisition cost (USD)"
+        accent="emerald"
+        icon={<Layers className="h-5 w-5" aria-hidden />}
       />
       <KpiCard
         label="Avg LTV-to-Cost"
         value={formatMultiple(kpis.avg_ltv_to_cost)}
         hint="Across valued titles"
+        accent="sky"
+        icon={<TrendingUp className="h-5 w-5" aria-hidden />}
       />
       <KpiCard
         label="Portfolio Risk Exposure"
         value={formatPercent(kpis.portfolio_risk_exposure)}
         hint="Share of at-risk titles"
+        accent="amber"
+        icon={<ShieldAlert className="h-5 w-5" aria-hidden />}
       />
       <KpiCard
         label="Model Accuracy"
         value={formatPercent(kpis.model_accuracy_rate)}
         hint="Prediction accuracy rate"
+        accent="violet"
+        icon={<Target className="h-5 w-5" aria-hidden />}
       />
     </section>
   );
