@@ -80,3 +80,16 @@ def test_system_prompt_contract_present_and_constraining() -> None:
     assert "read-only" in lowered or "read only" in lowered
     assert "governance" in lowered
     assert "override" in lowered
+
+
+def test_mentioning_verdict_words_does_not_trigger_redirect() -> None:
+    # Asking ABOUT greenlights/passes is a read question, not an action request.
+    provider = MockChatProvider()
+    for q in (
+        "how many titles are GREENLIGHT?",
+        "which titles are a PASS?",
+        "what is the approval rate?",
+        "show me every NEGOTIATE HARD title",
+    ):
+        msgs = [_grounded_user("Portfolio: 15 titles, GREENLIGHT: 7.", q)]
+        assert provider.complete(msgs) != GOVERNANCE_REDIRECT, q

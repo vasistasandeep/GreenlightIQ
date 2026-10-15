@@ -28,16 +28,32 @@ SYSTEM_PROMPT_CONTRACT = (
 #: Used by the Mock_Chat_Provider to honor the redirect behavior deterministically
 #: (a real model follows the system prompt instead).
 GOVERNED_ACTION_TRIGGERS: tuple[str, ...] = (
+    # Command-shaped phrases that actually ask the assistant to CHANGE a
+    # decision. These are deliberately imperative so that merely mentioning a
+    # verdict word ("how many titles are GREENLIGHT?") does NOT trigger the
+    # redirect - only a request to act on it does.
     "override",
-    "greenlight",
-    "green light",
-    "approve",
-    "reject",
+    "overrule",
     "change the verdict",
     "change verdict",
+    "change the recommendation",
+    "change the status",
     "set the recommendation",
+    "set the verdict",
+    "set it to",
+    "mark it as",
+    "make it a",
     "make it pass",
+    "make it greenlight",
     "force pass",
+    "force greenlight",
+    "approve this",
+    "approve the deal",
+    "reject this",
+    "reject the deal",
+    "sign off",
+    "flip it to",
+    "turn it into a",
 )
 
 GOVERNANCE_REDIRECT = (
