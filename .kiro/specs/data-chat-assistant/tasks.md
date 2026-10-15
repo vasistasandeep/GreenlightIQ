@@ -10,6 +10,7 @@ This plan builds the Data_Chat_Assistant from the design: a read-only, grounded 
 flowchart TD
     T1["1. provider + system prompt"] --> T2["2. provider tests"]
     T1 --> T5["5. chat endpoint"]
+    T13["13. knowledge base"] --> T3
     T3["3. grounding service"] --> T4["4. grounding tests"]
     T3 --> T5
     T5 --> T6["6. endpoint tests"]
@@ -29,18 +30,19 @@ The waves below group tasks that can proceed in parallel once their dependencies
 ```json
 {
   "waves": [
-    { "wave": 1, "tasks": ["1", "3"] },
-    { "wave": 2, "tasks": ["2", "4", "5"] },
-    { "wave": 3, "tasks": ["6", "7"] },
-    { "wave": 4, "tasks": ["8"] },
-    { "wave": 5, "tasks": ["9"] },
-    { "wave": 6, "tasks": ["10", "11"] },
-    { "wave": 7, "tasks": ["12"] }
+    { "wave": 1, "tasks": ["1", "13"] },
+    { "wave": 2, "tasks": ["2", "3"] },
+    { "wave": 3, "tasks": ["4", "5"] },
+    { "wave": 4, "tasks": ["6", "7"] },
+    { "wave": 5, "tasks": ["8"] },
+    { "wave": 6, "tasks": ["9"] },
+    { "wave": 7, "tasks": ["10", "11"] },
+    { "wave": 8, "tasks": ["12"] }
   ],
   "dependencies": {
     "1": [],
     "2": ["1"],
-    "3": [],
+    "3": ["13"],
     "4": ["3"],
     "5": ["1", "3"],
     "6": ["5"],
@@ -49,7 +51,8 @@ The waves below group tasks that can proceed in parallel once their dependencies
     "9": ["8"],
     "10": ["9"],
     "11": ["7", "9"],
-    "12": ["6", "10", "11"]
+    "12": ["6", "10", "11"],
+    "13": []
   }
 }
 ```
@@ -67,19 +70,20 @@ The waves below group tasks that can proceed in parallel once their dependencies
 
 - [ ] 3. Create the GroundingService
   - Add `backend/app/chat/grounding.py` with `GroundingService` and a `GroundedContext { text, sources }` result. Implement Title_Resolution: use the explicit `title_id` when supplied; otherwise load the active title names via `TitleRepository` and select titles whose `title_name.lower()` appears as a substring of `message.lower()` (no NLP/NER dependency). Exactly one match scopes to that title; zero or multiple matches fall back to portfolio scope. When a supplied `title_id` is malformed (not a UUID) or resolves to no row, catch it and fall back to portfolio scope rather than raising a 500. Gather portfolio context (dashboard summary) and, for a title scope, the persisted scorecard (`FinancialProjectionRepository`), decision/negotiation data, and the churn breakdown from `financial_projections.explanation`. Omit confidential fields unless the actor is permitted `READ_CONFIDENTIAL` via `RBACService`. Reads only - no writes, no engine runs, no audit entries.
-  - _Requirements: 1.1, 1.2, 1.3, 1.5, 2.3, 2.4_
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 2.3, 2.4_
 
 - [ ] 4. Tests for the GroundingService
   - Under `backend/tests/chat/`, verify a known seeded title (The Ledger) yields its scorecard/decision/churn in the context plus source ids; an unknown name falls back to portfolio; a role lacking `READ_CONFIDENTIAL` never sees confidential fields; grounding performs no writes.
-  - _Requirements: 1.2, 1.3, 1.5, 2.3, 2.4_
+  - Verify a How_To_Query (e.g. "how do I upload a slate?") retrieves the matching snippet and yields a `doc:` source; a how-to question with no matching snippet and no data match yields empty context (honest "don't know").
+  - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6, 2.3, 2.4_
 
 - [ ] 5. Create the chat endpoint
   - Add `backend/app/api/chat.py` with `router = APIRouter(prefix="/chat", tags=["chat"])` and `POST /chat` authorized by `Depends(require_operation(Operation.VALUATION))`. Define `ChatMessage`, `ChatRequest { message, title_id?, history? }`, `ChatResponse { answer, sources }` schemas. Reject empty/blank `message` through the standard envelope. Bound `history` to the last N turns. Build the message list (system prompt + bounded history + grounded user turn), call the provider, catch provider failures into a standard envelope without leaking internals, return `ChatResponse`. Declare the route as `@router.post("")` (empty path) so `POST /api/v1/chat` with no trailing slash hits without a 307 redirect that could drop the body. Inject the DB session via the existing `SessionDep` and construct `GroundingService(session, actor)` in the handler (or via a `get_grounding_service` dependency in `deps.py`).
   - _Requirements: 1.4, 1.6, 2.1, 2.2, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
 - [ ] 6. Tests for the chat endpoint
-  - Under `backend/tests/api/`, cover: a grounded answer for a seeded title with source ids; the honest "don't know" path; an override-phrased request answered with the governance redirect (not an action) and no writes/audit entries; empty message rejected; provider failure returns an envelope without internals; unauthorized call rejected by RBAC.
-  - _Requirements: 1.4, 1.6, 2.1, 2.2, 2.4, 4.2, 4.4_
+  - Under `backend/tests/api/`, cover: a grounded answer for a seeded title with source ids; a how-to question returning a `doc:` source; the honest "don't know" path; an override-phrased request answered with the governance redirect (not an action) and no writes/audit entries; empty message rejected; provider failure returns an envelope without internals; unauthorized call rejected by RBAC.
+  - _Requirements: 1.4, 1.5, 1.6, 2.1, 2.2, 2.4, 4.2, 4.4_
 
 - [ ] 7. Mount the chat router
   - In `backend/app/api/support_routers.py`, import `chat` and add `chat.router` to `_PREFIXED_ROUTERS` so it mounts under `/api/v1`. Verify the route appears and that `POST /api/v1/chat` (no trailing slash) resolves without a 307 redirect. Build the backend suite.
@@ -98,16 +102,21 @@ The waves below group tasks that can proceed in parallel once their dependencies
   - _Requirements: 5.1, 5.4, 5.7_
 
 - [ ] 11. Documentation and NotebookLM export
-  - Add a "Data Chat Assistant" how-to recipe to the in-portal guide (`frontend/app/guide/page.tsx`, Features & How-To tab). Document the feature (read-only, grounded, provider-swappable, mock default) in `CineROI_AI_Complete_Knowledge_Base.md` and `CineROI_AI_Architecture_And_Data_Flow.md`. Regenerate the NotebookLM export via `scripts/notebooklm-export.ps1`.
+  - Add a "Data Chat Assistant" how-to recipe to the in-portal guide (`frontend/app/guide/page.tsx`, Features & How-To tab), describing that it answers both data questions and how-to/concept questions. Document the feature (read-only, grounded over data + knowledge, provider-swappable, mock default) in `CineROI_AI_Complete_Knowledge_Base.md` and `CineROI_AI_Architecture_And_Data_Flow.md`. Confirm the Knowledge_Base snippets (task 13) stay consistent with the guide/docs wording. Regenerate the NotebookLM export via `scripts/notebooklm-export.ps1`.
   - _Requirements: 6.3_
 
 - [ ] 12. End-to-end verification
-  - Run the full backend suite and the frontend typecheck/lint/vitest. Rebuild the frontend (and backend if changed) container, confirm `POST /api/v1/chat` returns a grounded answer for a seeded title and the honest "don't know" for an unanswerable one, and the widget renders in the running portal. Clean up any temp files.
+  - Run the full backend suite and the frontend typecheck/lint/vitest. Rebuild the frontend (and backend if changed) container, confirm `POST /api/v1/chat` returns a grounded answer for a seeded title, a how-to answer with a `doc:` source for a how-to question (e.g. "how do I upload a slate?"), and the honest "don't know" for an unanswerable one, and the widget renders in the running portal. Clean up any temp files.
   - _Requirements: 6.1, 6.2, 6.3_
 
+- [ ] 13. Create the Knowledge_Base of how-to/concept snippets
+  - Add `backend/app/chat/knowledge.py` with a `KnowledgeSnippet` dataclass (`id`, `title`, `keywords`, `body`) and a `KnowledgeBase` holding a static, versioned list of snippets curated from the in-portal guide (`frontend/app/guide/page.tsx` Features & How-To recipes) and the glossary groups, plus the knowledge docs. Cover the core how-to topics (evaluate a single title, batch slate upload incl. the Download CSV template, pitch-PDF auto-fill, shorthand cost, what-if sliders, override, export memo, backtest audit, executive sign-off) and the key concept terms (CPVH, LTV-to-Cost, churn mitigation, payback, guardrail/breach, the three verdicts, genre/content-format drivers, RBAC roles).
+  - Implement `search(query) -> list[KnowledgeSnippet]` as a deterministic case-insensitive keyword/substring match (no NLP, no network, no DB). Reference content only; nothing confidential.
+  - Verify imports are clean and the backend suite still passes.
+  - _Requirements: 1.4, 1.6, 6.3_
 ## Notes
 
-- No database migration or schema change: the assistant reads existing persisted records only.
+- No database migration or schema change: the assistant reads existing persisted records plus a static shipped Knowledge_Base of how-to/concept snippets.
 - The Read_Only_Boundary is enforced in code (grounding does no writes, the endpoint runs no engine) and asserted by tests (no audit entries, override requests redirected).
 - Real Chat_Provider implementations (hosted or self-hosted) are a later increment behind the same `ChatProvider` interface; they require only a new provider class and config, not changes to the endpoint, grounding, or widget.
 - Build/verify per task: backend `python -m pytest -q -p no:cacheprovider` from `backend/`; frontend `npm run typecheck`, `npm run lint`, `npx vitest run` from `frontend/`.

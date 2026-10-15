@@ -13,6 +13,7 @@ The governing principle is a hard Read_Only_Boundary: the assistant explains num
 - `backend/app/chat/provider.py` (new): the `ChatProvider` protocol (`complete(messages: list[ChatMessage]) -> str`), the `ChatMessage` dataclass (`role`, `content`), the `MockChatProvider`, and `select_provider(settings)` which returns the configured provider, defaulting to `MockChatProvider`.
 - `backend/app/chat/grounding.py` (new): `GroundingService` - resolves the title in scope (explicit id or Title_Resolution by name), pulls the Retrieved_Context from existing repositories, and renders it into (a) a compact text block for the provider and (b) a list of source record identifiers for the response. Confidential fields are included only when the actor is authorized.
 - `backend/app/chat/system_prompt.py` (new): the `SYSTEM_PROMPT_CONTRACT` constant.
+- `backend/app/chat/knowledge.py` (new): the `KnowledgeBase` - a static, versioned list of how-to/concept `KnowledgeSnippet { id, title, keywords, body }` entries curated from the in-portal guide and the knowledge docs (feature recipes and glossary terms), plus `search(query) -> list[KnowledgeSnippet]` doing a deterministic keyword/substring match. Read-only reference content; no DB, no network, no confidential data.
 - `backend/app/api/chat.py` (new): `router = APIRouter(prefix="/chat", tags=["chat"])` with the handler declared as `@router.post("")` (empty path, so `POST /api/v1/chat` resolves without a 307 redirect that could drop the body), authorized by `Depends(require_operation(Operation.VALUATION))`. It injects the request-scoped `SessionDep` and the `CurrentUser` actor, constructs `GroundingService(session, actor)`, validates the request, builds the message list (system prompt + bounded history + grounded user turn), calls the provider, and returns `ChatResponse`.
 - `backend/app/api/support_routers.py`: add `chat` to the imports and `_PREFIXED_ROUTERS` tuple so it mounts under `/api/v1` exactly like the other business routers.
 - `frontend/app/_components/chat-widget.tsx` (new): a `"use client"` floating action button + expanding panel, mounted once in the root layout so it is present across the portal. Local Conversation_History, a Context_Chip, pending state, error handling, accessible markup.
@@ -62,7 +63,7 @@ Response:
 ```json
 {
   "answer": "The Ledger's churn mitigation is below the 1.5% hurdle...",
-  "sources": ["title:7b1c3771-...", "projection:latest", "model_version:v..."]
+  "sources": ["title:7b1c3771-...", "projection:latest", "doc:how-to-batch-slate"]
 }
 ```
 
@@ -77,9 +78,16 @@ Title_Resolution:
 - Else, load the active title names via `TitleRepository` and select those whose `title_name.lower()` is a substring of `message.lower()` (a direct, deterministic scan - no NLP/NER dependency; the active set is small). Exactly one match -> scope to it. Zero or many -> portfolio scope.
 - Robustness: a malformed `title_id` (not a UUID) or one that resolves to no row is caught and falls back to portfolio scope rather than erroring.
 
-Retrieved_Context sources (all existing, read-only):
+Retrieved_Context has two source families; a single question may draw from either or both:
+
+Data sources (live, read-only):
 - Portfolio: `DashboardSummaryResponse` (KPIs + grid rows) via the dashboard aggregation.
 - Title scope: the persisted `ValuationScorecardResponse` (via `TitleRepository` + `FinancialProjectionRepository`), the decision/negotiation data, and the churn breakdown read from the persisted `financial_projections.explanation` dict (`checks`, `dominant_factor`, and the `churn_model` sub-object when present).
+
+Knowledge source (static, read-only reference):
+- `KnowledgeBase.search(message)` returns the how-to/concept snippets whose keywords/titles match the question (feature recipes and glossary terms curated from the guide + knowledge docs). These are appended to the context text and contribute `doc:<snippet-id>` entries to `sources`.
+
+Routing (deterministic, non-exclusive): the service always runs `KnowledgeBase.search`; it additionally gathers data context when a title is in scope (explicit or resolved) or the question references the portfolio. A How_To_Query with no title/portfolio signal is answered from knowledge snippets alone. If neither path yields anything relevant, the grounded context is empty and the provider returns the honest "I don't know". This keeps the Grounding rule intact across both families.
 
 Confidential handling: the service only includes confidential fields when `RBACService` would permit the actor `READ_CONFIDENTIAL`; otherwise those fields are omitted from the context entirely, so the provider cannot surface them regardless of the prompt.
 
@@ -113,6 +121,7 @@ No database schema changes. The feature adds in-memory/transport models only:
 - `ChatRequest { message: str, title_id: str | null, history: ChatMessage[] }` - the inbound payload; `history` is bounded to the last N turns server-side.
 - `ChatResponse { answer: str, sources: str[] }` - the outbound payload; `sources` are opaque record identifiers (e.g. `title:<id>`, `projection:latest`, `model_version:<id>`).
 - `GroundedContext { text: str, sources: str[] }` - internal result of `GroundingService`, consumed by the endpoint; not serialized directly.
+- `KnowledgeSnippet { id: str, title: str, keywords: str[], body: str }` - a static how-to/concept entry in the `KnowledgeBase`; shipped reference content, not persisted and not user data. Contributes `doc:<id>` to `sources`.
 
 All reads reuse existing persisted models (`titles`, `financial_projections` and its `explanation` JSON, `model_versions`, and the dashboard aggregation). No new tables, columns, or migrations.
 
@@ -137,6 +146,7 @@ Frontend (Vitest + Testing Library):
 - The widget sends a message and renders the returned answer.
 - Error response renders a readable message and the input stays usable.
 - The Context_Chip reflects title vs portfolio scope.
+- A how-to answer renders its `doc:` source as a citation chip.
 
 ## Correctness Properties
 
@@ -189,3 +199,9 @@ The backend persists no conversation and uses at most the configured number of t
 An explicit title scopes to that title; an unambiguous name match scopes to the matched title; no match or multiple matches falls back to the portfolio summary.
 
 **Validates: Requirements 1.2, 1.3**
+
+### Property 9: How-to grounding
+
+A How_To_Query is answered from Knowledge_Base snippets (carrying `doc:` sources); when no snippet and no data match, the answer is the honest "I don't know" rather than invented guidance.
+
+**Validates: Requirements 1.4, 1.5, 1.6**

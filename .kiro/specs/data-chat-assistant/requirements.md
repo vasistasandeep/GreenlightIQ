@@ -4,7 +4,7 @@
 
 CineROI AI (GreenlightIQ) is an OTT content-acquisition decision-support platform (FastAPI backend, Next.js frontend). Its Guardrails_Engine evaluates each candidate title against four quantitative guardrails and produces a deterministic greenlight recommendation (GREENLIGHT, NEGOTIATE_HARD, PASS) with a structured, auditable explanation. Every number the platform shows is produced by deterministic engines and persisted; big decisions require dual sign-off and every state change is written to an append-only audit log.
 
-This feature, the **Data_Chat_Assistant**, adds a conversational surface that lets a user ask plain-language questions about the data the platform already holds - the portfolio, a title's verdict, its guardrail checks, and its churn breakdown - and get grounded, plain-English answers. The assistant is a read-and-explain layer: it retrieves real data through the platform's existing repositories and endpoints, hands that data plus the question to a pluggable language-model provider, and returns the provider's answer.
+This feature, the **Data_Chat_Assistant**, adds a conversational surface that lets a user ask plain-language questions of two kinds: questions about the data the platform already holds (the portfolio, a title's verdict, its guardrail checks, its churn breakdown), and how-to/concept questions about using the platform (how to upload a slate, what CPVH means, how overrides work). It returns grounded, plain-English answers. The assistant is a read-and-explain layer: it retrieves real data through the platform's existing repositories and curated how-to snippets from a shipped Knowledge_Base, hands the relevant material plus the question to a pluggable language-model provider, and returns the provider's answer.
 
 The assistant MUST NOT compute, alter, or override any verdict, number, guardrail result, or churn value; those remain the exclusive output of the deterministic engines. The assistant MUST NOT take any state-changing action (no ingest, valuation, override, approval, rejection, or calibration). It only reads data the current user is already authorized to see and explains it.
 
@@ -22,14 +22,15 @@ This first scope is deliberately bounded to establish the plumbing safely: a swa
 
 ## Glossary
 
-- **Data_Chat_Assistant**: The feature described by this document - a read-only conversational layer that answers plain-language questions about platform data by retrieving real records and having a Chat_Provider phrase the answer.
+- **Data_Chat_Assistant**: The feature described by this document - a read-only conversational layer that answers plain-language questions about platform data AND how-to/concept questions, by retrieving real records and curated knowledge snippets and having a Chat_Provider phrase the answer.
 - **Chat_Provider**: The pluggable language-model abstraction with a single completion operation (`complete(messages) -> text`). Implementations are selected by configuration. This scope ships only the Mock_Chat_Provider.
 - **Mock_Chat_Provider**: A Chat_Provider implementation that makes no external call and deterministically composes an answer from the Retrieved_Context, so the end-to-end flow is exercisable with no API key and no cost.
-- **Retrieved_Context**: The real platform data gathered for a question before the provider is called - the portfolio summary and, when a title is in scope, that title's scorecard, decision, and churn breakdown - limited to what the current user is authorized to see.
+- **Retrieved_Context**: The grounding material gathered for a question before the provider is called. It is drawn from two sources: live platform data (the portfolio summary and, when a title is in scope, that title's scorecard, decision, and churn breakdown - limited to what the current user is authorized to see) and the Knowledge_Base (curated how-to and concept snippets). A single question may draw from either or both.
 - **Chat_Request**: The inbound payload: the user's natural-language message and an optional title scope reference.
 - **Chat_Response**: The outbound payload: the assistant's answer text plus the identifiers of the records used as Retrieved_Context (for traceability).
 - **Grounding**: The rule that the assistant answers only from the Retrieved_Context and must not invent data; absent supporting data, it states it does not know.
-- **Read_Only_Boundary**: The rule that the assistant performs no state-changing operation and computes no verdict or number itself.
+- **Knowledge_Base**: A curated, versioned set of how-to and concept snippets (feature recipes and glossary term definitions) sourced from the platform's own documentation and in-portal guide. It is static read-only reference content shipped with the backend - not user data and not confidential.
+- **How_To_Query**: A question about how to use the platform or what a concept means (e.g. "how do I upload a slate?", "what is CPVH?") that is answered from the Knowledge_Base rather than from a title's records.- **Read_Only_Boundary**: The rule that the assistant performs no state-changing operation and computes no verdict or number itself.
 - **Conversation_History**: The ordered trailing turns (user and assistant messages) the frontend widget maintains locally and sends with each Chat_Request so follow-up questions have context. The backend remains stateless - it stores no conversation.
 - **Title_Resolution**: The process of determining which title a question is about: an explicit title scope when supplied, otherwise a lightweight case-insensitive name match against the title records; an unambiguous match scopes to that title, while no match or multiple matches falls back to the portfolio summary.
 - **Context_Chip**: The small label at the top of the chat widget showing the current retrieval scope (a specific title, or the portfolio overview), so the user can see what the next answer will be grounded in.
@@ -45,9 +46,10 @@ This first scope is deliberately bounded to establish the plumbing safely: a swa
 1. WHEN a Chat_Request is received, THE Data_Chat_Assistant SHALL gather Retrieved_Context from the platform's existing data sources before composing an answer.
 2. WHEN a Chat_Request references a specific title, THE Data_Chat_Assistant SHALL include that title's scorecard, decision, and churn breakdown in the Retrieved_Context when the current user is authorized to see them.
 3. WHEN a Chat_Request does not reference a specific title, THE Data_Chat_Assistant SHALL perform Title_Resolution by case-insensitive name match: an unambiguous single match SHALL scope the Retrieved_Context to that title, and no match or multiple matches SHALL fall back to the portfolio summary.
-4. THE Data_Chat_Assistant SHALL answer only from the Retrieved_Context, and WHEN the Retrieved_Context does not contain information sufficient to answer, THE Data_Chat_Assistant SHALL state that it does not have that information rather than inventing an answer.
-5. THE Data_Chat_Assistant SHALL return, in the Chat_Response, the identifiers of the records used as Retrieved_Context so the answer is traceable to source data.
-6. THE Data_Chat_Assistant SHALL NOT compute, alter, or override any verdict, guardrail result, churn value, or other number; it SHALL only report values already produced by the deterministic engines.
+4. WHEN a Chat_Request is a How_To_Query, THE Data_Chat_Assistant SHALL retrieve the relevant Knowledge_Base snippets into the Retrieved_Context so how-to and concept questions are answered from curated documentation rather than invented.
+5. THE Data_Chat_Assistant SHALL answer only from the Retrieved_Context, and WHEN the Retrieved_Context does not contain information sufficient to answer, THE Data_Chat_Assistant SHALL state that it does not have that information rather than inventing an answer.
+6. THE Data_Chat_Assistant SHALL return, in the Chat_Response, identifiers for every source used as Retrieved_Context - both data records and Knowledge_Base snippets - so the answer is traceable to its sources.
+7. THE Data_Chat_Assistant SHALL NOT compute, alter, or override any verdict, guardrail result, churn value, or other number; it SHALL only report values already produced by the deterministic engines.
 
 ### Requirement 2: No state-changing actions
 
@@ -107,4 +109,4 @@ This first scope is deliberately bounded to establish the plumbing safely: a swa
 
 1. THE Data_Chat_Assistant SHALL include backend tests covering grounded answers, the honest "I do not know" path when context is insufficient, the Read_Only_Boundary, and rejection of an empty message.
 2. THE Data_Chat_Assistant SHALL include a frontend test covering the widget sending a message and rendering the returned answer.
-3. THE Data_Chat_Assistant SHALL update the in-portal How It Works guide, the knowledge-base and architecture documents, and the NotebookLM export so the feature is documented in every place the platform documents its features.
+3. THE Data_Chat_Assistant SHALL update the in-portal How It Works guide, the knowledge-base and architecture documents, and the NotebookLM export so the feature is documented in every place the platform documents its features, and the shipped Knowledge_Base how-to/concept snippets SHALL be consistent with that same documentation.
