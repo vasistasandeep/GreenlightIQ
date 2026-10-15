@@ -450,8 +450,17 @@ How the risks are neutralized:
   the model never receives what the user could not see.
 - **Governance redirect:** any ask to override, greenlight, or change a number is redirected
   to the audited controls on the title page.
-- **Swappable model:** a single provider interface; the shipped default is a zero-cost,
-  no-key, deterministic mock, so the whole flow runs in CI and demos without external calls.
+- **Swappable model:** a single `ChatProvider` interface selected by `CINEROI_CHAT_PROVIDER`.
+  The shipped default is a zero-cost, no-key, deterministic **mock** (grounded answers composed
+  from the retrieved context), so the whole flow runs in CI and demos without external calls.
+  A local **Ollama** provider is also included (`CINEROI_CHAT_PROVIDER=ollama`,
+  `CINEROI_CHAT_OLLAMA_MODEL`) that keeps data on the host - useful where a real LLM is wanted
+  without third-party egress; note local CPU inference can be slow, and on a provider timeout
+  the endpoint returns a clean envelope and the widget offers a retry. Hosted providers can be
+  added behind the same interface without touching the endpoint, grounding, or widget.
+- **Guided follow-ups:** every answer returns up to three suggested next questions the UI shows
+  as one-click chips; they are question-aware, so clicking one never repeats what was just asked
+  and the conversation keeps advancing.
 
 ---
 

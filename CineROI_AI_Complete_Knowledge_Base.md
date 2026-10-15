@@ -354,6 +354,39 @@ Features & How-To, The 4 Guardrails (each with real worked arithmetic), Worked E
 Glossary. Every number in the guide matches what the live app produces for the seeded
 titles.
 
+### 5.7 Data Chat Assistant - "CineROI Copilot" (floating widget, all pages)
+
+A persistent chat button (bottom-right) opens **CineROI Copilot**, a read-only assistant
+available on every page. It answers two kinds of question: data questions (a title's verdict,
+guardrail checks, churn, the portfolio) and how-to/concept questions (how to upload a slate,
+what CPVH means, how overrides work). It is **grounded** - it retrieves real records through
+the existing repositories plus curated help snippets, and answers only from what it retrieved;
+when it lacks the answer it says so rather than inventing one. On a title page it scopes to
+that title automatically; elsewhere it resolves a named title (even a partial name) or falls
+back to the portfolio. Every answer lists its **sources** (title scorecard, portfolio, or a
+help topic) for traceability, and offers up to three **follow-up chips** - suggested next
+questions that are question-aware, so clicking one never repeats what was just asked and the
+conversation keeps advancing.
+
+It is strictly **read-only**: it computes no number and takes no action. The deterministic
+engine remains the sole source of every value, and any request to override, greenlight, or
+change a number is redirected to the audited governance controls on the title page. It
+inherits the same RBAC confidential-field scoping, so it never surfaces data a user could not
+see directly.
+
+The language model behind it is **swappable** behind a single `ChatProvider` interface,
+selected by `CINEROI_CHAT_PROVIDER`:
+
+- **mock** (default) - an in-process, no-key, no-network, deterministic provider that composes
+  the answer from the grounded context. Instant and free; ideal for demos and CI.
+- **ollama** - a local Ollama server (`CINEROI_CHAT_OLLAMA_MODEL`, e.g. `llama3.1:latest`),
+  reached from the container via `host.docker.internal`. Keeps data on the host (no third-party
+  egress). Local CPU inference can be slow; on a provider timeout the endpoint returns a clean
+  error envelope and the widget shows a Retry.
+
+A hosted provider (Bedrock / OpenAI / Anthropic) can be added later as another class behind the
+same interface, with no change to the endpoint, the grounding, or the widget.
+
 ---
 
 ## 6. Enhancement Features In Detail
