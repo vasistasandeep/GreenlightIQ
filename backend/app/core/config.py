@@ -123,6 +123,14 @@ class Settings(BaseSettings):
     #: Max number of trailing conversation turns the chat endpoint will use from
     #: a request's history (the backend is stateless; the client keeps the thread).
     chat_history_max_turns: int = Field(default=6)
+    #: Base URL for an Ollama server when chat_provider="ollama". The backend
+    #: runs in a container, so the Windows/Mac host's Ollama is reached via
+    #: host.docker.internal; a bare-metal backend uses localhost.
+    chat_ollama_base_url: str = Field(default="http://host.docker.internal:11434")
+    #: Ollama model tag to use (e.g. "llama3.1:latest", "gemma4:26b").
+    chat_ollama_model: str = Field(default="llama3.1:latest")
+    #: Per-request timeout (seconds) for an Ollama completion.
+    chat_ollama_timeout_seconds: float = Field(default=120.0)
 
     # --- Logging ---
     log_level: str = Field(default="INFO")

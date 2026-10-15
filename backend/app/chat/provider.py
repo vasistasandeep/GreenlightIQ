@@ -126,6 +126,55 @@ class MockChatProvider:
         return f"{intro}:\n\n{context}"
 
 
+class OllamaChatProvider:
+    """Chat_Provider backed by a local Ollama server.
+
+    Sends the ordered message list to Ollama's /api/chat endpoint and returns
+    the model's reply. Data stays on the local machine (no third-party egress),
+    which suits confidential title/deal data. Implements the same ChatProvider
+    protocol as the mock, so nothing upstream (grounding, endpoint, widget)
+    changes when this is selected.
+
+    The System_Prompt_Contract is the first message in the list, so the model is
+    instructed to answer only from the grounded context and to redirect any
+    governed-action request - the same guarantees the mock encodes.
+    """
+
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        timeout_seconds: float = 60.0,
+    ) -> None:
+        self.name = "ollama"
+        self._base_url = base_url.rstrip("/")
+        self._model = model
+        self._timeout = timeout_seconds
+
+    def complete(self, messages: list[ChatMessage]) -> str:
+        import httpx
+
+        payload = {
+            "model": self._model,
+            "stream": False,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            # Low temperature: we want faithful explanation of the grounded
+            # context, not creative embellishment.
+            "options": {"temperature": 0.2},
+        }
+        resp = httpx.post(
+            f"{self._base_url}/api/chat",
+            json=payload,
+            timeout=self._timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        content = (data.get("message") or {}).get("content", "")
+        if not content:
+            raise RuntimeError("Ollama returned an empty completion")
+        return content.strip()
+
+
 def select_provider(settings: object | None = None) -> ChatProvider:
     """Return the configured Chat_Provider, defaulting to the mock.
 
@@ -136,7 +185,14 @@ def select_provider(settings: object | None = None) -> ChatProvider:
     choice = ""
     if settings is not None:
         choice = str(getattr(settings, "chat_provider", "") or "").strip().lower()
-    # Only the mock ships in this scope; real providers register here later.
-    if choice in ("", "mock"):
-        return MockChatProvider()
+
+    if choice == "ollama":
+        return OllamaChatProvider(
+            base_url=str(getattr(settings, "chat_ollama_base_url", "http://host.docker.internal:11434")),
+            model=str(getattr(settings, "chat_ollama_model", "llama3.1:latest")),
+            timeout_seconds=float(getattr(settings, "chat_ollama_timeout_seconds", 60.0)),
+        )
+
+    # Default: the no-cost, no-network deterministic mock. Unknown values also
+    # fall back to the mock so the app always has a working provider.
     return MockChatProvider()

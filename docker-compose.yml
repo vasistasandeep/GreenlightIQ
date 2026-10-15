@@ -38,6 +38,13 @@ x-backend-env: &backend-env
   # DEV/DEMO ONLY: resolve a synthetic demo user for unauthenticated UI calls so
   # the demo works without a live SSO session. Hard-blocked in production.
   CINEROI_DEMO_AUTH_BYPASS: ${CINEROI_DEMO_AUTH_BYPASS:-true}
+  # Chat assistant provider. Default "mock" (no key, no network, deterministic).
+  # Set to "ollama" to use a local Ollama server on the host; override the model
+  # via CINEROI_CHAT_OLLAMA_MODEL (e.g. llama3.1:latest or gemma4:26b).
+  CINEROI_CHAT_PROVIDER: ${CINEROI_CHAT_PROVIDER:-mock}
+  CINEROI_CHAT_OLLAMA_BASE_URL: ${CINEROI_CHAT_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  CINEROI_CHAT_OLLAMA_MODEL: ${CINEROI_CHAT_OLLAMA_MODEL:-llama3.1:latest}
+  CINEROI_CHAT_OLLAMA_TIMEOUT_SECONDS: ${CINEROI_CHAT_OLLAMA_TIMEOUT_SECONDS:-120}
 
 services:
   # ---------------------------------------------------------------------------
@@ -104,6 +111,10 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       <<: *backend-env
+    # Lets the container reach a host-run Ollama via host.docker.internal
+    # (automatic on Docker Desktop; explicit here for Linux parity).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     depends_on:
