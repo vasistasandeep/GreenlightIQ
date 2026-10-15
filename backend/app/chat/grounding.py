@@ -316,14 +316,27 @@ class GroundingService:
             lines.append(f"Dominant factor behind the verdict: {dominant}.")
         checks = explanation.get("checks")
         if isinstance(checks, list) and checks:
+            _CHECK_LABELS = {
+                "cpvh": "Cost per Viewing Hour",
+                "CPVH": "Cost per Viewing Hour",
+                "ltv_to_cost": "LTV-to-Cost multiple",
+                "LTV_TO_COST": "LTV-to-Cost multiple",
+                "churn_mitigation": "Churn mitigation",
+                "CHURN_MITIGATION": "Churn mitigation",
+                "payback_horizon": "Payback horizon",
+                "PAYBACK_HORIZON": "Payback horizon",
+            }
             check_bits = []
             for c in checks:
                 if isinstance(c, dict) and c.get("name"):
-                    status = "BREACH" if c.get("breached") else "PASS"
-                    corr = "" if c.get("breached") is None else (" correctable" if c.get("correctable") else " non-correctable") if c.get("breached") else ""
-                    check_bits.append(f"{c['name']}={status}{corr}")
+                    label = _CHECK_LABELS.get(c["name"], str(c["name"]))
+                    if c.get("breached"):
+                        corr = "correctable" if c.get("correctable") else "non-correctable"
+                        check_bits.append(f"{label} - breached ({corr})")
+                    else:
+                        check_bits.append(f"{label} - passed")
             if check_bits:
-                lines.append("Guardrail checks: " + ", ".join(check_bits) + ".")
+                lines.append("Guardrail checks: " + "; ".join(check_bits) + ".")
         churn_model = explanation.get("churn_model")
         if isinstance(churn_model, dict) and churn_model.get("breakdown"):
             lines.append("Churn breakdown is available (per-feature contributions).")

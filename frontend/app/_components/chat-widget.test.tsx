@@ -65,12 +65,12 @@ describe("ChatWidget", () => {
   it("reflects the title scope in the Context chip on a title page", () => {
     pathname.value = "/titles/7b1c3771-aaaa";
     open();
-    expect(screen.getByText(/This title - read-only/)).toBeInTheDocument();
+    expect(screen.getByText(/This title/)).toBeInTheDocument();
   });
 
   it("shows the portfolio scope on non-title routes", () => {
     open();
-    expect(screen.getByText(/Portfolio overview - read-only/)).toBeInTheDocument();
+    expect(screen.getByText(/Portfolio overview/)).toBeInTheDocument();
   });
 
   it("renders follow-up chips and sends one when clicked", async () => {

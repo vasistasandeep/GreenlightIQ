@@ -9,6 +9,8 @@ answer text. It never fetches data itself - grounding happens upstream.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -118,12 +120,15 @@ class MockChatProvider:
         if "[Assistant]" in context:
             return context.replace("[Assistant] ", "").strip()
 
-        # Grounded answer: lead with a direct line, then surface the retrieved
-        # context so the user sees exactly what the answer rests on. Deterministic.
-        intro = "Here's what the platform data and help content show"
-        if question:
-            intro = f'For "{question.rstrip("?")}", here is what I can see'
-        return f"{intro}:\n\n{context}"
+        # Grounded answer: present the retrieved context cleanly. Internal
+        # "[Help: Title] body" markers become a readable "Related help: Title - body"
+        # so nothing raw leaks into the UI. Deterministic.
+        cleaned = re.sub(
+            r"\[Help: ([^\]]+)\]\s*",
+            lambda mm: f"Related help ({mm.group(1)}): ",
+            context,
+        )
+        return cleaned.strip()
 
 
 class OllamaChatProvider:

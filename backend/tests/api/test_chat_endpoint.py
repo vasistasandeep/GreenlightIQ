@@ -60,6 +60,11 @@ def _client(app, monkeypatch, grounding=_FakeGrounding, user=None):
     app.dependency_overrides[deps.get_current_user] = lambda: user
     app.dependency_overrides[deps.get_rbac_service] = RBACService
     monkeypatch.setattr(chat_module, "GroundingService", grounding)
+    # Pin the deterministic mock provider so the endpoint contract tests never
+    # depend on ambient CINEROI_CHAT_PROVIDER config (e.g. a live Ollama).
+    from app.chat.provider import MockChatProvider
+
+    monkeypatch.setattr(chat_module, "select_provider", lambda settings: MockChatProvider())
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -105,8 +110,9 @@ def test_provider_failure_returns_clean_envelope(app, monkeypatch):
         def complete(self, messages):
             raise RuntimeError("secret internal detail: api key xyz")
 
-    monkeypatch.setattr(chat_module, "select_provider", lambda settings: _Boom())
     client = _client(app, monkeypatch)
+    # Override after _client so the boom provider (not the pinned mock) is used.
+    monkeypatch.setattr(chat_module, "select_provider", lambda settings: _Boom())
     resp = client.post("/api/v1/chat", json={"message": "hi"})
     assert resp.status_code == 503
     # The internal detail must not leak in any mode (incl. dev debug).

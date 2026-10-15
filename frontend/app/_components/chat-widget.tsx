@@ -160,16 +160,16 @@ export function ChatWidget() {
         aria-haspopup="dialog"
         aria-label={open ? "Close CineROI Copilot" : "Open CineROI Copilot"}
         title="CineROI Copilot"
-        className="group fixed bottom-6 right-4 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-emerald-950 shadow-lg ring-2 ring-emerald-300/40 transition hover:bg-emerald-400 hover:ring-emerald-300/70 sm:right-6"
+        className="group fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-emerald-950 shadow-xl shadow-emerald-900/40 ring-1 ring-white/10 transition-all duration-200 hover:scale-105 hover:shadow-emerald-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
       >
         {open ? (
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         ) : (
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />
-            <path d="M8.5 10.5l1.6 1.6 3.4-3.4" />
+            <path d="M8.5 10.8l1.6 1.6 3.5-3.5" />
           </svg>
         )}
       </button>
@@ -178,21 +178,23 @@ export function ChatWidget() {
       {open ? (
         <div
           role="dialog"
-          aria-label="CineROI assistant"
-          className="fixed bottom-20 right-4 z-50 flex h-[520px] max-h-[80vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-2xl sm:right-6 sm:w-96"
+          aria-label="CineROI Copilot assistant"
+          className="fixed bottom-24 right-4 z-50 flex h-[min(640px,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-sm duration-200 animate-in fade-in slide-in-from-bottom-4 sm:right-5"
         >
-          <div className="flex items-center justify-between border-b border-slate-800 bg-gradient-to-r from-emerald-500/10 to-transparent px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-emerald-950" aria-hidden="true">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-emerald-950" aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />
                 </svg>
               </span>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-slate-100">CineROI Copilot</span>
-                <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-                  {contextLabel} - read-only
+                <span className="text-[15px] font-semibold leading-tight text-slate-50">CineROI Copilot</span>
+                <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px] shadow-emerald-400" aria-hidden="true" />
+                  {contextLabel}
+                  <span className="text-slate-500">&middot; read-only</span>
                 </span>
               </div>
             </div>
@@ -200,23 +202,31 @@ export function ChatWidget() {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close CineROI Copilot"
-              className="rounded-md px-2 py-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-slate-100"
             >
-              Close
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
             </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+          {/* Transcript */}
+          <div
+            ref={scrollRef}
+            className="chat-scroll flex-1 space-y-4 overflow-y-auto px-4 py-4"
+          >
             {messages.length === 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-slate-300">
-                  Hi, I&apos;m <span className="font-semibold text-slate-100">CineROI Copilot</span>.
-                  I explain your titles&apos; verdicts, the portfolio, and the four guardrails,
-                  and I can walk you through how to use the portal. I only report what the
-                  platform already computed - I never change a decision.
-                </p>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Try one of these
+              <div className="space-y-4">
+                <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-3.5">
+                  <p className="text-sm leading-relaxed text-slate-300">
+                    Hi, I&apos;m <span className="font-semibold text-slate-100">CineROI Copilot</span>.
+                    I explain your titles&apos; verdicts, the portfolio, and the four
+                    guardrails, and I can walk you through the portal. I only report what
+                    the platform already computed &mdash; I never change a decision.
+                  </p>
+                </div>
+                <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Suggested questions
                 </p>
                 <div className="flex flex-col gap-2">
                   {starterPrompts(titleId !== null).map((prompt) => (
@@ -224,9 +234,10 @@ export function ChatWidget() {
                       key={prompt}
                       type="button"
                       onClick={() => void sendText(prompt)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-left text-sm text-slate-200 transition hover:border-emerald-500/60 hover:bg-slate-800"
+                      className="group flex w-full items-center justify-between gap-2 rounded-xl border border-slate-700/70 bg-slate-800/50 px-3.5 py-2.5 text-left text-sm text-slate-200 transition hover:border-emerald-500/60 hover:bg-emerald-500/10"
                     >
-                      {prompt}
+                      <span>{prompt}</span>
+                      <span aria-hidden="true" className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-emerald-400">&rarr;</span>
                     </button>
                   ))}
                 </div>
@@ -240,40 +251,52 @@ export function ChatWidget() {
                 isLast &&
                 !pending &&
                 (m.followUps?.length ?? 0) > 0;
+              const isUser = m.role === "user";
               return (
-                <div key={i} className="space-y-2">
-                  <div
-                    className={
-                      m.role === "user"
-                        ? "ml-auto w-fit max-w-[85%] rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-100"
-                        : "mr-auto w-fit max-w-[90%] rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-200"
-                    }
-                  >
-                    <p className="whitespace-pre-wrap">{m.content}</p>
-                    {m.role === "assistant" && m.sources && m.sources.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {m.sources.map((s) => (
-                          <span
-                            key={s}
-                            className="inline-flex items-center rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400"
-                          >
-                            {sourceLabel(s)}
-                          </span>
-                        ))}
-                      </div>
+                <div key={i} className="space-y-2.5">
+                  <div className={isUser ? "flex justify-end" : "flex items-start gap-2.5"}>
+                    {!isUser ? (
+                      <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />
+                        </svg>
+                      </span>
                     ) : null}
+                    <div
+                      className={
+                        isUser
+                          ? "max-w-[82%] rounded-2xl rounded-br-sm bg-emerald-500 px-3.5 py-2.5 text-sm leading-relaxed text-emerald-950 shadow-sm"
+                          : "max-w-[88%] rounded-2xl rounded-tl-sm border border-slate-700/60 bg-slate-800/70 px-3.5 py-2.5 text-sm leading-relaxed text-slate-100 shadow-sm"
+                      }
+                    >
+                      <p className="whitespace-pre-wrap">{m.content}</p>
+                      {m.role === "assistant" && m.sources && m.sources.length > 0 ? (
+                        <div className="mt-2.5 flex flex-wrap gap-1 border-t border-slate-700/50 pt-2">
+                          {m.sources.map((src) => (
+                            <span
+                              key={src}
+                              className="inline-flex items-center gap-1 rounded-md bg-slate-900/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-400"
+                            >
+                              <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/></svg>
+                              {sourceLabel(src)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
                   {showFollowUps ? (
-                    <div className="flex flex-wrap gap-1.5" aria-label="Suggested follow-up questions">
+                    <div className="ml-9 flex flex-col gap-1.5" aria-label="Suggested follow-up questions">
                       {m.followUps!.map((q) => (
                         <button
                           key={q}
                           type="button"
                           onClick={() => void sendText(q)}
-                          className="inline-flex items-center gap-1 rounded-full border border-emerald-600/40 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-200 transition hover:border-emerald-500 hover:bg-emerald-500/20"
+                          className="group inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-emerald-600/40 bg-emerald-500/10 px-3 py-1.5 text-left text-xs text-emerald-200 transition hover:border-emerald-500 hover:bg-emerald-500/20"
                         >
-                          <span aria-hidden="true">&#8594;</span> {q}
+                          <span aria-hidden="true" className="text-emerald-400 transition group-hover:translate-x-0.5">&rarr;</span>
+                          <span className="truncate">{q}</span>
                         </button>
                       ))}
                     </div>
@@ -283,9 +306,17 @@ export function ChatWidget() {
             })}
 
             {pending ? (
-              <div className="mr-auto flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-400">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                Thinking...
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />
+                  </svg>
+                </span>
+                <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-slate-700/60 bg-slate-800/70 px-4 py-3">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-400 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-400 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-400" />
+                </div>
               </div>
             ) : null}
           </div>
@@ -295,14 +326,14 @@ export function ChatWidget() {
           </div>
 
           {error ? (
-            <div role="alert" className="flex items-center justify-between gap-2 px-4 py-1.5 text-xs text-rose-400">
+            <div role="alert" className="mx-3 mb-1 flex items-center justify-between gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
               <span>{error}</span>
               {lastFailed ? (
                 <button
                   type="button"
                   onClick={() => void sendText(lastFailed)}
                   disabled={pending}
-                  className="shrink-0 rounded-md border border-rose-500/40 px-2 py-0.5 font-medium text-rose-200 hover:bg-rose-500/10 disabled:opacity-50"
+                  className="shrink-0 rounded-md border border-rose-500/40 px-2 py-0.5 font-semibold text-rose-100 transition hover:bg-rose-500/20 disabled:opacity-50"
                 >
                   Retry
                 </button>
@@ -310,7 +341,8 @@ export function ChatWidget() {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 border-t border-slate-800 px-3 py-3">
+          {/* Composer */}
+          <div className="flex items-end gap-2 border-t border-slate-800 bg-slate-900/80 px-3 py-3">
             <label htmlFor="chat-input" className="sr-only">
               Ask the assistant
             </label>
@@ -322,15 +354,18 @@ export function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Ask about data or how-to..."
-              className="flex-1 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+              className="flex-1 rounded-xl border border-slate-700 bg-slate-950/80 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
             />
             <button
               type="button"
               onClick={send}
               disabled={pending || input.trim() === ""}
-              className="inline-flex items-center rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-emerald-950 hover:bg-emerald-400 disabled:opacity-50"
+              aria-label="Send"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Send
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
             </button>
           </div>
         </div>
