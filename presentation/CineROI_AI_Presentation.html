@@ -42,7 +42,29 @@
   .logo .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--emerald),var(--emerald-deep));display:inline-flex;align-items:center;justify-content:center;color:#052e1b}
   .progress{position:fixed;top:0;left:0;height:3px;background:var(--emerald);transition:width .3s;z-index:50}
   .hint{position:fixed;bottom:.8rem;right:1.1rem;color:var(--faint);font-size:.7rem;z-index:40}
+  /* ===== persistent navigation bar ===== */
+  .slide{padding-bottom:9vh}            /* reserve room so content never sits under the nav */
+  .navbar{position:fixed;left:50%;bottom:1.5vh;transform:translateX(-50%);z-index:60;
+    display:flex;align-items:center;gap:.5rem;padding:.45rem .55rem;border-radius:999px;
+    background:rgba(15,23,42,.82);border:1px solid var(--line);backdrop-filter:blur(10px);
+    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  .nbtn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;cursor:pointer;
+    height:34px;min-width:34px;padding:0 .7rem;border-radius:999px;border:1px solid transparent;
+    background:transparent;color:var(--muted);font:600 .82rem/1 'Segoe UI',system-ui,sans-serif;
+    transition:background .15s,color .15s,border-color .15s}
+  .nbtn:hover{color:var(--ink);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35)}
+  .nbtn:disabled{opacity:.3;cursor:default;background:transparent;border-color:transparent;color:var(--faint)}
+  .nbtn .ic{font-size:1rem;line-height:1}
+  .ndots{display:flex;align-items:center;gap:.4rem;padding:0 .4rem}
+  .ndot{width:9px;height:9px;border-radius:50%;background:#334155;cursor:pointer;border:0;padding:0;
+    transition:background .2s,transform .2s}
+  .ndot:hover{background:#64748b;transform:scale(1.25)}
+  .ndot.on{background:var(--emerald);box-shadow:0 0 10px rgba(52,211,153,.8);transform:scale(1.25)}
+  .ncount{color:var(--faint);font:700 .78rem/1 ui-monospace,monospace;padding:0 .5rem;min-width:46px;text-align:center}
+  .nsep{width:1px;height:20px;background:var(--line)}
+  @media(max-width:620px){.ndots{display:none}}
   .center{text-align:center;align-items:center}
+  .closetags{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;margin-top:1.6rem}
 
   /* interactive bits */
   .clickcard{cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
@@ -199,7 +221,6 @@
   <div class="logo" style="font-size:1.1rem;margin-bottom:1.8rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy it, haggle, or walk away?<br/><span class="em">Answered in seconds &mdash; with the receipts.</span></h1>
   <p class="lede" style="margin-left:auto;margin-right:auto">A decision engine for content deals. In two slides you&rsquo;ll run a verdict yourself in this demo and watch it flip as you change the price.</p>
-  <div class="foot"><span class="logo"><span class="mark" style="width:20px;height:20px">&#9650;</span> CineROI AI</span><span class="cta-pulse">Tap right to begin <span class="arr">&rarr;</span></span></div>
 </section>
 
 <!-- 2 PROBLEM -->
@@ -333,11 +354,19 @@
   <div class="logo" style="font-size:1rem;margin-bottom:1.4rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy, haggle, or walk away &mdash;<br/><span class="em">with the numbers to back it up.</span></h1>
   <p class="lede" style="margin-left:auto;margin-right:auto">Faster decisions. Defensible every time. Honest by design.</p>
-  <div class="foot"><span>Credit check for content deals</span><span>Deterministic &middot; Explainable &middot; Auditable</span></div>
+  <div class="closetags"><span class="pill g" style="cursor:default">Credit check for content deals</span><span class="pill" style="color:var(--muted);border-color:var(--line);cursor:default">Deterministic &middot; Explainable &middot; Auditable</span></div>
 </section>
 
 </div>
-<div class="hint">&larr; &rarr; navigate &middot; click cards to expand &middot; F = full screen</div>
+<nav class="navbar" id="navbar" aria-label="Slide navigation">
+  <button class="nbtn" id="nHome" title="Back to start (Home)"><span class="ic">&#8962;</span>Home</button>
+  <span class="nsep"></span>
+  <button class="nbtn" id="nPrev" title="Previous (Left arrow)"><span class="ic">&#8249;</span></button>
+  <span class="ndots" id="nDots"></span>
+  <button class="nbtn" id="nNext" title="Next (Right arrow)"><span class="ic">&#8250;</span></button>
+  <span class="ncount" id="nCount">1 / 11</span>
+</nav>
+<div class="hint">&larr; &rarr; or use the bar &middot; click a dot to jump &middot; F = full screen</div>
 
 <script>
   // ----- navigation -----
@@ -348,6 +377,14 @@
     slides.forEach((s,k)=>s.classList.toggle('active',k===i));
     document.getElementById('progress').style.width=((i+1)/slides.length*100)+'%';
     runCounters(slides[i]);
+    syncNav();
+  }
+  function syncNav(){
+    const total=slides.length;
+    document.getElementById('nCount').textContent=(i+1)+' / '+total;
+    document.getElementById('nPrev').disabled=(i===0);
+    document.getElementById('nNext').disabled=(i===total-1);
+    document.querySelectorAll('.ndot').forEach((d,k)=>d.classList.toggle('on',k===i));
   }
   document.addEventListener('keydown',e=>{
     const t=e.target.tagName;
@@ -365,7 +402,7 @@
 
   // ----- edge-click navigation (ignore interactive elements) -----
   document.addEventListener('click',e=>{
-    if(e.target.closest('.clickcard,input,button,.tipbtn')) return;
+    if(e.target.closest('.clickcard,input,button,.tipbtn,.navbar,.hint')) return;
     if(e.clientX > window.innerWidth*0.6) show(i+1);
     else if(e.clientX < window.innerWidth*0.4) show(i-1);
   });
@@ -458,6 +495,21 @@
       hero.style.setProperty('--my',e.clientY+'px');
     });
   }
+  // ----- navigation bar wiring -----
+  (function(){
+    const dots=document.getElementById('nDots');
+    slides.forEach((_,k)=>{
+      const b=document.createElement('button');
+      b.className='ndot'; b.type='button';
+      b.title='Go to slide '+(k+1);
+      b.setAttribute('aria-label','Go to slide '+(k+1));
+      b.addEventListener('click',()=>show(k));
+      dots.appendChild(b);
+    });
+    document.getElementById('nHome').addEventListener('click',()=>show(0));
+    document.getElementById('nPrev').addEventListener('click',()=>show(i-1));
+    document.getElementById('nNext').addEventListener('click',()=>show(i+1));
+  })();
   document.getElementById('cost').addEventListener('input',update);
   update();
   show(0);
