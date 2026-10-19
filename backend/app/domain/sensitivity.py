@@ -15,15 +15,18 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from app.engines.guardrails import ValuationInputs
 
-__all__ = ["MULTIPLIER_MIN", "MULTIPLIER_MAX", "ScaledInputs", "scale_inputs"]
+__all__ = ["MULTIPLIER_MIN", "MULTIPLIER_MAX", "ScaledInputs", "scale_inputs", "scale_milestones"]
 
 # Inclusive multiplier bounds; both ends and 1.0 are valid scenario values.
 MULTIPLIER_MIN: Decimal = Decimal("0.5")
 MULTIPLIER_MAX: Decimal = Decimal("2.0")
+
+# Quantization unit for scaled currency amounts (2 decimal places).
+_Q: Decimal = Decimal("0.01")
 
 
 @dataclass(frozen=True)
@@ -91,3 +94,29 @@ def scale_inputs(
         else _as_decimal(base_viewing_hours) * vm
     )
     return ScaledInputs(inputs=scaled, viewing_hours=scaled_hours)
+
+
+def scale_milestones(
+    schedule: list[dict] | None, ratio: Decimal | int | str
+) -> list[dict] | None:
+    """Scale every milestone disbursement ``amount`` by ``ratio`` (R1.7).
+
+    Pure. A ratio of exactly 1 returns the schedule unchanged (identity, so the
+    non-cost-change scenario path and the persisting path are byte-identical).
+    Otherwise each item is copied with its ``amount`` multiplied by ``ratio`` and
+    quantized to 2 decimal places (ROUND_HALF_UP) so no float residue enters the
+    payback walk. Non-amount keys (month, currency, ...) are preserved. ``None``
+    or an empty schedule passes through unchanged.
+
+    Scaling native-currency amounts by a USD-derived proportional ratio is
+    currency-consistent: a 20% USD change is a 20% native change, and the payback
+    walk runs entirely in native amounts (R1.7, design Property 11).
+    """
+    r = _as_decimal(ratio)
+    if schedule is None or r == Decimal("1"):
+        return schedule
+    out: list[dict] = []
+    for item in schedule:
+        amount = _as_decimal(str(item.get("amount", 0)))
+        out.append({**item, "amount": (amount * r).quantize(_Q, rounding=ROUND_HALF_UP)})
+    return out

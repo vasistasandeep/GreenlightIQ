@@ -19,7 +19,7 @@ import uuid
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # --------------------------------------------------------------------------- #
@@ -170,6 +170,133 @@ class ValuationScorecardResponse(BaseModel):
     counter_proposal_levers: list[CounterProposalLeverOut] = Field(default_factory=list)
     ltv_attribution: LtvAttributionOut | None = None
     churn_cohort: ChurnCohortOut | None = None
+
+
+# --------------------------------------------------------------------------- #
+# POST /valuation/{title_id}/what-if - WhatIf_Explorer overrides (read-only)
+# --------------------------------------------------------------------------- #
+
+
+def _finite(v: Decimal) -> Decimal:
+    if not v.is_finite():
+        raise ValueError("value must be finite")
+    return v
+
+
+def _range(name: str, v: Decimal | None, lo: str, hi: str) -> Decimal | None:
+    """Validate an optional override to its inclusive [lo, hi] range (R1.8)."""
+    if v is None:
+        return None
+    v = _finite(Decimal(v))
+    if not (Decimal(lo) <= v <= Decimal(hi)):
+        raise ValueError(f"{name} must be between {lo} and {hi}")
+    return v
+
+
+class ScenarioInputOverrides(BaseModel):
+    """Direct, read-only Input_Overrides for the WhatIf_Explorer (R1.1, R1.8).
+
+    Every field is optional; an absent field falls back to the title's Baseline.
+    Ranges mirror the requirements table exactly.
+    """
+
+    cost_usd: Decimal | None = None
+    projected_viewing_hours: Decimal | None = None
+    churn_reduction_pct: Decimal | None = None
+    ltv: Decimal | None = None
+    churn_reduction_value: Decimal | None = None
+    cpm: Decimal | None = None
+    ad_impressions: Decimal | None = None
+    watch_time_elasticity: Decimal | None = None
+
+    @field_validator("cost_usd")
+    @classmethod
+    def _v_cost(cls, v: Decimal | None) -> Decimal | None:
+        return _range("cost_usd", v, "1.00", "999999999.00")
+
+    @field_validator("projected_viewing_hours")
+    @classmethod
+    def _v_hours(cls, v: Decimal | None) -> Decimal | None:
+        return _range("projected_viewing_hours", v, "1", "5000000000")
+
+    @field_validator("churn_reduction_pct")
+    @classmethod
+    def _v_cpct(cls, v: Decimal | None) -> Decimal | None:
+        return _range("churn_reduction_pct", v, "0.10", "5.00")
+
+    @field_validator("ltv")
+    @classmethod
+    def _v_ltv(cls, v: Decimal | None) -> Decimal | None:
+        return _range("ltv", v, "0.01", "10000.00")
+
+    @field_validator("churn_reduction_value")
+    @classmethod
+    def _v_crv(cls, v: Decimal | None) -> Decimal | None:
+        return _range("churn_reduction_value", v, "0.01", "1000.00")
+
+    @field_validator("cpm")
+    @classmethod
+    def _v_cpm(cls, v: Decimal | None) -> Decimal | None:
+        return _range("cpm", v, "0.50", "250.00")
+
+    @field_validator("ad_impressions")
+    @classmethod
+    def _v_imp(cls, v: Decimal | None) -> Decimal | None:
+        return _range("ad_impressions", v, "0", "100000000000")
+
+    @field_validator("watch_time_elasticity")
+    @classmethod
+    def _v_elast(cls, v: Decimal | None) -> Decimal | None:
+        return _range("watch_time_elasticity", v, "0.00", "5.00")
+
+
+class ScenarioThresholdOverrides(BaseModel):
+    """Direct, read-only Threshold_Overrides for the WhatIf_Explorer (R1.2, R1.8).
+
+    Absent fields use the standard model constants for that guardrail.
+    """
+
+    cpvh_ceiling_override: Decimal | None = None
+    ltv_hurdle_override: Decimal | None = None
+    churn_hurdle_override: Decimal | None = None
+    payback_max_months_override: int | None = None
+
+    @field_validator("cpvh_ceiling_override")
+    @classmethod
+    def _v_cpvh(cls, v: Decimal | None) -> Decimal | None:
+        return _range("cpvh_ceiling_override", v, "0.01", "2.00")
+
+    @field_validator("ltv_hurdle_override")
+    @classmethod
+    def _v_ltvh(cls, v: Decimal | None) -> Decimal | None:
+        return _range("ltv_hurdle_override", v, "1.00", "10.00")
+
+    @field_validator("churn_hurdle_override")
+    @classmethod
+    def _v_churnh(cls, v: Decimal | None) -> Decimal | None:
+        return _range("churn_hurdle_override", v, "0.10", "5.00")
+
+    @field_validator("payback_max_months_override")
+    @classmethod
+    def _v_payback(cls, v: int | None) -> int | None:
+        if v is None:
+            return None
+        if not (1 <= v <= 36):
+            raise ValueError("payback_max_months_override must be between 1 and 36")
+        return v
+
+
+class BaselineSummary(BaseModel):
+    """The Baseline (100%) scorecard summary the WhatIf_Explorer compares against."""
+
+    recommendation_status: str | None = None
+    calculated_cpvh: Decimal | None = None
+    ltv_to_cost_multiple: Decimal | None = None
+    churn_reduction_pct: Decimal | None = None
+    payback_horizon_months: int | None = None
+    ltv_subscription_value: Decimal | None = None
+    ltv_advertising_value: Decimal | None = None
+    explanation: dict[str, Any] | None = None
 
 
 class TitleCompOut(BaseModel):

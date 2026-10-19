@@ -124,6 +124,21 @@ CHURN_MITIGATION_THRESHOLD: Decimal = Decimal("1.5")
 PAYBACK_TARGET_MIN_MONTHS: int = 9
 PAYBACK_TARGET_MAX_MONTHS: int = 12
 
+
+@dataclass(frozen=True)
+class ScenarioThresholds:
+    """Guardrail yardsticks for a WhatIf_Explorer scenario (read-only).
+
+    Built from Threshold_Overrides-or-constants. The persisting ``evaluate``
+    path never constructs this (passes ``thresholds=None`` to ``_compute``), so
+    the standard constants are used and the saved verdict is unaffected.
+    """
+
+    ltv_floor: Decimal
+    churn_hurdle: Decimal
+    payback_max_months: int
+    cpvh_ceiling: Decimal | None  # None -> fall back to the asset-type ceiling
+
 # How many times to retry persisting the projection before giving up (R8.7).
 _MAX_PERSIST_ATTEMPTS: int = 3
 
@@ -446,6 +461,7 @@ class Guardrails_Engine:
         *,
         cpvh_hours_override: Decimal | None = None,
         churn_detail: ChurnResult | None = None,
+        thresholds: "ScenarioThresholds | None" = None,
     ) -> ValuationResult:
         """Run the four guardrail checks, the recommendation, and the deal-support
         block, returning a :class:`ValuationResult`. Performs NO I/O, NO
@@ -466,12 +482,22 @@ class Guardrails_Engine:
         weighted_ltv = inputs.ltv * weighting.ltv_weight
 
         cpvh_check, calculated_cpvh = self._cpvh_check(
-            title, normalized.amount_usd, cpvh_hours_override
+            title,
+            normalized.amount_usd,
+            cpvh_hours_override,
+            ceiling_override=thresholds.cpvh_ceiling if thresholds else None,
         )
         ltv_check, ltv_multiple = self._ltv_check(
-            inputs, normalized.amount_usd, weighted_cpm, weighted_ltv
+            inputs,
+            normalized.amount_usd,
+            weighted_cpm,
+            weighted_ltv,
+            floor=thresholds.ltv_floor if thresholds else LTV_TO_COST_THRESHOLD,
         )
-        churn_check = self._churn_check(churn_pct)
+        churn_check = self._churn_check(
+            churn_pct,
+            hurdle=thresholds.churn_hurdle if thresholds else CHURN_MITIGATION_THRESHOLD,
+        )
 
         checks: list[GuardrailCheck] = [
             cpvh_check,
@@ -531,14 +557,21 @@ class Guardrails_Engine:
         cost_multiplier: Decimal,
         viewership_multiplier: Decimal,
         churn_multiplier: Decimal,
+        input_overrides: Any | None = None,
+        threshold_overrides: Any | None = None,
     ) -> ValuationResult:
-        """Recompute a scorecard over scaled inputs WITHOUT persisting (R1, R2).
+        """Recompute a scorecard over scaled inputs and overrides WITHOUT
+        persisting (WhatIf_Explorer; cineroi-ai R1, R2).
 
-        Loads the title and its base inputs, normalizes cost to USD, scales the
-        normalized cost by ``cost_multiplier`` and the remaining inputs via
-        :func:`app.domain.sensitivity.scale_inputs`, and runs the shared
-        :meth:`_compute` core. NEVER calls ``_persist`` or the audit service, and
-        resolves the active model-version stamp read-only (R2.3).
+        Resolves effective inputs with DIRECT-WINS precedence over the macro
+        multipliers (R1.6): a direct ``cost_usd`` / ``projected_viewing_hours`` /
+        ``churn_reduction_pct`` override supersedes its multiplier, and direct
+        revenue-driver overrides replace the base input. A direct ``cost_usd`` on
+        a non-USD title sets the normalized USD cost directly (no FX
+        re-normalization). Milestones and monthly margin are scaled by the USD
+        cost ratio before payback (R1.7). Threshold overrides thread into the
+        checks (R2.3). NEVER calls ``_persist`` or the audit service; stamps the
+        active version read-only (R2.3).
 
         Raises:
             TitleNotFoundError: The title does not exist (R1.3).
@@ -546,7 +579,7 @@ class Guardrails_Engine:
         """
         import dataclasses as _dc
 
-        from app.domain.sensitivity import scale_inputs
+        from app.domain.sensitivity import scale_inputs, scale_milestones
 
         title = await self._titles.get(title_id)
         if title is None:
@@ -560,13 +593,65 @@ class Guardrails_Engine:
         stamp = await self._versioning.stamp()
         weighting = await self._territory_weighting(title)
 
-        payback_check, payback_months = await self._payback_check(title, inputs)
+        io = input_overrides
+        to = threshold_overrides
 
-        # Resolve the base churn FIRST so a None (compute) base is never
-        # multiplied (calculable-churn-model, task 5): resolve to a concrete
-        # Decimal, then scale that resolved value by the churn multiplier.
+        def _ov(name: str) -> Any:
+            return getattr(io, name, None) if io is not None else None
+
+        # --- effective cost (direct cost_usd wins over cost_multiplier) ---
+        baseline_cost_usd = normalized.amount_usd
+        cost_usd_override = _ov("cost_usd")
+        if cost_usd_override is not None:
+            scenario_cost_usd = Decimal(cost_usd_override)
+        else:
+            scenario_cost_usd = baseline_cost_usd * Decimal(cost_multiplier)
+        cost_ratio = (
+            scenario_cost_usd / baseline_cost_usd
+            if baseline_cost_usd and baseline_cost_usd != 0
+            else Decimal("1")
+        )
+
+        # --- apply direct revenue-driver overrides to the base inputs ---
+        driver_fields = (
+            "ltv",
+            "churn_reduction_value",
+            "cpm",
+            "ad_impressions",
+            "watch_time_elasticity",
+        )
+        driver_replacements: dict[str, Any] = {}
+        for f in driver_fields:
+            val = _ov(f)
+            if val is not None:
+                driver_replacements[f] = Decimal(val)
+        # Scale monthly_margin by the cost ratio so payback stays coherent (R1.7).
+        driver_replacements["monthly_margin"] = (
+            Decimal(inputs.monthly_margin) * cost_ratio
+        )
+        # Scale the milestone schedule by the same ratio (R1.7).
+        driver_replacements["milestone_schedule"] = scale_milestones(
+            inputs.milestone_schedule, cost_ratio
+        )
+        inputs = _dc.replace(inputs, **driver_replacements)
+
+        # --- payback max-months override ---
+        payback_max = (
+            int(getattr(to, "payback_max_months_override", None))
+            if to is not None and getattr(to, "payback_max_months_override", None) is not None
+            else PAYBACK_TARGET_MAX_MONTHS
+        )
+        payback_check, payback_months = await self._payback_check(
+            title, inputs, max_months=payback_max
+        )
+
+        # --- effective churn % (direct churn_reduction_pct wins over multiplier) ---
         base_churn = await self._resolve_churn(title, inputs)
-        scaled_churn_pct = base_churn.churn_reduction_pct * Decimal(churn_multiplier)
+        churn_pct_override = _ov("churn_reduction_pct")
+        if churn_pct_override is not None:
+            scaled_churn_pct = Decimal(churn_pct_override)
+        else:
+            scaled_churn_pct = base_churn.churn_reduction_pct * Decimal(churn_multiplier)
 
         # calculable-churn-model (task 7, R7.5/R7.6): carry a minimal
         # ChurnResult for the scaled scenario so the response can surface a
@@ -591,6 +676,8 @@ class Guardrails_Engine:
             unclamped=None,
         )
 
+        # scale_inputs applies the viewership multiplier to ad_impressions and
+        # the viewing hours; direct overrides (below) then supersede per R1.6.
         base_hours = getattr(title, "projected_viewing_hours", None)
         scaled = scale_inputs(
             inputs,
@@ -599,13 +686,57 @@ class Guardrails_Engine:
             viewership_multiplier=viewership_multiplier,
             churn_multiplier=churn_multiplier,
         )
-        scaled_cost = _dc.replace(
-            normalized, amount_usd=normalized.amount_usd * Decimal(cost_multiplier)
-        )
+        scenario_inputs = scaled.inputs
+        scenario_hours = scaled.viewing_hours
+
+        # Direct ad_impressions override wins over the viewership multiplier.
+        imp_override = _ov("ad_impressions")
+        if imp_override is not None:
+            scenario_inputs = _dc.replace(
+                scenario_inputs, ad_impressions=Decimal(imp_override)
+            )
+        # Direct projected_viewing_hours override wins over the multiplier.
+        hours_override = _ov("projected_viewing_hours")
+        if hours_override is not None:
+            scenario_hours = Decimal(hours_override)
+
+        # Effective USD cost: direct cost_usd wins (no FX re-normalization),
+        # else the multiplier-scaled baseline (R1.6, Currency alignment).
+        scaled_cost = _dc.replace(normalized, amount_usd=scenario_cost_usd)
+
+        # Threshold overrides -> ScenarioThresholds (overrides-or-constants).
+        thresholds: ScenarioThresholds | None = None
+        if to is not None and any(
+            getattr(to, f, None) is not None
+            for f in (
+                "cpvh_ceiling_override",
+                "ltv_hurdle_override",
+                "churn_hurdle_override",
+                "payback_max_months_override",
+            )
+        ):
+            thresholds = ScenarioThresholds(
+                ltv_floor=(
+                    Decimal(to.ltv_hurdle_override)
+                    if to.ltv_hurdle_override is not None
+                    else LTV_TO_COST_THRESHOLD
+                ),
+                churn_hurdle=(
+                    Decimal(to.churn_hurdle_override)
+                    if to.churn_hurdle_override is not None
+                    else CHURN_MITIGATION_THRESHOLD
+                ),
+                payback_max_months=payback_max,
+                cpvh_ceiling=(
+                    Decimal(to.cpvh_ceiling_override)
+                    if to.cpvh_ceiling_override is not None
+                    else None
+                ),
+            )
 
         return self._compute(
             title,
-            scaled.inputs,
+            scenario_inputs,
             scaled_cost,
             exchange_rate_id,
             stamp,
@@ -613,8 +744,9 @@ class Guardrails_Engine:
             payback_check,
             payback_months,
             scaled_churn_pct,
-            cpvh_hours_override=scaled.viewing_hours,
+            cpvh_hours_override=scenario_hours,
             churn_detail=scenario_churn_detail,
+            thresholds=thresholds,
         )
 
     # -- currency normalization (R21.2, R21.5) ----------------------------- #
@@ -765,6 +897,8 @@ class Guardrails_Engine:
         title: Any,
         cost_usd: Decimal,
         viewing_hours_override: Decimal | None = None,
+        *,
+        ceiling_override: Decimal | None = None,
     ) -> tuple[GuardrailCheck, Decimal | None]:
         """Build the CPVH guardrail check (R4).
 
@@ -783,7 +917,11 @@ class Guardrails_Engine:
             else getattr(title, "projected_viewing_hours", None)
         )
         asset_type = self._as_asset_type(getattr(title, "asset_type", None))
-        ceiling = cpvh_ceiling(asset_type) if asset_type is not None else None
+        ceiling = (
+            ceiling_override
+            if ceiling_override is not None
+            else (cpvh_ceiling(asset_type) if asset_type is not None else None)
+        )
 
         # Zero / missing viewing hours: CPVH cannot be computed (R4.5).
         if viewing_hours is None or Decimal(viewing_hours) == 0:
@@ -848,13 +986,16 @@ class Guardrails_Engine:
         cost_usd: Decimal,
         weighted_cpm: Decimal,
         weighted_ltv: Decimal,
+        *,
+        floor: Decimal = LTV_TO_COST_THRESHOLD,
     ) -> tuple[GuardrailCheck, Decimal]:
         """Build the LTV-to-Cost guardrail check (R5).
 
         CPM and LTV are already territory-weighted by the caller (R21.3). Breach
-        when the multiple is strictly below 3.2 (R5.3). An LTV breach is
-        correctable: dividing by a smaller cost raises the multiple, so a cost
-        renegotiation can bring it back over the threshold (R8.2).
+        when the multiple is strictly below the floor (default 3.2; a scenario may
+        override it). An LTV breach is correctable: dividing by a smaller cost
+        raises the multiple, so a cost renegotiation can bring it back over the
+        threshold (R8.2).
         """
         multiple = compute_ltv_to_cost(
             churn_reduction_value=inputs.churn_reduction_value,
@@ -864,16 +1005,16 @@ class Guardrails_Engine:
             ad_impressions=inputs.ad_impressions,
             cost_usd=cost_usd,
         )
-        breached = is_ltv_breach(multiple)
+        breached = multiple < floor
         shortfall = (
-            self._normalized_shortfall(LTV_TO_COST_THRESHOLD - multiple, LTV_TO_COST_THRESHOLD)
+            self._normalized_shortfall(floor - multiple, floor)
             if breached
             else None
         )
         check: GuardrailCheck = {
             "name": "LTV_TO_COST",
             "computed_value": multiple,
-            "threshold": LTV_TO_COST_THRESHOLD,
+            "threshold": floor,
             "passed": not breached,
             "breached": breached,
             "shortfall_magnitude": shortfall,
@@ -883,27 +1024,31 @@ class Guardrails_Engine:
 
     # -- churn check (R6) -------------------------------------------------- #
 
-    def _churn_check(self, churn_reduction_pct: Decimal) -> GuardrailCheck:
+    def _churn_check(
+        self,
+        churn_reduction_pct: Decimal,
+        *,
+        hurdle: Decimal = CHURN_MITIGATION_THRESHOLD,
+    ) -> GuardrailCheck:
         """Build the churn-mitigation guardrail check (R6).
 
         Breach when the modeled monthly churn-reduction percentage is strictly
-        below 1.5% (R6.3). A churn breach is driven by the title's intrinsic
-        retention effect, not by cost, so renegotiating cost cannot lift it:
-        it is a non-correctable breach (R8.3).
+        below the hurdle (default 1.5%; a scenario may override it). A churn
+        breach is driven by the title's intrinsic retention effect, not by cost,
+        so renegotiating cost cannot lift it: it is a non-correctable breach
+        (R8.3).
         """
         pct = Decimal(churn_reduction_pct)
-        breached = pct < CHURN_MITIGATION_THRESHOLD
+        breached = pct < hurdle
         shortfall = (
-            self._normalized_shortfall(
-                CHURN_MITIGATION_THRESHOLD - pct, CHURN_MITIGATION_THRESHOLD
-            )
+            self._normalized_shortfall(hurdle - pct, hurdle)
             if breached
             else None
         )
         return {
             "name": "CHURN_MITIGATION",
             "computed_value": pct,
-            "threshold": CHURN_MITIGATION_THRESHOLD,
+            "threshold": hurdle,
             "passed": not breached,
             "breached": breached,
             "shortfall_magnitude": shortfall,
@@ -1065,7 +1210,11 @@ class Guardrails_Engine:
     # -- payback check (R7) ------------------------------------------------ #
 
     async def _payback_check(
-        self, title: Any, inputs: ValuationInputs
+        self,
+        title: Any,
+        inputs: ValuationInputs,
+        *,
+        max_months: int = PAYBACK_TARGET_MAX_MONTHS,
     ) -> tuple[GuardrailCheck, int]:
         """Build the payback-horizon guardrail check (R7) from milestones (R22.2).
 
@@ -1088,7 +1237,7 @@ class Guardrails_Engine:
             check: GuardrailCheck = {
                 "name": "PAYBACK_HORIZON",
                 "computed_value": None,
-                "threshold": Decimal(PAYBACK_TARGET_MAX_MONTHS),
+                "threshold": Decimal(max_months),
                 "passed": False,
                 "breached": True,
                 "shortfall_magnitude": None,
@@ -1097,11 +1246,11 @@ class Guardrails_Engine:
             # Return a sentinel 0 horizon; the null computed_value conveys "unknown".
             return check, 0
 
-        breached = months > PAYBACK_TARGET_MAX_MONTHS
+        breached = months > max_months
         shortfall = (
             self._normalized_shortfall(
-                Decimal(months - PAYBACK_TARGET_MAX_MONTHS),
-                Decimal(PAYBACK_TARGET_MAX_MONTHS),
+                Decimal(months - max_months),
+                Decimal(max_months),
             )
             if breached
             else None
@@ -1109,7 +1258,7 @@ class Guardrails_Engine:
         check = {
             "name": "PAYBACK_HORIZON",
             "computed_value": Decimal(months),
-            "threshold": Decimal(PAYBACK_TARGET_MAX_MONTHS),
+            "threshold": Decimal(max_months),
             "passed": not breached,
             "breached": breached,
             "shortfall_magnitude": shortfall,
