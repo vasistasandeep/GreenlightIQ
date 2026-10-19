@@ -185,14 +185,14 @@ PostgreSQL 16 + pgvector instance (via Docker/testcontainers or
 
 ## Documentation & demo deck
 
-- **Interactive overview deck** — a self-contained 12-slide HTML presentation
+- **Interactive overview deck**: a self-contained 12-slide HTML presentation
   (`presentation/index.html`) that walks anyone through the product, including a
   draggable live verdict demo. Published at
   <https://vasistasandeep.github.io/GreenlightIQ/presentation/> (push to `main`
   to update). It uses illustrative sample data, not production figures; see
   `presentation/SPEAKER_NOTES.md` for controls and the live-portal link setup.
-- **Knowledge base** — `CineROI_AI_Complete_Knowledge_Base.md` (full reference).
-- **Architecture & data flow** — `CineROI_AI_Architecture_And_Data_Flow.md`.
-- **Calculations reference** — `CineROI_AI_Calculations_Reference.md` (every
+- **Knowledge base**: `CineROI_AI_Complete_Knowledge_Base.md` (full reference).
+- **Architecture & data flow**: `CineROI_AI_Architecture_And_Data_Flow.md`.
+- **Calculations reference**: `CineROI_AI_Calculations_Reference.md` (every
   formula, threshold, and worked example). Mirrored in the in-portal **How It
   Works** guide (`/guide`).
