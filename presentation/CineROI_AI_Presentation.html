@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CineROI AI &mdash; Interactive Story</title>
+<style>
+  :root{
+    --bg:#0b1120; --card:#111a2e; --card2:#0e1627; --line:#1e293b;
+    --ink:#e2e8f0; --muted:#94a3b8; --faint:#64748b;
+    --emerald:#34d399; --emerald-deep:#059669;
+    --amber:#fbbf24; --rose:#fb7185; --sky:#38bdf8; --violet:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 800px at 70% -10%, #15223c 0%, var(--bg) 55%);
+    color:var(--ink);overflow:hidden}
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:4vh 7vw;opacity:0;transition:opacity .35s ease;overflow-y:auto}
+  .slide.active{display:flex;opacity:1}
+  .kicker{color:var(--emerald);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem}
+  h1{font-size:clamp(1.9rem,4.6vw,3.4rem);font-weight:800;line-height:1.08;letter-spacing:-.02em}
+  h2{font-size:clamp(1.5rem,3.4vw,2.5rem);font-weight:800;line-height:1.12;letter-spacing:-.02em;margin-bottom:.4rem}
+  .lede{font-size:clamp(1rem,1.7vw,1.3rem);color:var(--muted);max-width:56ch;line-height:1.5;margin-top:.9rem}
+  .em{color:var(--emerald)} .amberc{color:var(--amber)} .rosec{color:var(--rose)}
+  .grid{display:grid;gap:1rem;margin-top:1.8rem}
+  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:1.3rem 1.4rem}
+  .card h3{font-size:1.02rem;font-weight:700;margin-bottom:.35rem}
+  .card p{color:var(--muted);font-size:.92rem;line-height:1.45}
+  .big{font-size:clamp(2rem,3.8vw,3rem);font-weight:800;line-height:1}
+  .stat-label{color:var(--faint);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;margin-top:.5rem}
+  .pill{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.35rem .9rem;font-size:.85rem;font-weight:700;border:1px solid}
+  .pill.g{color:#6ee7b7;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.4)}
+  .pill.a{color:#fcd34d;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4)}
+  .pill.r{color:#fda4af;background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.4)}
+  .tag{color:var(--sky);font-size:.82rem;font-weight:600}
+  .foot{position:absolute;bottom:2.5vh;left:7vw;right:7vw;display:flex;justify-content:space-between;align-items:center;color:var(--faint);font-size:.78rem;border-top:1px solid var(--line);padding-top:.9rem}
+  .logo{display:inline-flex;align-items:center;gap:.5rem;font-weight:800}
+  .logo .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--emerald),var(--emerald-deep));display:inline-flex;align-items:center;justify-content:center;color:#052e1b}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--emerald);transition:width .3s;z-index:50}
+  .hint{position:fixed;bottom:.8rem;right:1.1rem;color:var(--faint);font-size:.7rem;z-index:40}
+  .center{text-align:center;align-items:center}
+
+  /* interactive bits */
+  .clickcard{cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
+  .clickcard:hover{transform:translateY(-3px);border-color:rgba(52,211,153,.5)}
+  .clickcard .reveal{max-height:0;overflow:hidden;opacity:0;transition:max-height .3s,opacity .3s,margin .3s}
+  .clickcard.open .reveal{max-height:200px;opacity:1;margin-top:.7rem}
+  .clickcard .chev{float:right;color:var(--faint);transition:transform .3s}
+  .clickcard.open .chev{transform:rotate(90deg)}
+
+  /* verdict machine */
+  .machine{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.4rem;align-items:start}
+  @media(max-width:900px){.machine{grid-template-columns:1fr}}
+  .panel{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:1.4rem 1.5rem}
+  .slider-row{margin:.3rem 0 1.2rem}
+  .slider-row label{display:flex;justify-content:space-between;font-size:.95rem;color:var(--muted);margin-bottom:.5rem}
+  .slider-row label b{color:var(--ink);font-size:1.15rem;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;height:8px;border-radius:999px;background:#1e293b;appearance:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;width:22px;height:22px;border-radius:50%;background:var(--emerald);border:3px solid #052e1b;box-shadow:0 0 0 1px var(--emerald)}
+  .verdictbox{text-align:center;padding:1.1rem;border-radius:14px;border:1px solid;transition:all .25s;margin-bottom:1.1rem}
+  .verdictbox.G{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.5)}
+  .verdictbox.N{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.5)}
+  .verdictbox.P{background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.5)}
+  .verdictbox .vlabel{font-size:1.5rem;font-weight:800;letter-spacing:.02em}
+  .verdictbox .vsub{color:var(--muted);font-size:.88rem;margin-top:.35rem}
+  .check{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:.8rem;padding:.6rem 0;border-top:1px solid var(--line);font-size:.95rem}
+  .check:first-child{border-top:0}
+  .check .nm{color:var(--ink)}
+  .check .val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
+  .badge{font-size:.68rem;font-weight:800;border-radius:6px;padding:.15rem .45rem}
+  .badge.ok{background:rgba(16,185,129,.15);color:#6ee7b7}
+  .badge.no{background:rgba(244,63,94,.15);color:#fda4af}
+  .tipbtn{cursor:pointer;color:var(--emerald);font-size:.82rem;font-weight:600;border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:.3rem .7rem;background:transparent}
+  .note{margin-top:1rem;font-size:.9rem;color:var(--faint);line-height:1.5;min-height:2.4rem}
+  .mono{font-family:ui-monospace,'Cascadia Code',monospace}
+  .flow{display:flex;align-items:stretch;gap:.7rem;flex-wrap:wrap;margin-top:1.6rem}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.2rem;flex:1;min-width:140px}
+  .step .n{color:var(--emerald);font-weight:800;font-size:.78rem}
+  .step h4{font-size:.98rem;margin:.3rem 0} .step p{color:var(--muted);font-size:.83rem;line-height:1.4}
+  .arrow{color:var(--faint);font-size:1.3rem;align-self:center}
+  ul.clean{list-style:none;margin-top:1.2rem;display:grid;gap:.75rem}
+  ul.clean li{display:flex;gap:.7rem;color:var(--muted);font-size:1.02rem;line-height:1.45}
+  ul.clean li b{color:var(--ink)}
+  .tick{color:var(--emerald);font-weight:800;flex-shrink:0}
+</style>
+</head>
+<body><div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1 TITLE -->
+<section class="slide active center">
+  <div class="logo" style="font-size:1.1rem;margin-bottom:1.8rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
+  <h1>Buy it, haggle, or walk away?<br/><span class="em">Answered in seconds &mdash; with the receipts.</span></h1>
+  <p class="lede" style="margin-left:auto;margin-right:auto">A decision engine for content deals. In two slides you&rsquo;ll run a real verdict yourself and watch it flip as you change the price.</p>
+  <div class="foot"><span class="logo"><span class="mark" style="width:20px;height:20px">&#9650;</span> CineROI AI</span><span>Tap right to begin &rarr;</span></div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>A multi-million-dollar bet, made on instinct.</h2>
+  <p class="lede">A title hits the desk, the clock is ticking, and the decision is a gut call nobody can fully explain three months later. Click each one:</p>
+  <div class="grid g3">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="big">$$$</div><div class="stat-label">high stakes</div><div class="reveal"><p>One wrong acquisition can sink a quarter&rsquo;s numbers.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="big">&#9201;</div><div class="stat-label">time pressure</div><div class="reveal"><p>Deals move faster than careful analysis can keep up.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="big">&#10067;</div><div class="stat-label">no paper trail</div><div class="reveal"><p>&ldquo;Why did we greenlight that?&rdquo; &mdash; and no one can say.</p></div></div>
+  </div>
+</section>
+
+<!-- 3 BIG IDEA -->
+<section class="slide center">
+  <div class="kicker">The big idea</div>
+  <h2>It&rsquo;s a credit check for content deals.</h2>
+  <p class="lede" style="margin-left:auto;margin-right:auto">A bank runs a few checks with clear cutoffs, then gives one answer. This does the same for buying shows &mdash; click a verdict to see what it means:</p>
+  <div class="grid g3" style="margin-top:2rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><span class="pill g">&#10003; GREENLIGHT</span><div class="reveal"><p style="margin-top:.6rem">All four checks pass. Buy it as proposed &mdash; the math backs you up.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><span class="pill a">&#9878; NEGOTIATE HARD</span><div class="reveal"><p style="margin-top:.6rem">Good title, wrong price. There&rsquo;s a lower number where it clears &mdash; so go bargain to it.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><span class="pill r">&#10007; PASS</span><div class="reveal"><p style="margin-top:.6rem">A problem no discount can fix (usually it won&rsquo;t keep subscribers). Walk away.</p></div></div>
+  </div>
+</section>
+
+<!-- 4 THE FOUR CHECKS (clickable) -->
+<section class="slide">
+  <div class="kicker">How it decides &middot; click each check</div>
+  <h2>Four money checks every title must pass.</h2>
+  <div class="grid g2" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Efficiency</div><h3>Cost per Viewing Hour</h3><div class="reveal"><p>What we pay, divided by hours watched. Too high &rarr; overpaying per hour. <b class="em">Fixable by a lower price.</b></p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Return</div><h3>LTV-to-Cost multiple</h3><div class="reveal"><p>Value created vs. what it costs. Must clear a floor. <b class="em">Fixable by a lower price.</b></p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Stickiness</div><h3>Churn mitigation</h3><div class="reveal"><p>Does it stop subscribers cancelling? Must clear a hurdle. <b class="rosec">Not fixable by price &mdash; a fail here forces PASS.</b></p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Speed</div><h3>Payback horizon</h3><div class="reveal"><p>How many months until it pays for itself. <b class="em">Fixable by a lower price.</b></p></div></div>
+  </div>
+  <p class="lede" style="margin-top:1.3rem">Three are about <b class="amberc">price</b>. One is about the <b class="rosec">title itself</b>. That&rsquo;s the whole secret to the three verdicts.</p>
+</section>
+
+<!-- 5 INTERACTIVE: VERDICT MACHINE -->
+<section class="slide">
+  <div class="kicker">Try it yourself &middot; drag the price</div>
+  <h2>Watch a real deal flip in real time.</h2>
+  <p class="lede" style="max-width:62ch">This is <b class="em">The Ledger</b>, a real title in the platform. Drag its acquisition price and watch the four checks &mdash; and the verdict &mdash; react live.</p>
+  <div class="machine">
+    <div class="panel">
+      <div class="slider-row">
+        <label>Acquisition price <b id="costOut">$9.5M</b></label>
+        <input type="range" id="cost" min="2" max="14" step="0.1" value="9.5" />
+        <div style="display:flex;justify-content:space-between;color:var(--faint);font-size:.75rem;margin-top:.3rem"><span>$2M</span><span>$14M</span></div>
+      </div>
+      <div class="note" id="story">The Ledger at $9.5M is <b class="amberc">NEGOTIATE HARD</b> &mdash; a good film priced too high. Drag left to find the price where it turns green.</div>
+      <div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap">
+        <button class="tipbtn" onclick="setCost(7.2)">Jump to the &ldquo;target deal&rdquo; ($7.2M)</button>
+        <button class="tipbtn" onclick="setCost(9.5)">Reset to asking ($9.5M)</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="verdictbox N" id="verdict"><div class="vlabel" id="vlabel">NEGOTIATE HARD</div><div class="vsub" id="vsub">Good title, wrong price</div></div>
+      <div class="check"><span class="nm">Cost / Viewing Hour</span><span class="val" id="cpvhVal">0.24 vs 0.18</span><span class="badge no" id="cpvhB">BREACH</span></div>
+      <div class="check"><span class="nm">LTV-to-Cost</span><span class="val" id="ltvVal">2.90 vs 3.2</span><span class="badge no" id="ltvB">BREACH</span></div>
+      <div class="check"><span class="nm">Churn mitigation</span><span class="val" id="churnVal">1.60 vs 1.5</span><span class="badge ok" id="churnB">PASS</span></div>
+      <div class="check"><span class="nm">Payback horizon</span><span class="val" id="payVal">15 vs 12 mo</span><span class="badge no" id="payB">BREACH</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 NOT A BLACK BOX -->
+<section class="slide center">
+  <div class="kicker">Why you can trust it</div>
+  <h2>Explainable AI &mdash; <span class="em">intelligence that shows its work.</span></h2>
+  <ul class="clean" style="margin-left:auto;margin-right:auto;max-width:60ch;text-align:left">
+    <li><span class="tick">&#10003;</span><span><b>Consistent</b> &mdash; the same deal always gets the same verdict (you just saw it live), so decisions are defensible.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Explainable</b> &mdash; it shows which check passed, which failed, and by how much.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Auditable</b> &mdash; every decision &amp; sign-off is logged, stamped with its model version.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Reproducible</b> &mdash; any past verdict can be re-derived, forever.</span></li>
+  </ul>
+</section>
+<!-- 7 LIVE PROOF -->
+<section class="slide">
+  <div class="kicker">Live, today</div>
+  <h2>A working portfolio &mdash; not a mock-up.</h2>
+  <p class="lede">Real figures from the running platform&rsquo;s seeded slate right now.</p>
+  <div class="grid g4" style="margin-top:1.6rem">
+    <div class="card"><div class="big">21</div><div class="stat-label">titles in pipeline</div></div>
+    <div class="card"><div class="big em">$259M</div><div class="stat-label">active pipeline value</div></div>
+    <div class="card"><div class="big">3.60&times;</div><div class="stat-label">avg LTV-to-Cost</div></div>
+    <div class="card"><div class="big"><span class="em">11</span>/<span class="amberc">3</span>/<span class="rosec">7</span></div><div class="stat-label">green / negotiate / pass</div></div>
+  </div>
+  <p class="lede" style="margin-top:1.4rem">Dashboard, instant valuation, bulk slate ingest, deep-dive, and backtesting &mdash; all live behind one link.</p>
+</section>
+
+<!-- 8 WHAT-IF -->
+<section class="slide">
+  <div class="kicker">For the negotiation room &middot; click to explore</div>
+  <h2>&ldquo;What would make this a yes?&rdquo;</h2>
+  <p class="lede">A read-only sandbox: set a seller&rsquo;s exact price, tweak assumptions, even relax a threshold &mdash; and watch the verdict recompute, side-by-side with the saved baseline. Nothing is ever saved.</p>
+  <div class="grid g3" style="margin-top:1.6rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><h3>&#8595; Bear &middot; &#8593; Bull</h3><div class="reveal"><p>One-click downside / upside cases that fill in real numbers you can fine-tune.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><h3>&#9678; Target Deal</h3><div class="reveal"><p>Auto-sets the exact price that clears every fixable guardrail (you saw it: $7.2M).</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><h3>&#128279; Shareable link</h3><div class="reveal"><p>The whole scenario lives in the URL &mdash; copy it into chat, reopen it anywhere.</p></div></div>
+  </div>
+</section>
+
+<!-- 9 HONEST -->
+<section class="slide">
+  <div class="kicker">Keeps itself honest</div>
+  <h2>It grades its own homework.</h2>
+  <ul class="clean" style="max-width:66ch">
+    <li><span class="tick">&#8635;</span><span><b>Backtest</b> &mdash; enter what actually happened; it scores predicted vs reality with one accuracy number.</span></li>
+    <li><span class="tick">&#8635;</span><span><b>Recalibrate</b> &mdash; if it drifts, it retunes and forks a new <b>immutable</b> version (never edits in place).</span></li>
+    <li><span class="tick">&#8635;</span><span><b>Govern</b> &mdash; any buy over $25M needs two executive sign-offs before it&rsquo;s final.</span></li>
+  </ul>
+  <p class="lede" style="margin-top:1.3rem">It gets smarter over time &mdash; and every past decision stays reproducible under the version that made it.</p>
+</section>
+
+<!-- 10 THE AI STACK -->
+<section class="slide">
+  <div class="kicker">The AI stack &middot; click each layer</div>
+  <h2>Decision-grade AI &mdash; intelligence you can defend in the boardroom.</h2>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Perception AI</div><h3>Content understanding</h3><div class="reveal"><p>Embedding models turn a script into &ldquo;Narrative DNA&rdquo; &mdash; themes, tone, cast strength, scale &mdash; the signals that feed every decision.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Decision AI</div><h3>The verdict engine</h3><div class="reveal"><p>A transparent, explainable decision layer that turns those signals into a verdict you can trace to the exact number &mdash; and reproduce on demand.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Conversational AI</div><h3>CineROI Copilot</h3><div class="reveal"><p>An assistant that explains any verdict in plain English and answers how-to questions &mdash; grounded in your real data, never making numbers up.</p></div></div>
+  </div>
+  <p class="lede" style="margin-top:1.6rem">The AI <b class="em">understands</b> the content and <b class="em">explains</b> the call &mdash; while the decision stays <b class="em">transparent and auditable</b>. That&rsquo;s what makes it safe to bet millions on.</p>
+</section>
+
+<!-- 11 CLOSE -->
+<section class="slide center">
+  <div class="logo" style="font-size:1rem;margin-bottom:1.4rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
+  <h1>Buy, haggle, or walk away &mdash;<br/><span class="em">with the numbers to back it up.</span></h1>
+  <p class="lede" style="margin-left:auto;margin-right:auto">Faster decisions. Defensible every time. Honest by design.</p>
+  <div class="foot"><span>Credit check for content deals</span><span>Deterministic &middot; Explainable &middot; Auditable</span></div>
+</section>
+
+</div>
+<div class="hint">&larr; &rarr; navigate &middot; click cards to expand &middot; F = full screen</div>
+
+<script>
+  // ----- navigation -----
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    document.getElementById('progress').style.width=((i+1)/slides.length*100)+'%';
+  }
+  document.addEventListener('keydown',e=>{
+    const t=e.target.tagName;
+    if(t==='INPUT') return; // let the slider use arrow keys
+    if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();show(i+1)}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}
+    else if(e.key==='Home')show(0); else if(e.key==='End')show(slides.length-1);
+    else if(e.key.toLowerCase()==='f'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+  });
+
+  // ----- click to expand cards -----
+  document.querySelectorAll('.clickcard').forEach(c=>{
+    c.addEventListener('click',ev=>{ ev.stopPropagation(); c.classList.toggle('open'); });
+  });
+
+  // ----- edge-click navigation (ignore interactive elements) -----
+  document.addEventListener('click',e=>{
+    if(e.target.closest('.clickcard,input,button,.tipbtn')) return;
+    if(e.clientX > window.innerWidth*0.6) show(i+1);
+    else if(e.clientX < window.innerWidth*0.4) show(i-1);
+  });
+
+  // ----- the verdict machine (The Ledger) -----
+  // Real anchors at $9.5M: CPVH 0.2375 (ceiling 0.18), LTV 2.90 (floor 3.2),
+  // payback 15mo (max 12), churn 1.60 (hurdle 1.5, fixed - title fact).
+  // CPVH and payback scale ~linearly with cost; LTV scales inversely with cost.
+  const BASE=9.5, CPVH0=0.2375, LTV0=2.90, PAY0=15, CHURN=1.60;
+  const CEIL=0.18, FLOOR=3.2, MAXPAY=12, HURDLE=1.5;
+  function fmtM(v){return '$'+v.toFixed(1)+'M'}
+  function setCost(v){document.getElementById('cost').value=v; update();}
+  function update(){
+    const cost=parseFloat(document.getElementById('cost').value);
+    const r=cost/BASE;
+    const cpvh=CPVH0*r;
+    const ltv=LTV0/r;
+    const pay=Math.max(1,Math.round(PAY0*r));
+    document.getElementById('costOut').textContent=fmtM(cost);
+    // checks
+    const cB=cpvh>CEIL, lB=ltv<FLOOR, pB=pay>MAXPAY, chB=CHURN<HURDLE;
+    function paint(valId,bId,valText,breached){
+      document.getElementById(valId).textContent=valText;
+      const b=document.getElementById(bId);
+      b.textContent=breached?'BREACH':'PASS';
+      b.className='badge '+(breached?'no':'ok');
+    }
+    paint('cpvhVal','cpvhB',cpvh.toFixed(2)+' vs 0.18',cB);
+    paint('ltvVal','ltvB',ltv.toFixed(2)+' vs 3.2',lB);
+    paint('churnVal','churnB',CHURN.toFixed(2)+' vs 1.5',chB);
+    paint('payVal','payB',pay+' vs 12 mo',pB);
+    // verdict: churn breach (non-correctable) -> PASS; else any price breach -> NEGOTIATE; else GREENLIGHT
+    const box=document.getElementById('verdict'), lab=document.getElementById('vlabel'), sub=document.getElementById('vsub'), story=document.getElementById('story');
+    let cls,label,s,note;
+    if(chB){cls='P';label='PASS';s='A problem no price can fix';note='Churn is below the hurdle &mdash; a <b class="rosec">structural</b> fail. No discount changes that, so it&rsquo;s a PASS regardless of price.';}
+    else if(cB||lB||pB){cls='N';label='NEGOTIATE HARD';s='Good title, wrong price';
+      note='At <b>'+fmtM(cost)+'</b> it still breaches on price. Keep dragging left &mdash; every breach here is <b class="amberc">fixable by paying less</b>.';}
+    else{cls='G';label='GREENLIGHT';s='All four checks pass &mdash; buy it';
+      note='At <b>'+fmtM(cost)+'</b> all four checks clear. This is the price where the deal makes sense &mdash; your <b class="em">negotiation target</b>.';}
+    box.className='verdictbox '+cls; lab.textContent=label; sub.innerHTML=s; story.innerHTML=note;
+  }
+  document.getElementById('cost').addEventListener('input',update);
+  update();
+  show(0);
+</script>
+</body>
+</html>
