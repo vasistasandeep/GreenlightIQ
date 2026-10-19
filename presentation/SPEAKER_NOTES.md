@@ -10,9 +10,9 @@ Open `presentation/index.html` in any browser. One self-contained file, no inter
 
 ## The interactive moments (this is what makes it land)
 - **Slide 5 - Verdict Machine (the star).** Hand someone the mouse. Drag the price of *The Ledger* (a sample demo title) down from $9.5M. The four checks recompute live and badges flip. At **$7.2M it turns GREENLIGHT** - that is its negotiation ceiling in the demo. Use the "Jump to target deal" button to show it instantly. The story line at the bottom narrates every state. This single slide teaches the whole product.
-- **Slides 2, 3, 4, 8, 10 - click-to-reveal cards.** Don't read them aloud; click one and let the reveal do the talking. Keeps the room engaged and the slides uncluttered.
+- **Slides 2, 3, 4, 8, 10, 11 - click-to-reveal cards.** Don't read them aloud; click one and let the reveal do the talking. Keeps the room engaged and the slides uncluttered.
 
-## Flow (12 slides)
+## Flow (13 slides)
 1. Title - the hook. "In two slides you'll run a verdict yourself."
 2. Problem - click the three pain cards.
 3. Big idea - the credit-check analogy; click the three verdicts.
@@ -22,9 +22,10 @@ Open `presentation/index.html` in any browser. One self-contained file, no inter
 7. The demo at a glance - the stat cards count up (21 / $259M / 3.60x / 11-3-7). These are illustrative sample-slate figures, not production data.
 8. What-If - the negotiation-room sandbox; click the three cards.
 9. Keeps itself honest - backtest, recalibrate, govern.
-10. The AI stack - click each layer: Perception AI (content understanding), Decision AI (the verdict engine), Conversational AI (the Copilot). The line: the AI understands the content and explains the call, while the decision stays transparent and auditable.
-11. **Open the live demo portal** - the big green button opens the running product in a new tab. This is the call to action: stop reading, go click it.
-12. Close - repeat the one-liner.
+10. The learning layer, measured - click each metric. We fit the demand models to data and the held-out error dropped (WAPE 0.99 -> 0.39, MAPE 99% -> 33%) while the guardrail false-greenlight rate stayed flat. Be upfront: this is a synthetic open-data proxy dataset for the demo, and the fitted version is left inactive by default. The point: the learning layer helps, but never becomes the gate.
+11. The AI stack - click each layer: Perception AI (content understanding), Learning AI (models fit to data), Decision AI (the verdict engine), Conversational AI (the Copilot). The line: the AI understands the content and explains the call, while the decision stays transparent and auditable.
+12. **Open the live demo portal** - the big green button opens the running product in a new tab. This is the call to action: stop reading, go click it.
+13. Close - repeat the one-liner.
 
 ## If someone asks "is this really AI?"
 Yes - and the best kind for betting millions: **explainable, decision-grade AI**. The AI reads and understands the content (Perception AI), and the Copilot explains every call in plain English (Conversational AI). What sets it apart is that the decision layer is transparent and auditable - you can trace any verdict to the exact number and reproduce it on demand. It's intelligence that shows its work.
@@ -34,7 +35,7 @@ Yes - and the best kind for betting millions: **explainable, decision-grade AI**
 - "Explainable, decision-grade AI - it understands the content, explains the call, and shows its work every time."
 
 ## Setting the "Open the live demo portal" link
-The button on slide 11 reads its target from a single constant near the top of the inline `<script>`:
+The button on slide 12 reads its target from a single constant near the top of the inline `<script>`:
 ```js
 // currently set to a live ngrok tunnel for demos:
 const PORTAL_URL = "https://overlabor-stumbling-praising.ngrok-free.dev";

@@ -421,12 +421,26 @@
   </div>
 </section>
 
+<!-- 9b PROOF: FITTED MODEL IMPACT -->
+<section class="slide">
+  <div class="kicker">The learning layer, measured &middot; click each metric</div>
+  <h2>We fit the demand models to data, then checked the error.</h2>
+  <p class="lede">Held-out backtest of the viewing-hours model: before fitting (a flat prior) versus after fitting to the dataset. Lower is better.</p>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">WAPE</div><div class="big em">0.99 &rarr; 0.39</div><div class="stat-label">weighted abs. % error</div><div class="reveal"><p>Error on held-out titles fell by roughly 60% once the model learned from the data instead of guessing a flat average.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">MAPE</div><div class="big em">99% &rarr; 33%</div><div class="stat-label">mean abs. % error</div><div class="reveal"><p>Typical per-title miss dropped from near-total to about a third, a signal the fit is capturing real structure, not noise.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Guardrail</div><div class="big">0 &rarr; 0</div><div class="stat-label">false greenlights</div><div class="reveal"><p>Verdict-match and false-greenlight rate held flat: the learned signals feed the engine, they never become the gate.</p></div></div>
+  </div>
+  <p class="lede" style="margin-top:1.4rem;color:var(--faint);font-size:.9rem">Illustrative: fit on a synthetic, open-data proxy dataset for the demo, not production KPIs. The fitted version is built and backtested but left inactive by default.</p>
+</section>
+
 <!-- 10 THE AI STACK -->
 <section class="slide">
   <div class="kicker">The AI stack &middot; click each layer</div>
   <h2>Decision-grade AI: intelligence you can defend in the boardroom.</h2>
-  <div class="grid g3" style="margin-top:1.4rem">
+  <div class="grid g4" style="margin-top:1.4rem">
     <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Perception AI</div><h3>Content understanding</h3><div class="reveal"><p>Embedding models turn a script into &ldquo;Narrative DNA&rdquo;: themes, tone, cast strength, scale, the signals that feed every decision.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Learning AI</div><h3>Models fit to data</h3><div class="reveal"><p>Small, transparent models learn each demand signal (viewing hours, retention) from open data and show their work, feeding the engine without ever being the gate.</p></div></div>
     <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Decision AI</div><h3>The verdict engine</h3><div class="reveal"><p>A transparent, explainable decision layer that turns those signals into a verdict you can trace to the exact number, and reproduce on demand.</p></div></div>
     <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Conversational AI</div><h3>CineROI Copilot</h3><div class="reveal"><p>An assistant that explains any verdict in plain English and answers how-to questions, grounded in the demo&rsquo;s data, never making numbers up.</p></div></div>
   </div>
@@ -459,7 +473,7 @@
   <button class="nbtn" id="nPrev" title="Previous (Left arrow)"><span class="ic">&#8249;</span></button>
   <span class="ndots" id="nDots"></span>
   <button class="nbtn" id="nNext" title="Next (Right arrow)"><span class="ic">&#8250;</span></button>
-  <span class="ncount" id="nCount">1 / 12</span>
+  <span class="ncount" id="nCount">1 / 13</span>
 </nav>
 <div class="hint">&larr; &rarr; or use the bar &middot; click a dot to jump &middot; F = full screen</div>
 
