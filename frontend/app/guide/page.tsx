@@ -1091,6 +1091,19 @@ function FeaturesTab() {
         tip={<>Set every slider to 100% to reproduce the official saved scorecard exactly.</>}
       />
       <HowTo
+        title="Model a deal in the What-If Explorer"
+        where="Title page - What-If Explorer tab"
+        what="A read-only sandbox to set exact figures - acquisition cost, viewing hours, CPM, LTV, churn %, and even the guardrail thresholds - and watch the verdict recompute against the saved Baseline. Nothing is saved."
+        steps={[
+          <>Open a title and switch to the <span className="font-medium text-slate-100">What-If Explorer</span> tab.</>,
+          <>Type exact values on the left (e.g. a seller&apos;s asking price in dollars, or a higher CPM). Each field shows the Baseline; blank means &quot;use Baseline&quot;.</>,
+          <>Watch the right panel: each guardrail shows Baseline &rarr; Scenario with a PASS/BREACH badge, and a callout appears if the verdict would flip.</>,
+          <>Try a preset - <span className="font-medium text-slate-100">Bear</span>, <span className="font-medium text-slate-100">Bull</span>, or <span className="font-medium text-slate-100">Target deal</span> (sets cost to the price that clears all correctable guardrails).</>,
+          <>Click <span className="font-medium text-slate-100">Copy scenario link</span> to share the exact scenario - it lives in the URL, nothing is stored.</>,
+        ]}
+        tip={<>It is a sandbox: it never changes the saved scorecard, forks no model version, and is excluded from the Greenlight Memo. Thresholds you relax here are exploration only.</>}
+      />
+      <HowTo
         title="Override the recommendation (with a reason)"
         where="Title page - Override"
         what="An authorized executive can change the verdict when judgment should trump the model - the reason is logged forever."

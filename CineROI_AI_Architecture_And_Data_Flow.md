@@ -464,6 +464,26 @@ How the risks are neutralized:
 
 ---
 
+## 7c. The What-If Explorer (read-only deal sandbox)
+
+A title-page tab lets analysts model a deal by setting exact inputs and even the guardrail
+thresholds, recomputing the verdict live against the saved Baseline. It reuses the existing
+stateless `evaluate_scenario` path with a surgical extension: the four check methods and the
+shared `_compute` take optional threshold parameters that default to the module constants, so
+the persisting `evaluate` path is byte-for-byte unchanged and no saved verdict can regress.
+
+- **Read-only:** persists nothing, no audit entry, no model-version fork; the official
+  scorecard and the standard thresholds never move.
+- **Direct-wins precedence:** a direct value (cost, hours, churn %) supersedes the coarse
+  multiplier; a cost change scales milestones + monthly margin by the USD ratio so payback
+  stays coherent, and a USD cost override on a non-USD title carries no FX distortion.
+- **Baseline-vs-Scenario:** the response returns both the Scenario and a Baseline block plus
+  the negotiation ceiling, so the UI shows exactly what moved and offers a Target Deal preset.
+- **Shareable, stored nowhere:** the scenario is encoded sparsely in the URL; excluded from
+  the Greenlight Memo.
+
+---
+
 ## 8. Trust, Security, and Honesty
 
 - **Deterministic and explainable:** the same inputs always yield the same verdict, and

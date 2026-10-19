@@ -389,8 +389,15 @@ same interface, with no change to the endpoint, the grounding, or the widget.
 
 ---
 
-## 6. Enhancement Features In Detail
+### 5.8 What-If Explorer (title page tab, read-only sandbox)
 
+A dedicated **What-If Explorer** tab on each title page lets an analyst model a deal without touching the saved record. Unlike the simple what-if sliders, it accepts **direct values**: the acquisition cost in dollars, projected viewing hours, the churn-reduction %, the SVOD/AVOD drivers (LTV, churn value, CPM, ad impressions, watch-time elasticity), and even the four **guardrail thresholds** (LTV-to-Cost floor, churn hurdle, CPVH ceiling, payback window). The verdict and all four checks recompute live and are shown **Baseline vs Scenario** - each check with its value, threshold, and PASS/BREACH on both sides, a callout when the verdict would flip, and the SVOD/AVOD revenue split both ways.
+
+It is a strict **read-only sandbox**: it persists nothing, writes no audit entry, forks no model version, and never changes the saved scorecard or the standard thresholds - so the platform's "every saved verdict is reproducible" guarantee is untouched. Direct overrides win over the coarse multipliers; a cost change scales the milestone schedule and monthly margin proportionally (in USD) so payback stays coherent, and a direct USD cost on a non-USD title is applied without FX distortion. Three one-click presets seed scenarios - Bear, Bull, and Target Deal (cost set to the negotiation ceiling that clears all correctable guardrails; disabled for already-GREENLIGHT or structural-PASS titles). The whole scenario is encoded sparsely in the URL as a shareable link (nothing stored), and the tab is excluded from the Greenlight Memo PDF.
+
+---
+
+## 6. Enhancement Features In Detail
 ### 6.1 Top 3 Historical Comps (title-to-title similarity)
 A title-to-title nearest-neighbour lookup over the 1536-dimension Narrative DNA embedding,
 distinct from the audience-fit match (which compares a title to subscriber-cluster
