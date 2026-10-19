@@ -95,15 +95,14 @@
     background-size:200% 200%,200% 200%,100% 100%;
     animation:auroraDrift 26s ease-in-out infinite;}
 
-  /* staggered entrance for the active slide's children */
-  @keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-  .slide.active > *{animation:riseIn .55s cubic-bezier(.22,.8,.3,1) both}
-  .slide.active > *:nth-child(1){animation-delay:.04s}
-  .slide.active > *:nth-child(2){animation-delay:.12s}
-  .slide.active > *:nth-child(3){animation-delay:.20s}
-  .slide.active > *:nth-child(4){animation-delay:.28s}
-  .slide.active > *:nth-child(5){animation-delay:.36s}
-  .slide.active > *:nth-child(6){animation-delay:.44s}
+  /* staggered entrance for the active slide's flow children (skip absolute helpers) */
+  @keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .slide.active > *:not(.foot):not(.particles){animation:riseIn .6s cubic-bezier(.22,.9,.3,1) both}
+  .slide.active > *:nth-child(1 of :not(.foot):not(.particles)){animation-delay:.05s}
+  .slide.active > *:nth-child(2 of :not(.foot):not(.particles)){animation-delay:.14s}
+  .slide.active > *:nth-child(3 of :not(.foot):not(.particles)){animation-delay:.23s}
+  .slide.active > *:nth-child(4 of :not(.foot):not(.particles)){animation-delay:.32s}
+  .slide.active > *:nth-child(5 of :not(.foot):not(.particles)){animation-delay:.41s}
   /* cascade grid cards individually */
   .slide.active .grid > *{animation:riseIn .5s cubic-bezier(.22,.8,.3,1) both}
   .slide.active .grid > *:nth-child(1){animation-delay:.22s}
@@ -138,32 +137,69 @@
   @keyframes thumbGlow{0%,100%{box-shadow:0 0 0 1px var(--emerald),0 0 0 0 rgba(52,211,153,.5)}50%{box-shadow:0 0 0 1px var(--emerald),0 0 0 8px rgba(52,211,153,.18)}}
   input[type=range]#cost::-webkit-slider-thumb{animation:thumbGlow 2.4s ease-in-out infinite}
 
-  /* floating accent dots on title/close */
-  .particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
-  .particles span{position:absolute;bottom:-12px;width:7px;height:7px;border-radius:50%;
-    background:radial-gradient(circle,var(--emerald),transparent 70%);opacity:.0;
+  /* deck-wide ambient particle field (fixed, fully out of flow) */
+  #fx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  #fx span{position:absolute;bottom:-14px;border-radius:50%;
+    background:radial-gradient(circle,var(--emerald),transparent 70%);
     animation:floatUp linear infinite}
-  @keyframes floatUp{0%{transform:translateY(0);opacity:0}10%{opacity:.6}90%{opacity:.4}100%{transform:translateY(-104vh);opacity:0}}
+  @keyframes floatUp{0%{transform:translateY(0) translateX(0);opacity:0}
+    8%{opacity:.55}50%{transform:translateY(-52vh) translateX(14px)}
+    92%{opacity:.35}100%{transform:translateY(-108vh) translateX(-8px);opacity:0}}
+  .deck{z-index:1}
+  .slide{z-index:1}
+
+  /* shimmering gradient headline on hero slides (guarded so text never disappears) */
+  @keyframes sheen{to{background-position:200% center}}
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .center h1{background:linear-gradient(100deg,var(--ink) 18%,var(--emerald) 38%,#a7f3d0 50%,var(--emerald) 62%,var(--ink) 82%);
+      background-size:200% auto;-webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;color:transparent;
+      animation:sheen 6.5s linear infinite}
+    .center h1 .em{-webkit-text-fill-color:var(--emerald);color:var(--emerald)}
+  }
+
+  /* glowing conic ring behind the hero logo mark */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .center .logo{position:relative}
+  .center .logo .mark{position:relative}
+  .center .logo .mark::before{content:"";position:absolute;inset:-9px;border-radius:12px;z-index:-1;
+    background:conic-gradient(from 0deg,var(--emerald),transparent 35%,var(--sky),transparent 70%,var(--emerald));
+    filter:blur(7px);opacity:.75;animation:spin 5s linear infinite}
+
+  /* cursor spotlight on hero slides */
+  .center::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(360px 360px at var(--mx,50%) var(--my,42%),rgba(52,211,153,.14),transparent 70%);
+    transition:background .12s}
   .center > *{position:relative;z-index:1}
+
+  /* kinetic pills on the big-idea slide */
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .cta-pulse{display:inline-flex;align-items:center;gap:.4rem}
+  .cta-pulse .arr{display:inline-block;animation:nudge 1.3s ease-in-out infinite;color:var(--emerald)}
+  @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
 
   @media (prefers-reduced-motion: reduce){
     body{animation:none}
     .slide.active > *,.slide.active .grid > *{animation:none}
-    .verdictbox,.logo .mark,input[type=range]#cost::-webkit-slider-thumb,.particles span{animation:none}
+    .verdictbox,.logo .mark,input[type=range]#cost::-webkit-slider-thumb{animation:none}
+    .center h1{animation:none;-webkit-text-fill-color:initial;background:none}
+    .center .logo .mark::before{animation:none;opacity:.5}
+    .center::before{display:none}
+    #fx{display:none}
     .card::after{display:none}
   }
 </style>
 </head>
 <body><div class="progress" id="progress"></div>
+<div id="fx"></div>
 <div class="deck" id="deck">
 
 <!-- 1 TITLE -->
 <section class="slide active center">
-  <div class="particles" data-particles></div>
   <div class="logo" style="font-size:1.1rem;margin-bottom:1.8rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy it, haggle, or walk away?<br/><span class="em">Answered in seconds &mdash; with the receipts.</span></h1>
   <p class="lede" style="margin-left:auto;margin-right:auto">A decision engine for content deals. In two slides you&rsquo;ll run a verdict yourself in this demo and watch it flip as you change the price.</p>
-  <div class="foot"><span class="logo"><span class="mark" style="width:20px;height:20px">&#9650;</span> CineROI AI</span><span>Tap right to begin &rarr;</span></div>
+  <div class="foot"><span class="logo"><span class="mark" style="width:20px;height:20px">&#9650;</span> CineROI AI</span><span class="cta-pulse">Tap right to begin <span class="arr">&rarr;</span></span></div>
 </section>
 
 <!-- 2 PROBLEM -->
@@ -179,7 +215,7 @@
 </section>
 
 <!-- 3 BIG IDEA -->
-<section class="slide center">
+<section class="slide center" id="bigidea">
   <div class="kicker">The big idea</div>
   <h2>It&rsquo;s a credit check for content deals.</h2>
   <p class="lede" style="margin-left:auto;margin-right:auto">A bank runs a few checks with clear cutoffs, then gives one answer. This does the same for buying shows &mdash; click a verdict to see what it means:</p>
@@ -294,7 +330,6 @@
 
 <!-- 11 CLOSE -->
 <section class="slide center">
-  <div class="particles" data-particles></div>
   <div class="logo" style="font-size:1rem;margin-bottom:1.4rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy, haggle, or walk away &mdash;<br/><span class="em">with the numbers to back it up.</span></h1>
   <p class="lede" style="margin-left:auto;margin-right:auto">Faster decisions. Defensible every time. Honest by design.</p>
@@ -399,20 +434,28 @@
     });
   }
 
-  // ----- floating particles on hero slides -----
+  // ----- deck-wide ambient particle field -----
   if(!reduceMotion){
-    document.querySelectorAll('[data-particles]').forEach(box=>{
-      const N=18;
-      for(let k=0;k<N;k++){
-        const s=document.createElement('span');
-        const size=3+Math.random()*6;
-        s.style.left=(Math.random()*100)+'%';
-        s.style.width=s.style.height=size+'px';
-        s.style.animationDuration=(9+Math.random()*10)+'s';
-        s.style.animationDelay=(-Math.random()*12)+'s';
-        s.style.opacity=(0.25+Math.random()*0.4);
-        box.appendChild(s);
-      }
+    const fx=document.getElementById('fx');
+    const N=34;
+    for(let k=0;k<N;k++){
+      const s=document.createElement('span');
+      const size=2+Math.random()*7;
+      s.style.left=(Math.random()*100)+'%';
+      s.style.width=s.style.height=size+'px';
+      s.style.animationDuration=(11+Math.random()*13)+'s';
+      s.style.animationDelay=(-Math.random()*20)+'s';
+      s.style.opacity=(0.18+Math.random()*0.4).toFixed(2);
+      // a few sky-blue accents for depth
+      if(Math.random()<0.25) s.style.background='radial-gradient(circle,var(--sky),transparent 70%)';
+      fx.appendChild(s);
+    }
+    // cursor spotlight on hero (center) slides
+    window.addEventListener('pointermove',e=>{
+      const hero=slides[i];
+      if(!hero||!hero.classList.contains('center')) return;
+      hero.style.setProperty('--mx',e.clientX+'px');
+      hero.style.setProperty('--my',e.clientY+'px');
     });
   }
   document.getElementById('cost').addEventListener('input',update);
