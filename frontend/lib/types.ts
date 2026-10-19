@@ -95,6 +95,59 @@ export interface ChurnModel {
 }
 
 /**
+ * One per-feature contribution row inside a content-eval driver breakdown.
+ *
+ * Mirrors the backend `_driver_explanation` breakdown entries. `hours` is
+ * carried for the viewing-hours driver (hour-space allocation); `points` is
+ * carried for the additive engagement drivers (watch-time elasticity, ad-load
+ * receptivity). All Decimals arrive as JSON strings and are coerced defensively.
+ */
+export interface ContentEvalContribution {
+  key: string;
+  label?: string | null;
+  input?: number | string | null;
+  coefficient?: number | string | null;
+  /** Hour-space contribution (viewing-hours driver only). */
+  hours?: number | string | null;
+  /** Point-space contribution (additive engagement drivers only). */
+  points?: number | string | null;
+}
+
+/**
+ * One modeled driver's explanation from a fitted `content_eval` version (task 12).
+ *
+ * Mirrors the backend per-driver payload attached under
+ * `explanation.content_eval[driverKey]`: the resolved `value`, the resolution
+ * `method` (FITTED), the fitted `version_label`, the honesty `label_type`
+ * (OBSERVED/PROXY/SYNTHETIC — never present proxy accuracy as real), the
+ * `params_source`, the conserving per-feature `breakdown`, and the
+ * missing/assumed feature lists. Decimals arrive as JSON strings.
+ */
+export interface ContentEvalDriver {
+  value?: number | string | null;
+  method?: string | null;
+  version_label?: string | null;
+  /** OBSERVED | PROXY | SYNTHETIC — drives the visible honesty badge (R8.1). */
+  label_type?: string | null;
+  params_source?: string | null;
+  breakdown?: ContentEvalContribution[] | null;
+  missing_features?: string[] | null;
+  assumed_features?: string[] | null;
+}
+
+/**
+ * The content-eval driver explanations attached to a recommendation (task 12, R8.1).
+ *
+ * A map of driver key -> {@link ContentEvalDriver}, attached verbatim under
+ * `explanation.content_eval` ONLY when a fitted `content_eval` version is
+ * active. ABSENT on the demo default (no fitted version), in which case the
+ * scorecard renders no extra driver cards. Known keys are
+ * `projected_viewing_hours` (hour breakdown), `watch_time_elasticity`, and
+ * `ad_load_receptivity` (point breakdowns); unknown keys are tolerated.
+ */
+export type ContentEvalExplanation = Record<string, ContentEvalDriver>;
+
+/**
  * Structured explainability payload for a recommendation (R30).
  *
  * Mirrors the backend `Explanation`: every guardrail check with its pass/breach
@@ -117,6 +170,12 @@ export interface Explanation {
    * `explanation` and the quick-evaluate response's `explanation`.
    */
   churn_model?: ChurnModel | null;
+  /**
+   * Content-eval driver breakdowns from a fitted `content_eval` version (task 12,
+   * R8.1). Present ONLY when a fitted version produced the valuation; ABSENT on
+   * the demo default so the scorecard is unchanged. `null` is tolerated.
+   */
+  content_eval?: ContentEvalExplanation | null;
 }
 
 /**

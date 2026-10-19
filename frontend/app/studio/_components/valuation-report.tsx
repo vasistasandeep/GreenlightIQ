@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GuardrailCheck, QuickEvaluateResponse } from "@/lib/types";
 import { ChurnBreakdown } from "@/app/titles/[id]/_components/churn-breakdown";
+import { ContentEvalBreakdown } from "@/app/titles/[id]/_components/content-eval-breakdown";
 import { StudioPayback } from "./studio-payback";
 import { StudioRadar } from "./studio-radar";
 import {
@@ -155,6 +156,9 @@ export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
             ) : null}
             <div className="text-slate-300">
               <ChurnBreakdown churnModel={result.explanation?.churn_model} />
+              <ContentEvalBreakdown
+                contentEval={result.explanation?.content_eval}
+              />
             </div>
           </Panel>
 

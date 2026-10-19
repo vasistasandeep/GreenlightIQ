@@ -1,0 +1,1 @@
+{"records":[{"id":"demo-tentpole-01","normalized_rating":0.79,"log_vote_count":8.7},{"id":"demo-midbudget-02","normalized_rating":0.63,"log_vote_count":6.9},{"id":"demo-indie-03","normalized_rating":0.71,"log_vote_count":4.8},{"id":"demo-intl-04","normalized_rating":0.72,"log_vote_count":5.6}],"source":"movielens","version":"fixture-v1"}

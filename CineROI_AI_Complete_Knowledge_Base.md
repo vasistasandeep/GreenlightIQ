@@ -480,9 +480,151 @@ Vintage Reruns SCREENING, Echoes CLOSED_WON - a realistic spread across the pipe
 
 ---
 
-## 8. Governance, Security, and Compliance
+## 8. The Content Evaluation Modeling Layer (Content_Eval_System)
 
-### 8.1 Roles (RBAC)
+> **Honesty note, up front.** Everything in this section is a *modeling and measurement*
+> layer that produces the engine's *inputs*. It does not touch the four thresholds, the
+> recommendation logic, the governance gates, or the seeded demo verdicts. Every coefficient
+> shipped today is **illustrative / PROXY**, fitted (where fitted at all) against an
+> **open-data or synthetic** truth sheet - so any accuracy number here is **proxy accuracy,
+> not real-world accuracy**. **No fitted model version is active by default**, so with the
+> default seed the demo drivers and verdicts are byte-identical to before this layer existed.
+
+Guardrail 3 (churn) already describes the first member of this family - the additive,
+versioned `Churn_Mitigation_Model` in Section 3.3. The Content_Eval_System generalizes that
+pattern to the other engine inputs and adds the data plumbing, the labeled truth sheet, and
+the measurement loop that make a model *fittable* and *measurable* rather than hand-tuned.
+
+### 8.1 The model family - one model per driver
+
+The engine consumes a handful of quantitative inputs. The ones open data can genuinely
+inform are the **Modeled_Engagement_Drivers**, and each gets its own pure, deterministic,
+versioned model that maps a title's **Feature_Vector** to exactly one driver, with a
+per-feature breakdown that conserves to the final value (the same contract the churn model
+established):
+
+- **Projected viewing hours** (`viewing_hours.py`) - feeds CPVH. A log-space linear model
+  (see the Calculations Reference for the formula and the base-plus-marginal-lift breakdown).
+- **Churn-reduction %** (`churn.py`, the existing reference member) - feeds Guardrail 3.
+- **Watch-time elasticity** (`engagement.py`) - an additive model feeding the AVOD side of
+  the LTV numerator.
+- **Ad-load receptivity** (`engagement.py`) - a unit-centered multiplier (default 1.0) that
+  *scales* the configured CPM basis; it never invents a dollar CPM.
+
+What stays **configured, not modeled**, are the **Platform_Rates**: base subscriber LTV ($),
+the programmatic AVOD CPM ($), and the ad-impressions volume basis. These are macro
+assumptions open content data cannot supply. A model may *scale* a Platform_Rate (ad-load
+receptivity scaling CPM), but it must never fabricate the base dollar figure.
+
+Adding the next model is adding one module behind the shared interface - the Guardrails
+Engine, the thresholds, and the recommendation logic are untouched.
+
+### 8.2 Features from open data - the Source_Connector layer
+
+Features are derived by a pure `features.py` that receives already-fetched raw values; it
+never does I/O itself. Upstream of it sits a pluggable **Source_Connector** layer so new
+open-data sources can be onboarded later without changing the models, the dataset schema, or
+the harness:
+
+- A **Source_Connector** fulfills a four-step contract: fetch raw records, normalize them
+  into the shared Feature_Vector contract, write a checksummed **Source_Snapshot**, and
+  register the source's license and access metadata in the provenance manifest.
+- The **Connector_Registry** is the ordered, declarative list of enabled connectors; it
+  records which source supplies each feature and the precedence when two sources overlap.
+  The first implementations cover TMDB, MovieLens, IMDb (non-commercial), and Wikidata.
+- **Snapshot-only reads.** Every build, fit, test, and measurement reads fixed, checksummed
+  snapshot bytes. A live external fetch happens *only* in an explicit, out-of-build
+  snapshot-refresh step - never inside a build - so results are reproducible offline.
+- **License/PII gate.** A source with an absent or incompatible license, or whose records
+  would carry personal data, is rejected before it can enter the pipeline. Features are
+  title-level attributes only (metadata, aggregate popularity, ratings, awards); no
+  individual user data is ever ingested.
+- **Missing data degrades gracefully.** An absent feature uses a neutral default (never a
+  penalizing zero) and is flagged `assumed`, exactly like the churn model.
+
+### 8.3 The KPI_Test_Dataset - the labeled truth sheet
+
+The **KPI_Test_Dataset** is a versioned, committed, human-readable artifact (CSV + JSON) of
+50-100 stratified titles (tentpole, mid-budget genre, indie drama, international co-pro,
+library). Each row carries a stable id, the full Feature_Vector, the expected value for each
+in-scope driver, the expected per-guardrail outcome, the expected recommendation, a
+**Label_Type** (OBSERVED / PROXY / SYNTHETIC), the release year, and its train/test split.
+The five seeded demo titles are included with their current verdicts pinned, so a regression
+is caught immediately.
+
+Two honesty mechanisms are built in: every row carries its Label_Type (so a proxy label is
+never reported as a real outcome), and the train/test partition is a **Temporal_Split** by
+release-year cutoff - train on titles at or before the cutoff, test on titles after it -
+which mirrors real greenlighting (past catalog informs future slates) and avoids the
+look-ahead leakage a random k-fold split would introduce. A committed `PROVENANCE.md` records
+each source's name, URL, license, and access date (IMDb flagged non-commercial).
+
+### 8.4 Fitting and the measurement loop (Backtest_Harness)
+
+Coefficients are learned by a deterministic, dependency-free **Model_Fit** procedure
+(standard-library non-negative least squares / IRLS, fixed seed, no wall-clock or
+environment dependence), so the same dataset version and configuration produce
+byte-identical parameters. Non-negativity is enforced where the domain requires monotonicity.
+Heavy-tailed targets (notably viewing hours, where a tentpole dwarfs a library title) are fit
+and evaluated **on a log scale** against a percentage-scale objective (Log-MAE / WAPE) so the
+model holds consistent percentage accuracy across blockbusters and catalog alike.
+
+The **Backtest_Harness** runs a model version over the held-out test split and reports:
+
+- Per-input error: **MAPE** (excluding zero-actuals, matching the existing backtesting) plus
+  **WAPE / Log-MAE** for viewing hours.
+- **Verdict-match rate**, and - because acquisition errors are asymmetric - the two
+  directional error rates: the **False_Greenlight_Rate** (predicted GREENLIGHT where the
+  expected verdict was NEGOTIATE_HARD / PASS - a capital-loss error, reported first as the
+  primary risk metric) and the **False_Pass_Rate** (a missed acquisition - an opportunity
+  cost).
+- The change in each **Output_KPI** (active pipeline valuation, average LTV-to-Cost,
+  portfolio risk exposure, model prediction accuracy) between a baseline and the candidate,
+  attributing the movement to the single changed model.
+
+All accuracy is labeled **proxy** whenever the measured rows are PROXY/SYNTHETIC. A fitted
+version that scores *worse* than the active baseline on the held-out split is never
+auto-activated; the regression is surfaced for an explicit governance decision.
+
+### 8.5 Precedence, versioning, and the opt-in churn->LTV link
+
+- **Strict precedence per input: SUPPLIED > FITTED > FALLBACK.** An explicitly supplied value
+  always wins and the model is skipped for that input. Otherwise a fitted version is used when
+  one is active and the features suffice. Otherwise the deterministic illustrative fallback is
+  used, with the method and reason recorded. A fitted model is therefore never required to
+  boot or demo, and no model is ever the final arbiter of a recommendation.
+- **Versioning.** Parameters live under `model_versions.guardrail_params['content_eval']`
+  (JSONB, no migration), inside the existing immutable model-version lineage, carried forward
+  unchanged on calibration forks. Every valuation is stamped with the version(s) that produced
+  it, so any past decision is reproducible. The per-feature breakdown and the version surface
+  in the explanation (under `explanation.content_eval`) and the audit log.
+- **Opt-in churn->LTV link.** A `link_churn_to_ltv` flag (default **off**) lets the modeled
+  churn-reduction % flow into the LTV numerator's `churn_reduction_value`
+  (`Base_Retained_Cohort_Value x pct/100`). When off - the default - today's behavior is
+  preserved exactly, so the demo verdicts do not move.
+
+### 8.6 What you will see in the UI
+
+Where a modeled or proxy-trained value is shown, the financial accordion and the valuation
+report render a driver-breakdown card (the same pattern as the churn breakdown) carrying a
+visible **PROXY / illustrative** badge. The badge is a reminder that the figure comes from an
+illustrative or proxy-trained model, not a measured real-world outcome.
+
+### 8.7 Illustrative first-fit example (PROXY numbers, not real-world accuracy)
+
+To make the loop concrete: a first viewing-hours fit against `kpi-test-dataset-v1` (dominant
+Label_Type **SYNTHETIC**) moved the held-out viewing-hours error from a baseline **WAPE 0.99
+/ MAPE 99%** to a candidate **WAPE 0.39 / MAPE 33%**, while the False_Greenlight_Rate (0.00),
+verdict-match (0.95), and the Output_KPI deltas stayed flat. These are **proxy accuracy on
+synthetic labels - not real-world accuracy** - and the candidate was measured only, not
+activated (activation is a separate, explicit governance decision). See the Calculations
+Reference for the full table.
+
+---
+
+## 9. Governance, Security, and Compliance
+
+### 9.1 Roles (RBAC)
 Each user holds exactly one role: **DATA_ANALYST**, **CONTENT_BUYER**,
 **CHIEF_CONTENT_OFFICER (CCO)**, or **CFO**. Permissions are enforced per operation.
 
@@ -493,7 +635,7 @@ Each user holds exactly one role: **DATA_ANALYST**, **CONTENT_BUYER**,
 - Read confidential fields: CONTENT_BUYER, CCO, CFO (analysts excluded; CONTENT_BUYER is
   further territory-scoped; executives are organization-wide).
 
-### 8.2 Approval Workflow (high-budget gate)
+### 9.2 Approval Workflow (high-budget gate)
 A GREENLIGHT whose normalized cost exceeds **$25,000,000** requires sign-off from **both**
 the CCO and the CFO before it can be finalized. The finalization endpoint reports which
 required approvals remain outstanding and blocks finalization until all are cleared.
@@ -501,46 +643,46 @@ required approvals remain outstanding and blocks finalization until all are clea
 single-identity demo session attribute approvals to the seeded role-holders so a two-role
 gate can be cleared; it is absent in production.)
 
-### 8.3 Authentication & Sessions
+### 9.3 Authentication & Sessions
 SSO via OIDC/SAML; sessions bound to the authenticated identity; 30-minute idle expiry;
 service-to-service calls use API credentials; missing/expired/revoked credentials are
 rejected with descriptive errors.
 
-### 8.4 Audit Logging & Lineage
+### 9.4 Audit Logging & Lineage
 Every state-changing action (ingest, valuation, override, approval, calibration, deal-stage
 transition) writes exactly one append-only audit entry capturing actor, timestamp, action,
 and before/after values. Append-only is enforced in the database (revoked UPDATE/DELETE +
 a mutation-blocking trigger). `GET /audit/lineage/{subject_id}` returns the full
 chronological trail.
 
-### 8.5 Model Versioning & Reproducibility
+### 9.5 Model Versioning & Reproducibility
 Every valuation is stamped with the model version active at the time. Calibration never
 mutates weights in place - it forks a new immutable version. All historical versions are
 retained, so any past valuation can be reproduced from its stamped version.
 
-### 8.6 Data Protection
+### 9.6 Data Protection
 Sensitive data (unreleased scripts, deal terms, PII) is encrypted at rest; confidential
 records/fields are scoped by role and authorized territory with field withholding;
 configurable retention purges or archives eligible records.
 ---
 
-## 9. Multi-Currency and Licensing Economics
+## 10. Multi-Currency and Licensing Economics
 
-### 9.1 Currency Normalization
+### 10.1 Currency Normalization
 Costs are captured in their native currency (at minimum INR, USD, EUR, GBP) and converted
 to the Base Currency (USD) using a **dated** exchange rate before any guardrail runs. The
 rate value and rate date are recorded with the projection. If no rate exists for the exact
 required date, the engine **falls back to the latest available rate** for that currency
 pair; it rejects the valuation only when the currency pair has no rate at all.
 
-### 9.2 Territory Weighting
+### 10.2 Territory Weighting
 When computing the LTV-to-Cost multiple, the engine applies per-territory CPM and LTV
 weighting derived from each target territory's cached market telemetry:
 `cpm_weight = licensing_inflation_multiplier`, `ltv_weight = 1 + chart_velocity_score/100`.
 A territory with no telemetry contributes a neutral weight of 1. Weights are averaged
 (equal-weight mean) across the title's target territories.
 
-### 9.3 Licensing & Windowing
+### 10.3 Licensing & Windowing
 Each title carries License Terms: license duration (months), an exclusivity flag,
 windowing rules, holdbacks, and a milestone-based payment schedule. Payback uses the
 milestone schedule, not a lump sum. Exclusive windows are valued separately from
@@ -549,7 +691,7 @@ terms are rejected.
 
 ---
 
-## 10. Asynchronous Processing & Operations
+## 11. Asynchronous Processing & Operations
 
 - **Task queue:** Celery workers backed by Redis run `ingest_batch`, `extract_features`,
   `run_backtest_audit`, and `poll_telemetry` on dedicated queues.
@@ -571,7 +713,7 @@ terms are rejected.
 
 ---
 
-## 11. REST API Surface (Reference)
+## 12. REST API Surface (Reference)
 
 All under `/api/v1`. Auth via session bearer token or service credential; errors use a
 shared `{error_code, message, details}` envelope.
@@ -606,7 +748,7 @@ shared `{error_code, message, details}` envelope.
 
 ---
 
-## 12. Data Model (PostgreSQL 16 + pgvector)
+## 13. Data Model (PostgreSQL 16 + pgvector)
 
 Core and expanded tables; UUID primary keys; foreign keys enforce referential integrity.
 
@@ -648,7 +790,7 @@ Core and expanded tables; UUID primary keys; foreign keys enforce referential in
 
 ---
 
-## 13. Architecture & Deployment
+## 14. Architecture & Deployment
 
 - **Monorepo:** `/backend` (FastAPI async), `/frontend` (Next.js App Router + TypeScript +
   Tailwind + Shadcn UI + Recharts), `/database` (Alembic migrations + seed), plus
@@ -673,7 +815,7 @@ Core and expanded tables; UUID primary keys; foreign keys enforce referential in
 
 ---
 
-## 14. Testing Strategy
+## 15. Testing Strategy
 
 - **Property-based tests (Hypothesis)** target the pure domain functions and deterministic
   engine orchestration - 47 named correctness properties (e.g. CPVH boundary, LTV formula,
@@ -697,7 +839,7 @@ Core and expanded tables; UUID primary keys; foreign keys enforce referential in
   without psycopg); frontend ~165 passing across ~24 files.
 ---
 
-## 15. Build History (How the Platform Grew)
+## 16. Build History (How the Platform Grew)
 
 The platform was built in waves, each committed and verified. In rough order:
 
@@ -735,7 +877,7 @@ The platform was built in waves, each committed and verified. In rough order:
 
 ---
 
-## 16. Specifications
+## 17. Specifications
 
 The platform is specified under `.kiro/specs/`. The main spec `cineroi-ai` holds
 Requirements 1-37 (EARS format), a design document (architecture, components, 47
@@ -757,7 +899,7 @@ Requirement groups:
 
 ---
 
-## 17. Glossary
+## 18. Glossary
 
 - **CPVH (Cost per Viewing Hour):** Cost (USD) / Projected Viewing Hours. Lower is better.
   Ceiling $0.18 (premium) or $0.05 (library).
@@ -796,10 +938,40 @@ Requirement groups:
   cost/viewership/churn assumptions.
 - **Idempotency Key:** makes a replayed ingestion return the original result, no duplicates.
 - **Optimistic Locking:** a `row_version` guard that rejects a stale-version write.
+- **Content_Eval_System:** the modeling + measurement layer (Section 8) that produces the
+  engine's inputs from open-data features, fits them against a labeled truth sheet, and
+  measures their KPI impact per version. It never touches the thresholds or the verdict.
+- **Content_Eval_Model:** a pure, deterministic, versioned model that maps a title's
+  Feature_Vector to one Modeled_Engagement_Driver with a conserving per-feature breakdown.
+- **Modeled_Engagement_Driver:** an input a model can estimate - projected viewing hours,
+  churn-reduction %, watch-time elasticity, ad-load receptivity.
+- **Platform_Rate:** a configured macro assumption (base LTV, CPM, ad-impressions basis)
+  that is not modeled from open data; a driver may scale it but never invent it.
+- **Feature_Vector:** the title-level, PII-free features (intrinsic + open-data correlates)
+  a model may consume, each with a documented source, transform, and domain.
+- **Source_Connector / Connector_Registry:** the pluggable adapter contract (fetch,
+  normalize, snapshot, provenance) and the declarative list of enabled sources used to
+  onboard new open data without changing the models.
+- **Source_Snapshot:** the checksummed local copy of a source's records so every build, fit,
+  and measurement reads fixed bytes offline (no live fetch in a build).
+- **KPI_Test_Dataset:** the versioned, committed labeled truth sheet (50-100 stratified
+  titles) a model is measured against, with a Temporal_Split and per-row Label_Type.
+- **Label_Type:** how a row's expected value was obtained - OBSERVED, PROXY, or SYNTHETIC -
+  so proxy accuracy is never reported as real-world accuracy.
+- **Temporal_Split:** a train/test partition by release-year cutoff that avoids look-ahead
+  leakage (no random k-fold).
+- **Model_Fit:** the deterministic, stdlib-only, reproducible procedure that learns a model's
+  coefficients from the training split, emitting an immutable Content_Eval_Version.
+- **Backtest_Harness:** the offline measurement component reporting MAPE/WAPE, verdict-match,
+  False_Greenlight_Rate / False_Pass_Rate, and Output_KPI deltas vs a baseline.
+- **False_Greenlight_Rate / False_Pass_Rate:** the asymmetric verdict errors - a false
+  greenlight is a capital loss (primary risk metric); a false pass is an opportunity cost.
+- **SUPPLIED > FITTED > FALLBACK:** the strict per-input precedence; a supplied value wins,
+  else a fitted version, else the deterministic illustrative fallback.
 
 ---
 
-## 18. Frequently Asked Questions
+## 19. Frequently Asked Questions
 
 - **Why did a title get PASS?** At least one failure cannot be fixed by paying less -
   almost always that it does not keep subscribers (churn below 1.5%).
@@ -825,6 +997,14 @@ Requirement groups:
 - **One-pager for a committee?** Export Greenlight Memo (PDF) on the title page.
 - **Who can override, and is it tracked?** Content Buyer / CCO / CFO, with a mandatory
   written justification, recorded permanently in the audit log.
+- **What is the Content Evaluation modeling layer?** A layer (Section 8) that produces the
+  engine's *inputs* from open-data features, fits them against a labeled truth sheet, and
+  measures their KPI impact per version. It does not change the thresholds or the verdict.
+- **Does it change the demo verdicts?** No. No fitted version is active by default and the
+  churn->LTV link is off, so with the default seed every driver and verdict is byte-identical.
+- **Are the modeling accuracy numbers real?** No. Where a value is modeled or proxy-trained
+  it is labeled **PROXY / illustrative**; the reported accuracy is proxy accuracy on
+  open-data/synthetic labels, never real-world accuracy.
 
 ---
 

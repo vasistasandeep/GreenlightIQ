@@ -473,7 +473,128 @@ the seed generator engineers the drivers:
 
 ---
 
-## 15. Quick Reference - Thresholds and Rounding
+## 15. Content Evaluation Models (the modeling-layer formulas)
+
+> **Honesty gate.** Every formula and number in this section belongs to the *modeling layer*
+> (the Content_Eval_System) that produces the engine's Layer-A inputs. The coefficients shipped
+> today are **illustrative / PROXY**; where they are fitted at all, they are fitted against an
+> **open-data or synthetic** truth sheet. **No fitted version is active by default**, so with the
+> default seed every driver and verdict is byte-identical to the placeholder behavior in Sections
+> 12-14. Any accuracy below is **proxy accuracy, not real-world accuracy.**
+
+These models map a title's `Feature_Vector` to one Layer-A driver, each with a per-feature
+breakdown that conserves to the final value (the same contract Section 6 describes for churn).
+The math lives in pure stdlib modules (`backend/app/domain/viewing_hours.py`,
+`engagement.py`, `fit.py`) and is property-tested.
+
+### 15.1 Projected viewing hours - log-space model + Option-B hour breakdown
+
+Viewing hours is heavy-tailed (a tentpole can be orders of magnitude above a library title),
+so the model is **linear in log space** and **conserved and clamped in hour space**.
+
+- **Predict (log space):**
+  `y_log = intercept + sum_i(beta_i x x_i)` over non-negative-constrained feature weights,
+  then `H_hat = exp(y_log) - 1` (the inverse of the `log(1 + H)` fit target).
+- **Hour-space breakdown - base hours + marginal-lift share (Option B).** Because `exp(sum)`
+  is multiplicative, a naive per-term log share would double-count the intercept and force a
+  large negative adjustment. Instead:
+  - Base platform hours: `H0 = exp(intercept) - 1`.
+  - Total non-intercept log lift: `L = sum_i(beta_i x x_i)`.
+  - Total feature lift in hours: `dH = H_hat - H0`.
+  - Per feature: `hours_i = (beta_i x x_i / L) x dH` when `L > 0`, else `hours_i = 0`
+    (the `L == 0` base-only case).
+  - Breakdown entries: `{ base_platform_hours = H0, hours_i..., rounding_or_bounds_adjustment }`.
+  By construction `H0 + sum_i(hours_i) == H_hat` before quantization, so the single trailing
+  `rounding_or_bounds_adjustment` entry only ever carries a tiny +/-1-hour rounding or
+  floor-clamp residual - never a structural offset. **The intercept term is never divided by
+  `L`.**
+- **Floor/clamp:** the output is clamped to a small positive `floor` so viewing hours never hit
+  the CPVH null/zero path (Section 4); the clamp delta flows into the adjustment entry, so
+  conservation still holds exactly.
+- **Params:** `guardrail_params['content_eval']['viewing_hours'] = { intercept, betas{feature->weight>=0}, floor, objective:"wape_log" }`,
+  parsed with a churn-style full fallback to illustrative defaults when absent/invalid.
+
+### 15.2 Engagement models (additive, conserving)
+
+- **Watch-time elasticity:** an additive model over engagement correlates (runtime, genre
+  bingeability, serialization), bounded to its documented domain, with the same
+  conserving-breakdown and fallback shape as churn: `value = intercept + sum_i(w_i x x_i)`,
+  then clamp, with a single `bounds_adjustment` entry carrying the clamp/rounding residual so
+  `sum(breakdown) == value`.
+- **Ad-load receptivity:** a **unit-centered multiplier** (default `1.0`) that *scales* the
+  configured CPM basis rather than inventing a dollar CPM - honoring the Platform_Rate
+  boundary. The engine still multiplies by the configured `cpm`; the model supplies only the
+  scalar.
+
+### 15.3 Churn -> LTV link (opt-in, default off)
+
+The modeled churn-reduction % and the LTV numerator's `churn_reduction_value` are distinct
+fields today (Section 5.1, Section 13 pins `churn_reduction_value = 1`). The opt-in link makes
+the modeled churn flow into LTV:
+
+- `churn_reduction_value = Base_Retained_Cohort_Value x (Churn_Reduction_Pct / 100)`
+
+where `Base_Retained_Cohort_Value` is a configured Platform_Rate. The link is gated by
+`guardrail_params['content_eval']['link_churn_to_ltv']` (**default false**). When off - the
+default - the current behavior is preserved exactly and the demo verdicts do not move. A
+`SUPPLIED` `churn_reduction_value` still wins at the field level.
+
+### 15.4 Deterministic fit (`fit.py`)
+
+- Standard-library **non-negative least squares via projected coordinate descent**, with an
+  **IRLS** wrapper for the log-space WAPE / Log-MAE objective used by viewing hours.
+- **Zero-variance guard:** `denom = sum_n(w_n x x_nj^2)`; `if denom <= 1e-12: beta_j = 0;
+  continue` - so a constant or sparse feature column never raises a divide-by-zero.
+- Fixed iteration count, fixed tolerance, fixed seed, no wall-clock or environment dependence,
+  no numpy/scipy - so fitted parameters are byte-identical across platforms. Non-negativity is
+  projected after each coordinate update, preserving monotonicity/explainability.
+
+### 15.5 Harness metrics (how a model is scored on the held-out split)
+
+- **MAPE** (per input): `(1/n) x sum(|(actual - predicted) / actual|) x 100` over eligible
+  rows, **excluding zero-actual** rows (matching Section 11.1).
+- **WAPE** (viewing hours): `sum_i|actual_i - predicted_i| / sum_i|actual_i|` - a
+  magnitude-weighted percentage error that is robust to the heavy tail. **Log-MAE:** the mean
+  absolute residual in `log(1 + H)` space.
+- **Verdict-match rate:** the fraction of titles whose predicted recommendation equals the
+  expected recommendation.
+- **False_Greenlight_Rate (FGR)** = (# titles predicted GREENLIGHT whose expected verdict was
+  NEGOTIATE_HARD or PASS) / (# titles predicted GREENLIGHT). The capital-loss error - reported
+  first as the **primary risk metric**.
+- **False_Pass_Rate (FPR)** = (# titles predicted PASS or NEGOTIATE_HARD whose expected verdict
+  was GREENLIGHT) / (# titles predicted PASS or NEGOTIATE_HARD). The opportunity-cost error.
+- **Output_KPI deltas:** the change in each portfolio KPI (active pipeline valuation, average
+  LTV-to-Cost, portfolio risk exposure, model prediction accuracy) between baseline and
+  candidate over the same dataset, attributed to the single changed model.
+
+A fitted version that scores worse than the active baseline on the held-out split is surfaced
+but never auto-activated.
+
+### 15.6 Illustrative first-fit numbers (PROXY - not real-world accuracy)
+
+A first viewing-hours fit against `kpi-test-dataset-v1` (dominant Label_Type **SYNTHETIC**;
+temporal cutoff 2019; 19 held-out test rows, label mix 17 SYNTHETIC / 2 PROXY) produced:
+
+| metric (viewing hours, PROXY) | baseline | candidate |
+|---|---|---|
+| MAPE % | 99.03 | 32.57 |
+| WAPE | 0.9883 | 0.3899 |
+| Log-MAE | 4.8121 | 0.4236 |
+
+| verdict metric (PROXY; FGR first) | baseline | candidate | delta |
+|---|---|---|---|
+| False_Greenlight_Rate | 0.0000 | 0.0000 | 0.0000 |
+| False_Pass_Rate | 0.0526 | 0.0526 | - |
+| Verdict_Match_Rate | 0.9474 | 0.9474 | 0.0000 |
+
+All four Output_KPI deltas were 0.00. **These are proxy accuracy on synthetic/open-data labels,
+not real-world accuracy**, and the candidate was measured only - activation is a separate,
+explicit governance decision (this layer never auto-activates). Source: the committed
+`database/kpi_dataset/fit_report.md`.
+
+---
+
+## 16. Quick Reference - Thresholds and Rounding
 
 | Quantity | Formula / rule | Threshold | Rounding |
 |---|---|---|---|
@@ -488,6 +609,10 @@ the seed generator engineers the drivers:
 | Retained subs | cohort x (pct/100) | - | whole number |
 | MAPE | mean(\|(act-pred)/act\|) x 100 | calibrate > 10% | 2 dp HALF_UP |
 | Calibration weights | offset in [-1,1]; pair sums to 1.00 | [0,1] each | 2 dp HALF_UP |
+| Viewing hours (modeled, PROXY) | H = exp(intercept + sum beta_i x_i) - 1, clamp to floor | - | floor clamp; +/-1h adjustment |
+| Churn -> LTV link (opt-in, off) | churn_val = Base_Retained_Cohort_Value x pct/100 | default off | exact |
+| WAPE (viewing hours) | sum\|act-pred\| / sum\|act\| | lower is better | exact |
+| FGR / FPR (verdict error) | false greenlights / false passes over the split | lower is better | exact |
 
 All arithmetic uses Decimal; monetary and percentage values serialize as JSON strings over
 the wire and are coerced defensively on the frontend.

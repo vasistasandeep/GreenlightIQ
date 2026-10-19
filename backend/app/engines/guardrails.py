@@ -54,7 +54,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Optional, Protocol, Sequence, TypedDict
+from typing import Any, Mapping, Optional, Protocol, Sequence, TypedDict
 
 from app.core.errors import ExchangeRateUnavailableError, TitleNotFoundError
 from app.domain.churn import (
@@ -240,6 +240,14 @@ class ValuationInputs:
     #: film / library, etc. Drives the additive content-format churn lift. None
     #: when not carried (unknown -> neutral default lift, 0 today).
     content_format: str | None = None
+    #: content-eval-model (R1.4, R5.2, R5.4, R8.2): optional per-driver
+    #: explanation breakdowns (hour/point contributions keyed by driver),
+    #: populated by the ContentEvalValuationInputProvider. Purely additive: when
+    #: ``None`` (every existing construction leaves it unset) the persisted
+    #: explanation is byte-identical to before — the engine attaches it under
+    #: ``explanation["content_eval"]`` only when present. Never a guardrail
+    #: input; it drives no check, threshold, or recommendation.
+    driver_explanations: Mapping[str, Any] | None = None
 
 
 class ValuationInputProvider(Protocol):
@@ -431,7 +439,9 @@ class Guardrails_Engine:
         explanation = result["explanation"]
 
         # 7. Persist with retries, preserving prior value (R8.6, R8.7).
-        await self._persist(title_id, result, explanation)
+        await self._persist(
+            title_id, result, explanation, inputs.driver_explanations
+        )
 
         # 8. Append-only audit entry stamped with the model version (R25.1, R25.3).
         await self._audit.record(
@@ -1301,6 +1311,7 @@ class Guardrails_Engine:
         title_id: uuid.UUID,
         result: ValuationResult,
         explanation: Explanation,
+        driver_explanations: Mapping[str, Any] | None = None,
     ) -> None:
         """Persist the projection, retrying up to 3 times, preserving prior value.
 
@@ -1310,8 +1321,13 @@ class Guardrails_Engine:
         attempt fails, :class:`GuardrailPersistenceError` is raised identifying
         the affected title; because each attempt is all-or-nothing, the
         previously stored projection value is never partially overwritten (R8.7).
+
+        ``driver_explanations`` is the optional content-eval per-driver breakdown
+        carried on :class:`ValuationInputs`; it is threaded verbatim into the
+        serialized explanation and defaults to ``None`` so the stored payload is
+        byte-identical when no content-eval breakdowns are present.
         """
-        values = self._projection_values(result, explanation)
+        values = self._projection_values(result, explanation, driver_explanations)
 
         last_error: BaseException | None = None
         for attempt in range(1, _MAX_PERSIST_ATTEMPTS + 1):
@@ -1340,7 +1356,9 @@ class Guardrails_Engine:
 
     @staticmethod
     def _projection_values(
-        result: ValuationResult, explanation: Explanation
+        result: ValuationResult,
+        explanation: Explanation,
+        driver_explanations: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Map a :class:`ValuationResult` to ``financial_projections`` columns."""
         return {
@@ -1356,6 +1374,7 @@ class Guardrails_Engine:
                 explanation,
                 result["churn_detail"],
                 result["model_version_id"],
+                driver_explanations,
             ),
         }
 
@@ -1493,6 +1512,7 @@ def _jsonable_explanation(
     explanation: Explanation,
     churn_detail: ChurnResult | None = None,
     model_version_id: uuid.UUID | None = None,
+    driver_explanations: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Convert an :class:`Explanation` into a JSON-serializable dict for JSONB.
 
@@ -1505,6 +1525,12 @@ def _jsonable_explanation(
     (e.g. the stateless what-if path, which carries ``churn_detail=None``), no
     ``churn_model`` key is emitted, keeping the payload backward compatible with
     explanations produced before this feature.
+
+    When ``driver_explanations`` is provided (content-eval-model, R1.4/R5.2/
+    R5.4/R8.2) it is attached verbatim under the ``"content_eval"`` key — a
+    purely additive passthrough alongside ``churn_model``. When it is ``None``
+    (every construction today) no ``content_eval`` key is emitted, so the stored
+    explanation is byte-identical to before this feature.
     """
     checks: list[dict[str, Any]] = []
     for check in explanation["checks"]:
@@ -1526,4 +1552,6 @@ def _jsonable_explanation(
     }
     if churn_detail is not None:
         payload["churn_model"] = _churn_model_json(churn_detail, model_version_id)
+    if driver_explanations is not None:
+        payload["content_eval"] = driver_explanations
     return payload

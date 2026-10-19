@@ -25,6 +25,7 @@ import {
 
 import type { Explanation, ValuationScorecard } from "@/lib/types";
 import { ChurnBreakdown } from "./churn-breakdown";
+import { ContentEvalBreakdown } from "./content-eval-breakdown";
 import { PaybackTimeline } from "./payback-timeline";
 import {
   formatMultiple,
@@ -258,6 +259,9 @@ export function FinancialAccordion({ scorecard }: FinancialAccordionProps) {
             </p>
           ) : null}
           <ChurnBreakdown churnModel={scorecard.explanation?.churn_model} />
+          <ContentEvalBreakdown
+            contentEval={scorecard.explanation?.content_eval}
+          />
         </AccordionSection>
 
         <AccordionSection

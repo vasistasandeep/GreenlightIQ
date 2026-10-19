@@ -187,6 +187,10 @@ const GLOSSARY: GlossaryGroup[] = [
       { term: "Weight Offsets", def: "The adjustments applied to feature weights during calibration (each within -1.00 to 1.00)." },
       { term: "Variance Chart", def: "The Backtest Studio chart comparing Predicted vs Actual values side by side." },
       { term: "Feature Extraction", def: "Turning a title's source material into its numeric profile (Narrative DNA, tone, pedigree, production scale)." },
+      { term: "Content Evaluation Models", def: "Small, transparent, versioned models that produce the engine's inputs (viewing hours, churn, watch-time elasticity, ad-load receptivity) from a title's features, each with a point-by-point breakdown. They never change the thresholds or the verdict." },
+      { term: "PROXY / illustrative badge", def: "A label shown wherever a value is modeled or proxy-trained rather than measured. It means the number is illustrative, and any accuracy behind it is proxy accuracy, not real-world accuracy." },
+      { term: "SUPPLIED > FITTED > FALLBACK", def: "The strict order used to resolve each modeled input: a value you type in wins; otherwise a fitted model if one is active; otherwise a deterministic illustrative fallback. No fitted model is active by default." },
+      { term: "False Greenlight Rate", def: "The share of predicted GREENLIGHTs whose expected verdict was NEGOTIATE HARD or PASS - a capital-loss error, tracked as the primary risk metric when scoring a model." },
     ],
   },
   {
@@ -1199,6 +1203,21 @@ function FeaturesTab() {
           <>The deck uses illustrative sample-slate figures - it is a demo, not production data.</>,
         ]}
         tip={<>The deck&apos;s &quot;Open the live demo portal&quot; button is off by default so a shared copy never links to a dead address. To light it up for a live demo, set <code className="text-emerald-300">PORTAL_URL</code> near the top of the deck&apos;s inline script to where the portal is reachable (a deployment, <code className="text-emerald-300">http://localhost:3000</code>, or a current ngrok URL), then push.</>}
+      />
+      <SectionHead note="How the engine's inputs are modeled - and why some numbers wear a PROXY badge.">
+        Behind the scenes: the modeling layer
+      </SectionHead>
+      <HowTo
+        title="Understand the Content Evaluation models (and the PROXY badge)"
+        where="Title page - financial breakdown & valuation report"
+        what="Some inputs the engine uses - projected viewing hours, churn, watch-time elasticity, ad-load receptivity - are produced by small, transparent models from a title's features, each shown as a point-by-point breakdown just like churn. Where a value is modeled or proxy-trained, it carries a PROXY / illustrative badge."
+        steps={[
+          <>Open any title&apos;s deep-dive and expand the <span className="font-medium text-slate-100">financial breakdown</span>. Alongside the churn breakdown you may see viewing-hours and engagement breakdown cards.</>,
+          <>Each card lists the per-feature contributions that add up to the final number, so a modeled input is never a black box.</>,
+          <>A <span className="font-medium text-slate-100">PROXY / illustrative</span> badge marks any value that came from a modeled or proxy-trained source rather than a measured real-world outcome.</>,
+          <>Read the badge literally: it means the figure is illustrative, and any accuracy behind it is <span className="font-medium text-slate-100">proxy accuracy, not real-world accuracy</span>.</>,
+        ]}
+        tip={<>The models only produce the engine&apos;s <em>inputs</em>. The four guardrails, the verdict rule, and the governance gates are unchanged - and by default no fitted model is active, so the demo verdicts are exactly as described elsewhere in this guide. A value you type in always wins over any model (SUPPLIED &gt; FITTED &gt; FALLBACK).</>}
       />
       <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
         <span className="font-medium text-emerald-300">Fastest way to learn the app: </span>

@@ -6,7 +6,7 @@ Feature: deal-decision-support. Covers Properties 9 and 10 over
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 from hypothesis import given, settings
@@ -31,7 +31,7 @@ def test_property_9_retained(size, pct):
     elif pct <= 0:
         assert result == Decimal("0")
     else:
-        expected = (size * (pct / Decimal("100"))).quantize(Decimal("1"))
+        expected = (size * (pct / Decimal("100"))).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         assert result == expected
         assert result >= 0
         assert result == result.to_integral_value()

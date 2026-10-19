@@ -484,6 +484,103 @@ the persisting `evaluate` path is byte-for-byte unchanged and no saved verdict c
 
 ---
 
+## 7d. The Content Evaluation Modeling & Measurement Layer (where models produce the engine's inputs)
+
+Section 5 showed how one input - churn - went from a hard-coded number to an explained,
+versioned model. This section shows where that pattern generalizes to the other engine
+inputs, and where the data plumbing and the measurement loop sit. The crucial thing to see
+is that this layer feeds the engine's *inputs* through the existing provider boundary; the
+Guardrails Engine, the thresholds, and the verdict rule are **unchanged**.
+
+```mermaid
+flowchart LR
+    subgraph OPEN["Open data (offline, snapshot-only)"]
+        CONN["Source connectors
+        (TMDB / MovieLens / IMDb-nc / Wikidata)
+        fetch -> normalize -> checksummed snapshot -> provenance"]
+        SNAPS[("Source_Snapshots
+        (fixed bytes, no live fetch in a build)")]
+    end
+    FEAT["features.py (pure)
+    Feature_Vector + transforms"]
+    subgraph MODELS["Per-driver pure models (versioned, conserving breakdown)"]
+        VH["viewing_hours.py
+        (log-space + hour conservation)"]
+        ENG["engagement.py
+        (watch-time elasticity, ad-load receptivity)"]
+        CH["churn.py (reference member + fallback)"]
+    end
+    PROV["ContentEvalValuationInputProvider
+    SUPPLIED > FITTED > FALLBACK"]
+    ENGINE["Guardrails Engine
+    (thresholds + verdict unchanged)"]
+    EXPL["explanation['content_eval']
+    per-feature breakdown + version"]
+    subgraph OFFLINE["Offline (never in the request path)"]
+        DS[("KPI_Test_Dataset
+        labeled truth sheet + Temporal_Split")]
+        FIT["fit.py
+        stdlib NNLS / IRLS (log-space WAPE)"]
+        HARNESS["backtest_harness.py
+        MAPE/WAPE, verdict-match,
+        FGR/FPR, Output_KPI deltas"]
+    end
+    MV[("model_versions.guardrail_params
+    ['content_eval'] - immutable, forked forward")]
+
+    CONN --> SNAPS --> FEAT
+    FEAT --> VH & ENG & CH
+    MV --> VH & ENG & CH
+    VH & ENG & CH --> PROV --> ENGINE --> EXPL
+    DS --> FIT --> MV
+    DS --> HARNESS
+    VH & ENG & CH --> HARNESS
+```
+
+**Where each piece sits (left to right):**
+
+- **Open-data connectors are snapshot-only and offline.** Each `Source_Connector` fetches,
+  normalizes into the shared feature contract, writes a checksummed `Source_Snapshot`, and
+  registers its license. A live fetch happens *only* in an explicit, out-of-build
+  snapshot-refresh step - never in a build, fit, test, or a request. A declarative
+  `Connector_Registry` records which source supplies each feature and the overlap precedence,
+  so a new source is one registry entry plus one connector.
+- **`features.py` is pure.** It turns already-fetched raw values into a typed, PII-free
+  `Feature_Vector`, with a neutral default + `assumed` flag for any missing feature. It is the
+  single feature definition shared by the request path, the dataset generator, and the harness.
+- **Per-driver pure models sit behind the provider.** `viewing_hours.py`, `engagement.py`,
+  and the existing `churn.py` each map the Feature_Vector to one driver with a conserving
+  breakdown. They are pure, deterministic, Decimal, and live in the same domain layer as CPVH
+  and LTV (Section 6) - so they are exhaustively property-testable.
+- **The provider applies strict precedence, then the engine runs unchanged.** The
+  `ContentEvalValuationInputProvider` wraps the existing snapshot provider and resolves each
+  input `SUPPLIED > FITTED > FALLBACK`, recording the method, reason, and version. The result
+  flows through the untouched `ValuationInputProvider` boundary into the Guardrails Engine, and
+  the per-feature breakdown is attached additively under `explanation['content_eval']` (absent
+  field -> byte-identical explanation, so demo output does not move).
+
+**The offline fit and harness (never in the request path):**
+
+- **`fit.py`** is a standard-library non-negative least squares (projected coordinate descent)
+  with an IRLS wrapper for the log-space WAPE objective used by viewing hours. Fixed seed, no
+  wall-clock or environment dependence, no numpy/scipy - so fitted parameters are
+  byte-identical across platforms.
+- **`backtest_harness.py`** scores a model version over the held-out split of the
+  `KPI_Test_Dataset` and reports MAPE/WAPE, verdict-match, the asymmetric
+  `False_Greenlight_Rate` (first) and `False_Pass_Rate`, and the Output_KPI deltas vs a
+  baseline - all labeled PROXY when the measured rows are PROXY/SYNTHETIC.
+
+**How it threads through versioning:** fitted parameters are written under
+`model_versions.guardrail_params['content_eval']` inside the existing immutable model-version
+lineage, carried forward unchanged on a calibration fork, and stamped on every valuation they
+produce. With **no fitted version active** (the default) and the churn->LTV link off, every
+driver, projection, and verdict is byte-identical to before this layer existed. A fitted
+version that regresses on the held-out split is surfaced, never auto-activated. Every modeled
+or proxy-trained value shown in the UI carries a **PROXY / illustrative** badge - the reported
+accuracy is proxy accuracy, never real-world accuracy.
+
+---
+
 ## 8. Trust, Security, and Honesty
 
 - **Deterministic and explainable:** the same inputs always yield the same verdict, and
@@ -495,6 +592,10 @@ the persisting `evaluate` path is byte-for-byte unchanged and no saved verdict c
 - **Confidential at rest:** source snapshots and deal terms are encrypted.
 - **Honest in demo:** the AI embedding and a few financial drivers are deterministic
   placeholders in demo mode; the decision, governance, audit, and backtest logic are real.
+- **Honest in the modeling layer:** the Content Evaluation models (Section 7d) ship with
+  illustrative/PROXY coefficients, no fitted version is active by default, and any accuracy
+  reported by the harness is proxy accuracy on open-data/synthetic labels - never real-world
+  accuracy. Every modeled value shown in the UI carries a PROXY / illustrative badge.
 - **Verified:** the pure decision math is covered by property-based tests; the five demo
   titles have a locked regression on their verdicts; the frontend has component tests; a
   deployment smoke test proves the whole stack boots healthy.

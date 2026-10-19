@@ -1,0 +1,90 @@
+{
+  "created": "2024-01-20",
+  "dominant_label_type": "SYNTHETIC",
+  "driver_keys": [
+    "projected_viewing_hours",
+    "churn_reduction_pct",
+    "watch_time_elasticity",
+    "ad_load_receptivity"
+  ],
+  "feature_keys": [
+    "asset_type",
+    "genre",
+    "content_format",
+    "runtime_minutes",
+    "is_exclusive",
+    "production_scale",
+    "talent_pedigree",
+    "normalized_rating",
+    "log_vote_count",
+    "franchise_flag",
+    "award_signal"
+  ],
+  "guardrails": [
+    "CPVH",
+    "LTV_TO_COST",
+    "CHURN_MITIGATION",
+    "PAYBACK_HORIZON"
+  ],
+  "honesty_note": "Every row is PROXY or SYNTHETIC -- no OBSERVED (real realized) outcomes. Any measurement over this dataset is proxy accuracy, not real-world accuracy.",
+  "label_type_counts": {
+    "PROXY": 5,
+    "SYNTHETIC": 55
+  },
+  "row_count": 60,
+  "sources": [
+    {
+      "access_date": "2024-01-15",
+      "label_type": "PROXY",
+      "license": "IMDB-NONCOMMERCIAL",
+      "name": "IMDb-NonCommercial",
+      "noncommercial": true,
+      "url": "https://developer.imdb.com/non-commercial-datasets/"
+    },
+    {
+      "access_date": "2024-01-15",
+      "label_type": "PROXY",
+      "license": "TMDB-TERMS",
+      "name": "TMDB",
+      "noncommercial": false,
+      "url": "https://www.themoviedb.org/"
+    },
+    {
+      "access_date": "2024-01-15",
+      "label_type": "PROXY",
+      "license": "GROUPLENS-RESEARCH",
+      "name": "MovieLens",
+      "noncommercial": false,
+      "url": "https://grouplens.org/datasets/movielens/"
+    },
+    {
+      "access_date": "2024-01-15",
+      "label_type": "PROXY",
+      "license": "CC0-1.0",
+      "name": "Wikidata",
+      "noncommercial": false,
+      "url": "https://www.wikidata.org/"
+    }
+  ],
+  "split_counts": {
+    "test": 19,
+    "train": 41
+  },
+  "split_rule": "train = release_year <= cutoff; test = release_year > cutoff (Temporal_Split, no random k-fold)",
+  "strata": [
+    "tentpole",
+    "mid_budget_genre",
+    "indie_drama",
+    "international_coproduction",
+    "library_catalog"
+  ],
+  "stratum_counts": {
+    "indie_drama": 12,
+    "international_coproduction": 12,
+    "library_catalog": 12,
+    "mid_budget_genre": 13,
+    "tentpole": 11
+  },
+  "temporal_cutoff_year": 2019,
+  "version": "kpi-test-dataset-v1"
+}

@@ -381,9 +381,386 @@ class SnapshotValuationInputProvider:
         )
 
 
+# --------------------------------------------------------------------------- #
+# Content_Eval provider: SUPPLIED > FITTED > FALLBACK precedence (R1.4-R1.6)
+# --------------------------------------------------------------------------- #
+
+#: Base_Retained_Cohort_Value Platform_Rate (USD) used by the opt-in churn<->LTV
+#: linkage (design Component 4). It is the per-title subscription value a one-
+#: percentage-point churn reduction retains -- conceptually ``subscribers-at-risk
+#: x per-subscriber value`` for the platform/territory. Like ``LTV`` / ``CPM`` /
+#: ``Ad_Impressions`` it is a CONFIGURED rate, not a modeled quantity, so it lives
+#: here as a documented constant rather than being learned by a Content_Eval_
+#: Model. A deployment may override it per title via a ``base_retained_cohort_
+#: value`` key on the title's source snapshot (the same place the other Platform_
+#: Rates are carried); absent/invalid -> this default. The link is OFF by default
+#: (``link_churn_to_ltv`` false), so this constant is inert for the demo.
+DEFAULT_BASE_RETAINED_COHORT_VALUE = Decimal("1000000")
+
+
+@dataclass
+class ContentEvalValuationInputProvider:
+    """Applies the Content_Eval_System precedence over the snapshot provider (R1.4).
+
+    Wraps :class:`SnapshotValuationInputProvider` and, for each
+    Modeled_Engagement_Driver, applies the strict precedence
+    ``SUPPLIED > FITTED > FALLBACK`` (design Component 8, Property 6):
+
+    * **SUPPLIED** -- a finite, valid value is present on the title's source
+      snapshot. The snapshot provider already surfaces it, so this provider
+      leaves it untouched (the pure ``resolve_*`` SUPPLIED-wins path confirms it).
+    * **FITTED** -- a fitted ``content_eval`` model version is active AND the
+      features the driver needs are derivable from the title's attributes. The
+      per-driver pure model computes the value and a conserving breakdown.
+    * **FALLBACK** -- otherwise the existing snapshot/placeholder value the
+      snapshot provider produced (today's behavior) is preserved exactly.
+
+    Each driver that resolves to FITTED contributes its breakdown to
+    :attr:`ValuationInputs.driver_explanations` (threaded through the engine by
+    task 12 into ``explanation["content_eval"]``). The provider also implements
+    the opt-in churn<->LTV linkage (design Component 4): when
+    ``link_churn_to_ltv`` is on and no ``churn_reduction_value`` was supplied, it
+    sets ``churn_reduction_value = Base_Retained_Cohort_Value * (churn_reduction_
+    pct / 100)``.
+
+    Critical default-off invariant (Property 12): with NO active fitted
+    ``content_eval`` version and ``link_churn_to_ltv`` false (the seeded default),
+    this provider returns a :class:`ValuationInputs` BYTE-IDENTICAL to what the
+    wrapped snapshot provider produces today, with ``driver_explanations`` left
+    ``None``. Only a deliberately activated fitted version and/or the opt-in
+    toggle changes any output.
+
+    The guardrail thresholds, the recommendation logic, the governance gates, and
+    the churn resolution inside the engine are never touched -- this is a
+    provider-layer change only.
+    """
+
+    session: AsyncSession
+
+    async def get_inputs(self, title_id: uuid.UUID) -> Any:
+        from app.domain import content_eval as cemod
+        from app.domain import engagement as engmod
+        from app.domain import features as featmod
+        from app.domain import viewing_hours as vhmod
+        from app.engines.model_versioning import ModelVersioningEngine
+        from app.repositories.model_versions import ModelVersionRepository
+        from app.repositories.titles import TitleVersionRepository
+
+        base = SnapshotValuationInputProvider(self.session)
+        inputs = await base.get_inputs(title_id)
+
+        # Read the active model version's content_eval params (churn-style full
+        # fallback). No active version, or no content_eval block, yields the
+        # illustrative defaults with source DEFAULTS and link OFF -- the inert
+        # default-off path.
+        active = await ModelVersioningEngine(
+            ModelVersionRepository(self.session)
+        ).read_active()
+        raw_ce = (
+            (active.guardrail_params or {}).get("content_eval")
+            if active is not None
+            else None
+        )
+        params = cemod.parse_content_eval_params(raw_ce)
+
+        fitted_active = params.source == cemod._SOURCE_MODEL_VERSION
+
+        # DEFAULT-OFF INVARIANT (Property 12): no fitted version active and the
+        # churn<->LTV link off -> return the snapshot inputs byte-identical, with
+        # no driver_explanations attached. This short-circuit guarantees the demo
+        # verdicts, projections, and explanation JSON never move.
+        if not fitted_active and not params.link_churn_to_ltv:
+            return inputs
+
+        # Resolve the title's active source snapshot so we can both derive
+        # features for the FITTED path and read any explicit Base_Retained_Cohort_
+        # Value Platform_Rate the deployment carried.
+        active_version = await TitleVersionRepository(self.session).get_active(title_id)
+        snapshot: dict[str, Any] = (
+            dict(active_version.source_snapshot)
+            if active_version is not None and active_version.source_snapshot
+            else {}
+        )
+
+        features = featmod.derive_features(snapshot)
+        driver_explanations: dict[str, Any] = {}
+
+        # Only a fitted version drives the FITTED path. Without one, every driver
+        # falls back to the snapshot value (no model override, no breakdown).
+        if fitted_active:
+            self._apply_viewing_hours(
+                inputs, snapshot, features, params, driver_explanations, vhmod
+            )
+            inputs = self._apply_watch_time_elasticity(
+                inputs, snapshot, features, params, driver_explanations, engmod
+            )
+            inputs = self._apply_ad_load_receptivity(
+                inputs, snapshot, features, params, driver_explanations, engmod
+            )
+
+        # Opt-in churn<->LTV linkage (design Component 4): only when the toggle is
+        # on, only when no churn_reduction_value was SUPPLIED on the snapshot, and
+        # only when a churn_reduction_pct is available. SUPPLIED still wins at the
+        # field level, so a snapshot that carries churn_reduction_value is left
+        # untouched (today's behavior for every seeded title).
+        inputs = self._apply_churn_to_ltv_link(inputs, snapshot, params)
+
+        from dataclasses import replace
+
+        inputs = replace(
+            inputs,
+            driver_explanations=(driver_explanations or None),
+        )
+        return inputs
+
+    # -- per-driver FITTED resolution -------------------------------------- #
+
+    @staticmethod
+    def _apply_viewing_hours(
+        inputs: Any,
+        snapshot: dict[str, Any],
+        features: Any,
+        params: Any,
+        driver_explanations: dict[str, Any],
+        vhmod: Any,
+    ) -> None:
+        """Record the viewing-hours breakdown under ``projected_viewing_hours``.
+
+        Viewing hours are not a ``ValuationInputs`` field (they live on the title
+        row / snapshot and feed CPVH downstream), so the FITTED path here does not
+        mutate ``inputs``; it surfaces the model's hour-space breakdown for the
+        explanation only, honoring SUPPLIED-wins: a snapshot-supplied value yields
+        a SUPPLIED result with no breakdown and nothing is attached.
+        """
+        result = vhmod.resolve_viewing_hours(
+            snapshot.get("projected_viewing_hours"),
+            features,
+            params.viewing_hours,
+            params.viewing_hours_source,
+        )
+        if result.method == "CALCULATED" and result.breakdown is not None:
+            driver_explanations["projected_viewing_hours"] = _driver_explanation(
+                value=result.viewing_hours,
+                method="FITTED",
+                version_label=params.version_label,
+                label_type=params.dominant_label_type,
+                params_source=result.params_source,
+                breakdown=[
+                    {
+                        "key": c.key,
+                        "label": c.label,
+                        "input": _jsonable_decimal(c.input),
+                        "coefficient": _jsonable_decimal(c.coefficient),
+                        "hours": _jsonable_decimal(c.hours),
+                    }
+                    for c in result.breakdown
+                ],
+                missing_features=list(result.missing_features),
+                assumed_features=list(result.assumed_features),
+            )
+
+    @staticmethod
+    def _apply_watch_time_elasticity(
+        inputs: Any,
+        snapshot: dict[str, Any],
+        features: Any,
+        params: Any,
+        driver_explanations: dict[str, Any],
+        engmod: Any,
+    ) -> Any:
+        """Override ``watch_time_elasticity`` with the fitted model when unsupplied.
+
+        SUPPLIED-wins: when the snapshot carried a finite elasticity the pure
+        ``resolve_*`` returns it as SUPPLIED and this leaves ``inputs`` unchanged.
+        Otherwise the additive engagement model computes the value, which replaces
+        the snapshot placeholder and contributes its conserving breakdown.
+        """
+        result = engmod.resolve_watch_time_elasticity(
+            snapshot.get("watch_time_elasticity"),
+            features,
+            params.watch_time_elasticity,
+            params.watch_time_elasticity_source,
+        )
+        if result.method != "CALCULATED" or result.breakdown is None:
+            return inputs
+        driver_explanations["watch_time_elasticity"] = _driver_explanation(
+            value=result.watch_time_elasticity,
+            method="FITTED",
+            version_label=params.version_label,
+            label_type=params.dominant_label_type,
+            params_source=result.params_source,
+            breakdown=[
+                {
+                    "key": c.key,
+                    "label": c.label,
+                    "input": _jsonable_decimal(c.input),
+                    "coefficient": _jsonable_decimal(c.coefficient),
+                    "points": _jsonable_decimal(c.points),
+                }
+                for c in result.breakdown
+            ],
+            missing_features=list(result.missing_features),
+            assumed_features=list(result.assumed_features),
+        )
+        from dataclasses import replace
+
+        return replace(inputs, watch_time_elasticity=result.watch_time_elasticity)
+
+    @staticmethod
+    def _apply_ad_load_receptivity(
+        inputs: Any,
+        snapshot: dict[str, Any],
+        features: Any,
+        params: Any,
+        driver_explanations: dict[str, Any],
+        engmod: Any,
+    ) -> Any:
+        """Scale ``cpm`` by the fitted ad-load receptivity multiplier.
+
+        Ad_Load_Receptivity is a UNIT-CENTERED multiplier (default 1.0) that
+        SCALES the configured CPM Platform_Rate -- it never emits a dollar CPM
+        (honoring the Platform_Rate boundary, R1.1). The receptivity itself is
+        never a SUPPLIED snapshot field (the snapshot carries ``cpm`` directly),
+        so when no ``ad_load_receptivity`` is supplied the model computes the
+        scalar and this multiplies the base ``cpm`` by it. A receptivity of
+        exactly 1.0 leaves ``cpm`` unchanged.
+        """
+        result = engmod.resolve_ad_load_receptivity(
+            snapshot.get("ad_load_receptivity"),
+            features,
+            params.ad_load_receptivity,
+            params.ad_load_receptivity_source,
+        )
+        if result.method != "CALCULATED" or result.breakdown is None:
+            return inputs
+        scaled_cpm = inputs.cpm * result.ad_load_receptivity
+        driver_explanations["ad_load_receptivity"] = _driver_explanation(
+            value=result.ad_load_receptivity,
+            method="FITTED",
+            version_label=params.version_label,
+            label_type=params.dominant_label_type,
+            params_source=result.params_source,
+            breakdown=[
+                {
+                    "key": c.key,
+                    "label": c.label,
+                    "input": _jsonable_decimal(c.input),
+                    "coefficient": _jsonable_decimal(c.coefficient),
+                    "points": _jsonable_decimal(c.points),
+                }
+                for c in result.breakdown
+            ],
+            missing_features=list(result.missing_features),
+            assumed_features=list(result.assumed_features),
+            extra={
+                "base_cpm": _jsonable_decimal(inputs.cpm),
+                "scaled_cpm": _jsonable_decimal(scaled_cpm),
+            },
+        )
+        from dataclasses import replace
+
+        return replace(inputs, cpm=scaled_cpm)
+
+    # -- opt-in churn<->LTV linkage (design Component 4) ------------------- #
+
+    @staticmethod
+    def _apply_churn_to_ltv_link(
+        inputs: Any,
+        snapshot: dict[str, Any],
+        params: Any,
+    ) -> Any:
+        """Derive ``churn_reduction_value`` from modeled churn when opted-in.
+
+        When ``link_churn_to_ltv`` is on AND no ``churn_reduction_value`` was
+        SUPPLIED on the snapshot AND a ``churn_reduction_pct`` is available, set
+
+            churn_reduction_value = Base_Retained_Cohort_Value * (pct / 100)
+
+        using the configured :data:`DEFAULT_BASE_RETAINED_COHORT_VALUE` Platform_
+        Rate (overridable per title via a ``base_retained_cohort_value`` snapshot
+        key). When the toggle is off this is a no-op and today's independent,
+        snapshot-sourced ``churn_reduction_value`` is preserved EXACTLY, so demo
+        verdicts never move.
+
+        SUPPLIED-wins is enforced at the field level: a snapshot that carried an
+        explicit ``churn_reduction_value`` (every seeded title does) is left
+        untouched even with the toggle on.
+        """
+        if not params.link_churn_to_ltv:
+            return inputs
+
+        # SUPPLIED value for churn_reduction_value wins -- do not overwrite it.
+        if snapshot.get("churn_reduction_value") is not None:
+            return inputs
+
+        pct = inputs.churn_reduction_pct
+        if pct is None:
+            return inputs
+
+        base_rate = _coerce_decimal(
+            snapshot.get("base_retained_cohort_value"),
+            DEFAULT_BASE_RETAINED_COHORT_VALUE,
+        )
+        linked_value = base_rate * (pct / Decimal("100"))
+
+        from dataclasses import replace
+
+        return replace(inputs, churn_reduction_value=linked_value)
+
+
+def _jsonable_decimal(value: Any) -> Any:
+    """Render a Decimal as a JSON string (mirrors the engine's Decimal policy)."""
+    if isinstance(value, Decimal):
+        return str(value)
+    return value
+
+
+def _driver_explanation(
+    *,
+    value: Decimal,
+    method: str,
+    version_label: str,
+    label_type: str,
+    params_source: str,
+    breakdown: list[dict[str, Any]],
+    missing_features: list[str],
+    assumed_features: list[str],
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build the per-driver explanation payload attached to ``driver_explanations``.
+
+    Shape mirrors the engine's ``churn_model`` block: the resolved value, the
+    resolution ``method`` (FITTED here), the fitted ``version_label`` and honesty
+    ``label_type`` (so PROXY accuracy is never shown as real-world), the params
+    source, the conserving per-feature ``breakdown``, and the missing/assumed
+    feature lists. All Decimals are rendered as JSON strings.
+    """
+    payload: dict[str, Any] = {
+        "value": _jsonable_decimal(value),
+        "method": method,
+        "version_label": version_label,
+        "label_type": label_type,
+        "params_source": params_source,
+        "breakdown": breakdown,
+        "missing_features": missing_features,
+        "assumed_features": assumed_features,
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
 def get_input_provider(session: SessionDep) -> Any:
-    """Return the request-scoped :class:`ValuationInputProvider` (R9)."""
-    return SnapshotValuationInputProvider(session)
+    """Return the request-scoped :class:`ValuationInputProvider` (R9).
+
+    Returns the :class:`ContentEvalValuationInputProvider`, which wraps the
+    :class:`SnapshotValuationInputProvider` and applies the Content_Eval_System
+    precedence (``SUPPLIED > FITTED > FALLBACK``) and the opt-in churn<->LTV link
+    (design Component 8). With no fitted ``content_eval`` version active and
+    ``link_churn_to_ltv`` off (the seeded default) it returns inputs byte-
+    identical to the snapshot provider, so the demo path is inert (Property 12).
+    """
+    return ContentEvalValuationInputProvider(session)
 
 
 InputProviderDep = Annotated[Any, Depends(get_input_provider)]

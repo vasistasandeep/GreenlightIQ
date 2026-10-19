@@ -51,6 +51,10 @@ from app.domain.churn import (  # noqa: E402
     ChurnFeatures,
     calculate_churn_mitigation,
 )
+from app.domain.content_eval import (  # noqa: E402
+    DEFAULT_CONTENT_EVAL_PARAMS,
+    parse_content_eval_params,
+)
 
 DIMS = 1536
 HERE = Path(__file__).resolve().parent
@@ -128,6 +132,71 @@ def _churn_model_params_json() -> dict:
     }
 
 
+def _content_eval_params_json() -> dict:
+    """Serialize the illustrative :data:`DEFAULT_CONTENT_EVAL_PARAMS` into the JSON
+    object stored under ``guardrail_params["content_eval"]`` (content-eval-model
+    R5.1, design Component 9).
+
+    Derived programmatically from the imported domain defaults so the embedded
+    seed JSON can never drift from the model's illustrative parameters. Decimals
+    are emitted as strings for exactness; the churn-style full-fallback parsers
+    coerce each value back.
+
+    The block carries ONLY illustrative state:
+
+    * ``version_label`` == ``"illustrative"`` and ``fit_dataset_version`` == ``null``
+      (``None``) -> NO active fitted version, so every driver resolves through the
+      deterministic/illustrative fallback exactly as before this feature existed.
+    * ``link_churn_to_ltv`` == ``false`` -> the modeled churn is never folded into
+      the LTV numerator, so ``churn_reduction_value`` keeps today's behavior.
+
+    Because no fitted version is active and the link is off, the block is INERT at
+    seed time: it is carried in ``guardrail_params`` for later use and changes no
+    seeded projection, driver, churn value, or verdict (Property 12).
+    """
+    p = DEFAULT_CONTENT_EVAL_PARAMS
+    vh = p.viewing_hours
+    wte = p.watch_time_elasticity
+    alr = p.ad_load_receptivity
+    return {
+        "version_label": p.version_label,
+        "fit_dataset_version": p.fit_dataset_version,  # None -> JSON null
+        "dominant_label_type": p.dominant_label_type,
+        "link_churn_to_ltv": p.link_churn_to_ltv,
+        "viewing_hours": {
+            "intercept": str(vh.intercept),
+            "betas": {k: str(v) for k, v in vh.betas.items()},
+            "floor": str(vh.floor),
+            "objective": vh.objective,
+        },
+        "engagement": {
+            "watch_time_elasticity": {
+                "intercept": str(wte.intercept),
+                "runtime_weight": str(wte.runtime_weight),
+                "serialization_lift": str(wte.serialization_lift),
+                "rating_weight": str(wte.rating_weight),
+                "franchise_lift": str(wte.franchise_lift),
+                "min_value": str(wte.min_value),
+                "max_value": str(wte.max_value),
+                "genre_offsets": {k: str(v) for k, v in wte.genre_offsets.items()},
+                "genre_default": str(wte.genre_default),
+                "format_lifts": {k: str(v) for k, v in wte.format_lifts.items()},
+                "format_default": str(wte.format_default),
+            },
+            "ad_load_receptivity": {
+                "centre": str(alr.centre),
+                "rating_weight": str(alr.rating_weight),
+                "runtime_weight": str(alr.runtime_weight),
+                "franchise_lift": str(alr.franchise_lift),
+                "min_value": str(alr.min_value),
+                "max_value": str(alr.max_value),
+                "genre_offsets": {k: str(v) for k, v in alr.genre_offsets.items()},
+                "genre_default": str(alr.genre_default),
+            },
+        },
+    }
+
+
 # Initial active model version — weights sum to exactly 1.00 (R12.2, R26.1).
 MODEL_VERSION = {
     "label": "model-version-initial",
@@ -143,6 +212,13 @@ MODEL_VERSION = {
         # (calculable-churn-model R3.1/R9.2). Carried forward unchanged on
         # calibration forks; read by the engine via parse_params.
         "churn_model": _churn_model_params_json(),
+        # Illustrative content_eval params (content-eval-model R5.1, design
+        # Component 9). NO fitted version active (version_label "illustrative",
+        # fit_dataset_version null) and link_churn_to_ltv off, so the block is
+        # inert at seed time: carried forward for later use, changing no seeded
+        # projection, driver, churn value, or verdict (Property 12). Carried
+        # forward unchanged on calibration forks; read via parse_content_eval_params.
+        "content_eval": _content_eval_params_json(),
     },
 }
 
@@ -587,6 +663,44 @@ def _self_check() -> None:
     assert parsed == DEFAULT_CHURN_MODEL_PARAMS, (
         "embedded churn_model JSON drifted from DEFAULT_CHURN_MODEL_PARAMS"
     )
+
+    # The embedded content_eval block round-trips to the illustrative defaults
+    # (content-eval-model R5.1/R5.5, Property 12): it parses as a usable mapping,
+    # resolves to byte-identical DEFAULT_CONTENT_EVAL_PARAMS, and — crucially —
+    # carries NO active fitted version (fit_dataset_version null) with the
+    # churn->LTV link OFF, so it is inert at seed time and no verdict can move.
+    ce = parse_content_eval_params(MODEL_VERSION["guardrail_params"]["content_eval"])
+    assert ce.source == "MODEL_VERSION", "embedded content_eval failed to parse"
+    assert ce.fit_dataset_version is None, (
+        "seed content_eval must NOT pin a fitted dataset version"
+    )
+    assert ce.link_churn_to_ltv is False, (
+        "seed content_eval must keep link_churn_to_ltv off"
+    )
+    # Every PARAMETER must resolve to the illustrative defaults (only the source
+    # tags differ: the block IS supplied by the model version, so each nested
+    # source is "MODEL_VERSION" rather than "DEFAULTS"). The equal parameters
+    # guarantee the block changes no modeled value vs the pre-feature baseline.
+    _d = DEFAULT_CONTENT_EVAL_PARAMS
+    assert ce.version_label == _d.version_label, "content_eval version_label drifted"
+    assert ce.dominant_label_type == _d.dominant_label_type, (
+        "content_eval dominant_label_type drifted"
+    )
+    assert ce.viewing_hours == _d.viewing_hours, (
+        "embedded viewing_hours JSON drifted from DEFAULT_VIEWING_HOURS_PARAMS"
+    )
+    assert ce.watch_time_elasticity == _d.watch_time_elasticity, (
+        "embedded watch_time_elasticity JSON drifted from its defaults"
+    )
+    assert ce.ad_load_receptivity == _d.ad_load_receptivity, (
+        "embedded ad_load_receptivity JSON drifted from its defaults"
+    )
+    # The block is fully supplied by the model version, so each nested parser
+    # reports "MODEL_VERSION" (confirming the serialization round-trips cleanly
+    # rather than silently falling back to defaults).
+    assert ce.viewing_hours_source == "MODEL_VERSION", "viewing_hours fell back"
+    assert ce.watch_time_elasticity_source == "MODEL_VERSION", "WTE fell back"
+    assert ce.ad_load_receptivity_source == "MODEL_VERSION", "ALR fell back"
 
     tolerances = {
         # label: (low, high) inclusive bounds the computed churn must fall in

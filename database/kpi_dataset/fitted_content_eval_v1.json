@@ -1,0 +1,186 @@
+{
+  "activation_recommendation": "candidate did not regress; activation is an explicit manual decision (this script never auto-activates)",
+  "auto_activate": true,
+  "baseline": {
+    "dataset_version": "kpi-test-dataset-v1",
+    "dominant_label_type": "SYNTHETIC",
+    "drivers": {
+      "ad_load_receptivity": {
+        "driver": "ad_load_receptivity",
+        "eligible": 19,
+        "log_mae": null,
+        "mape": "1.96",
+        "proxy": true,
+        "scored": 19,
+        "wape": null
+      },
+      "churn_reduction_pct": {
+        "driver": "churn_reduction_pct",
+        "eligible": 19,
+        "log_mae": null,
+        "mape": "6.73",
+        "proxy": true,
+        "scored": 19,
+        "wape": null
+      },
+      "projected_viewing_hours": {
+        "driver": "projected_viewing_hours",
+        "eligible": 19,
+        "log_mae": "4.8121",
+        "mape": "99.03",
+        "proxy": true,
+        "scored": 19,
+        "wape": "0.9883"
+      },
+      "watch_time_elasticity": {
+        "driver": "watch_time_elasticity",
+        "eligible": 19,
+        "log_mae": null,
+        "mape": "46.12",
+        "proxy": true,
+        "scored": 19,
+        "wape": null
+      }
+    },
+    "fit_dataset_version": null,
+    "label_type_counts": {
+      "PROXY": 2,
+      "SYNTHETIC": 17
+    },
+    "output_kpis": {
+      "active_pipeline_valuation": "53.38",
+      "avg_ltv_to_cost": "3.30",
+      "model_prediction_accuracy": "0.9474",
+      "portfolio_risk_exposure": "0.8158"
+    },
+    "proxy_accuracy": true,
+    "rows_scored": 19,
+    "temporal_cutoff_year": 2019,
+    "verdict": {
+      "false_greenlight_rate": "0.0000",
+      "false_greenlights": 0,
+      "false_pass_rate": "0.0526",
+      "false_passes": 1,
+      "matches": 18,
+      "proxy": true,
+      "total": 19,
+      "verdict_match_rate": "0.9474"
+    },
+    "version_label": "illustrative"
+  },
+  "candidate": {
+    "dataset_version": "kpi-test-dataset-v1",
+    "dominant_label_type": "SYNTHETIC",
+    "drivers": {
+      "ad_load_receptivity": {
+        "driver": "ad_load_receptivity",
+        "eligible": 19,
+        "log_mae": null,
+        "mape": "1.96",
+        "proxy": true,
+        "scored": 19,
+        "wape": null
+      },
+      "churn_reduction_pct": {
+        "driver": "churn_reduction_pct",
+        "eligible": 19,
+        "log_mae": null,
+        "mape": "6.73",
+        "proxy": true,
+        "scored": 19,
+        "wape": null
+      },
+      "projected_viewing_hours": {
+        "driver": "projected_viewing_hours",
+        "eligible": 19,
+        "log_mae": "0.4236",
+        "mape": "32.57",
+        "proxy": true,
+        "scored": 19,
+        "wape": "0.3899"
+      },
+      "watch_time_elasticity": {
+        "driver": "watch_time_elasticity",
+        "eligible": 19,
+        "log_mae": null,
+        "mape": "46.12",
+        "proxy": true,
+        "scored": 19,
+        "wape": null
+      }
+    },
+    "fit_dataset_version": "kpi-test-dataset-v1",
+    "label_type_counts": {
+      "PROXY": 2,
+      "SYNTHETIC": 17
+    },
+    "output_kpis": {
+      "active_pipeline_valuation": "53.38",
+      "avg_ltv_to_cost": "3.30",
+      "model_prediction_accuracy": "0.9474",
+      "portfolio_risk_exposure": "0.8158"
+    },
+    "proxy_accuracy": true,
+    "rows_scored": 19,
+    "temporal_cutoff_year": 2019,
+    "verdict": {
+      "false_greenlight_rate": "0.0000",
+      "false_greenlights": 0,
+      "false_pass_rate": "0.0526",
+      "false_passes": 1,
+      "matches": 18,
+      "proxy": true,
+      "total": 19,
+      "verdict_match_rate": "0.9474"
+    },
+    "version_label": "fitted-viewing-hours-v1"
+  },
+  "candidate_content_eval": {
+    "dominant_label_type": "SYNTHETIC",
+    "fit_dataset_version": "kpi-test-dataset-v1",
+    "link_churn_to_ltv": false,
+    "version_label": "fitted-viewing-hours-v1",
+    "viewing_hours": {
+      "betas": {
+        "franchise_flag": "0.7986520846",
+        "log_vote_count": "0.1116790420",
+        "production_scale": "0.0929389309"
+      },
+      "floor": "1",
+      "intercept": "16.5222671862",
+      "objective": "wape_log"
+    }
+  },
+  "changed_model": "viewing_hours",
+  "dominant_label_type": "SYNTHETIC",
+  "false_greenlight_delta": "0.0000",
+  "fit": {
+    "betas": {
+      "franchise_flag": "0.7986520846",
+      "log_vote_count": "0.1116790420",
+      "production_scale": "0.0929389309"
+    },
+    "converged": false,
+    "intercept": "16.5222671862",
+    "iterations": 10000,
+    "objective": "wape_log",
+    "train_metrics": {
+      "train_log_mae": 0.447641,
+      "train_wape": 0.363439
+    },
+    "train_rows": 41
+  },
+  "fit_dataset_version": "kpi-test-dataset-v1",
+  "honesty_note": "PROXY accuracy: every measured row is PROXY/SYNTHETIC, so all metrics below are proxy accuracy, NOT real-world accuracy.",
+  "kpi_deltas": {
+    "active_pipeline_valuation": "0.00",
+    "avg_ltv_to_cost": "0.00",
+    "model_prediction_accuracy": "0.0000",
+    "portfolio_risk_exposure": "0.0000"
+  },
+  "proxy_accuracy": true,
+  "recommended_for_activation": true,
+  "regressed": false,
+  "report_version": "fit-report-v1",
+  "verdict_match_delta": "0.0000"
+}

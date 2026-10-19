@@ -1,0 +1,2194 @@
+{
+  "metadata": {
+    "created": "2024-01-20",
+    "dominant_label_type": "SYNTHETIC",
+    "driver_keys": [
+      "projected_viewing_hours",
+      "churn_reduction_pct",
+      "watch_time_elasticity",
+      "ad_load_receptivity"
+    ],
+    "feature_keys": [
+      "asset_type",
+      "genre",
+      "content_format",
+      "runtime_minutes",
+      "is_exclusive",
+      "production_scale",
+      "talent_pedigree",
+      "normalized_rating",
+      "log_vote_count",
+      "franchise_flag",
+      "award_signal"
+    ],
+    "guardrails": [
+      "CPVH",
+      "LTV_TO_COST",
+      "CHURN_MITIGATION",
+      "PAYBACK_HORIZON"
+    ],
+    "honesty_note": "Every row is PROXY or SYNTHETIC -- no OBSERVED (real realized) outcomes. Any measurement over this dataset is proxy accuracy, not real-world accuracy.",
+    "label_type_counts": {
+      "PROXY": 5,
+      "SYNTHETIC": 55
+    },
+    "row_count": 60,
+    "sources": [
+      {
+        "access_date": "2024-01-15",
+        "label_type": "PROXY",
+        "license": "IMDB-NONCOMMERCIAL",
+        "name": "IMDb-NonCommercial",
+        "noncommercial": true,
+        "url": "https://developer.imdb.com/non-commercial-datasets/"
+      },
+      {
+        "access_date": "2024-01-15",
+        "label_type": "PROXY",
+        "license": "TMDB-TERMS",
+        "name": "TMDB",
+        "noncommercial": false,
+        "url": "https://www.themoviedb.org/"
+      },
+      {
+        "access_date": "2024-01-15",
+        "label_type": "PROXY",
+        "license": "GROUPLENS-RESEARCH",
+        "name": "MovieLens",
+        "noncommercial": false,
+        "url": "https://grouplens.org/datasets/movielens/"
+      },
+      {
+        "access_date": "2024-01-15",
+        "label_type": "PROXY",
+        "license": "CC0-1.0",
+        "name": "Wikidata",
+        "noncommercial": false,
+        "url": "https://www.wikidata.org/"
+      }
+    ],
+    "split_counts": {
+      "test": 19,
+      "train": 41
+    },
+    "split_rule": "train = release_year <= cutoff; test = release_year > cutoff (Temporal_Split, no random k-fold)",
+    "strata": [
+      "tentpole",
+      "mid_budget_genre",
+      "indie_drama",
+      "international_coproduction",
+      "library_catalog"
+    ],
+    "stratum_counts": {
+      "indie_drama": 12,
+      "international_coproduction": 12,
+      "library_catalog": 12,
+      "mid_budget_genre": 13,
+      "tentpole": 11
+    },
+    "temporal_cutoff_year": 2019,
+    "version": "kpi-test-dataset-v1"
+  },
+  "rows": [
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.05",
+        "churn_reduction_pct": "2.10",
+        "projected_viewing_hours": "250000000",
+        "watch_time_elasticity": "1.15"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": 0.6,
+        "content_format": "scripted-series",
+        "franchise_flag": true,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": 9.1,
+        "normalized_rating": 0.82,
+        "production_scale": "9.00",
+        "runtime_minutes": 143,
+        "talent_pedigree": "8.50"
+      },
+      "label_type": "PROXY",
+      "provenance": "Seeded demo title; open-data correlates from committed Source_Snapshots (connector id demo-tentpole-01); expected verdict pinned to the seeded demo.",
+      "release_year": 2021,
+      "split": "test",
+      "stratum": "tentpole",
+      "title_id": "demo-aurora-protocol",
+      "title_name": "Aurora Protocol"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "2.00",
+        "projected_viewing_hours": "180000000",
+        "watch_time_elasticity": "1.05"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": 0.75,
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": 4.2,
+        "normalized_rating": 0.74,
+        "production_scale": "7.00",
+        "runtime_minutes": 109,
+        "talent_pedigree": "7.80"
+      },
+      "label_type": "PROXY",
+      "provenance": "Seeded demo title; open-data correlates from committed Source_Snapshots (connector id demo-indie-03); expected verdict pinned to the seeded demo.",
+      "release_year": 2017,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "demo-echoes-of-2019",
+      "title_name": "Echoes of 2019"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.98",
+        "churn_reduction_pct": "1.80",
+        "projected_viewing_hours": "140000000",
+        "watch_time_elasticity": "1.00"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": 0.4,
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": 5.0,
+        "normalized_rating": 0.69,
+        "production_scale": "6.50",
+        "runtime_minutes": 99,
+        "talent_pedigree": "7.20"
+      },
+      "label_type": "PROXY",
+      "provenance": "Seeded demo title; open-data correlates from committed Source_Snapshots (connector id demo-intl-04); expected verdict pinned to the seeded demo.",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "international_coproduction",
+      "title_id": "demo-monsoon-lanes",
+      "title_name": "Monsoon Lanes"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "1.60",
+        "projected_viewing_hours": "40000000",
+        "watch_time_elasticity": "0.95"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": false
+      },
+      "expected_recommendation": "NEGOTIATE_HARD",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": 0.2,
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": 6.4,
+        "normalized_rating": 0.66,
+        "production_scale": "5.50",
+        "runtime_minutes": 50,
+        "talent_pedigree": "6.00"
+      },
+      "label_type": "PROXY",
+      "provenance": "Seeded demo title; open-data correlates from committed Source_Snapshots (connector id demo-midbudget-02); expected verdict pinned to the seeded demo.",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "demo-the-ledger",
+      "title_name": "The Ledger"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.10",
+        "churn_reduction_pct": "0.90",
+        "projected_viewing_hours": "60000000",
+        "watch_time_elasticity": "0.80"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": 0.15,
+        "content_format": "library",
+        "franchise_flag": true,
+        "genre": "comedy",
+        "is_exclusive": false,
+        "log_vote_count": 3.1,
+        "normalized_rating": 0.58,
+        "production_scale": "3.50",
+        "runtime_minutes": 90,
+        "talent_pedigree": "4.00"
+      },
+      "label_type": "PROXY",
+      "provenance": "Seeded demo title; open-data correlates from committed Source_Snapshots (connector id demo-library-05); expected verdict pinned to the seeded demo.",
+      "release_year": 2008,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "demo-vintage-reruns-vol-7",
+      "title_name": "Vintage Reruns Vol. 7"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.02",
+        "churn_reduction_pct": "1.90",
+        "projected_viewing_hours": "160000000",
+        "watch_time_elasticity": "1.05"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.45",
+        "content_format": "scripted-series",
+        "franchise_flag": true,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "8.00",
+        "normalized_rating": "0.70",
+        "production_scale": "8.00",
+        "runtime_minutes": 140,
+        "talent_pedigree": "8.00"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2016,
+      "split": "train",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-00",
+      "title_name": "Tentpole Synthetic 00"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.03",
+        "churn_reduction_pct": "1.96",
+        "projected_viewing_hours": "175555555",
+        "watch_time_elasticity": "1.07"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.48",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "8.17",
+        "normalized_rating": "0.72",
+        "production_scale": "8.17",
+        "runtime_minutes": 140,
+        "talent_pedigree": "8.17"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-01",
+      "title_name": "Tentpole Synthetic 01"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.03",
+        "churn_reduction_pct": "2.01",
+        "projected_viewing_hours": "191111111",
+        "watch_time_elasticity": "1.09"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.51",
+        "content_format": "scripted-series",
+        "franchise_flag": true,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "8.33",
+        "normalized_rating": "0.74",
+        "production_scale": "8.33",
+        "runtime_minutes": 140,
+        "talent_pedigree": "8.33"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-02",
+      "title_name": "Tentpole Synthetic 02"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.04",
+        "churn_reduction_pct": "2.07",
+        "projected_viewing_hours": "206666666",
+        "watch_time_elasticity": "1.12"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.53",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "8.50",
+        "normalized_rating": "0.76",
+        "production_scale": "8.50",
+        "runtime_minutes": 140,
+        "talent_pedigree": "8.50"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-03",
+      "title_name": "Tentpole Synthetic 03"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.05",
+        "churn_reduction_pct": "2.12",
+        "projected_viewing_hours": "222222222",
+        "watch_time_elasticity": "1.14"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.56",
+        "content_format": "scripted-series",
+        "franchise_flag": true,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "8.67",
+        "normalized_rating": "0.78",
+        "production_scale": "8.67",
+        "runtime_minutes": 140,
+        "talent_pedigree": "8.67"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2021,
+      "split": "test",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-04",
+      "title_name": "Tentpole Synthetic 04"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.05",
+        "churn_reduction_pct": "2.18",
+        "projected_viewing_hours": "237777777",
+        "watch_time_elasticity": "1.16"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.59",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "8.83",
+        "normalized_rating": "0.80",
+        "production_scale": "8.83",
+        "runtime_minutes": 140,
+        "talent_pedigree": "8.83"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2022,
+      "split": "test",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-05",
+      "title_name": "Tentpole Synthetic 05"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.06",
+        "churn_reduction_pct": "2.23",
+        "projected_viewing_hours": "253333333",
+        "watch_time_elasticity": "1.18"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.62",
+        "content_format": "scripted-series",
+        "franchise_flag": true,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "9.00",
+        "normalized_rating": "0.82",
+        "production_scale": "9.00",
+        "runtime_minutes": 140,
+        "talent_pedigree": "9.00"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2016,
+      "split": "train",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-06",
+      "title_name": "Tentpole Synthetic 06"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.07",
+        "churn_reduction_pct": "2.29",
+        "projected_viewing_hours": "268888888",
+        "watch_time_elasticity": "1.21"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.64",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "9.17",
+        "normalized_rating": "0.84",
+        "production_scale": "9.17",
+        "runtime_minutes": 140,
+        "talent_pedigree": "9.17"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-07",
+      "title_name": "Tentpole Synthetic 07"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.07",
+        "churn_reduction_pct": "2.34",
+        "projected_viewing_hours": "284444444",
+        "watch_time_elasticity": "1.23"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.67",
+        "content_format": "scripted-series",
+        "franchise_flag": true,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "9.33",
+        "normalized_rating": "0.86",
+        "production_scale": "9.33",
+        "runtime_minutes": 140,
+        "talent_pedigree": "9.33"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-08",
+      "title_name": "Tentpole Synthetic 08"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.08",
+        "churn_reduction_pct": "2.40",
+        "projected_viewing_hours": "300000000",
+        "watch_time_elasticity": "1.25"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_SERIES",
+        "award_signal": "0.70",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "sci-fi",
+        "is_exclusive": true,
+        "log_vote_count": "9.50",
+        "normalized_rating": "0.88",
+        "production_scale": "9.50",
+        "runtime_minutes": 140,
+        "talent_pedigree": "9.50"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "tentpole",
+      "title_id": "syn-tentpole-09",
+      "title_name": "Tentpole Synthetic 09"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "1.45",
+        "projected_viewing_hours": "35000000",
+        "watch_time_elasticity": "0.90"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": false,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": false
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.25",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "5.50",
+        "normalized_rating": "0.60",
+        "production_scale": "5.50",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.00"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2015,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-00",
+      "title_name": "Mid Budget Genre Synthetic 00"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "1.49",
+        "projected_viewing_hours": "38181818",
+        "watch_time_elasticity": "0.91"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": false,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": false
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.27",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "5.64",
+        "normalized_rating": "0.62",
+        "production_scale": "5.64",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.14"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2017,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-01",
+      "title_name": "Mid Budget Genre Synthetic 01"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.01",
+        "churn_reduction_pct": "1.53",
+        "projected_viewing_hours": "41363636",
+        "watch_time_elasticity": "0.93"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": false,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": false
+      },
+      "expected_recommendation": "NEGOTIATE_HARD",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.30",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "5.77",
+        "normalized_rating": "0.63",
+        "production_scale": "5.77",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.27"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-02",
+      "title_name": "Mid Budget Genre Synthetic 02"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.01",
+        "churn_reduction_pct": "1.57",
+        "projected_viewing_hours": "44545454",
+        "watch_time_elasticity": "0.94"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": false,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": false
+      },
+      "expected_recommendation": "NEGOTIATE_HARD",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.32",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "5.91",
+        "normalized_rating": "0.65",
+        "production_scale": "5.91",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.41"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-03",
+      "title_name": "Mid Budget Genre Synthetic 03"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.02",
+        "churn_reduction_pct": "1.61",
+        "projected_viewing_hours": "47727272",
+        "watch_time_elasticity": "0.95"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": false,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "NEGOTIATE_HARD",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.34",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.05",
+        "normalized_rating": "0.67",
+        "production_scale": "6.05",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.55"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2021,
+      "split": "test",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-04",
+      "title_name": "Mid Budget Genre Synthetic 04"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.02",
+        "churn_reduction_pct": "1.65",
+        "projected_viewing_hours": "50909090",
+        "watch_time_elasticity": "0.97"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": false,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "NEGOTIATE_HARD",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.36",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.18",
+        "normalized_rating": "0.68",
+        "production_scale": "6.18",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.68"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2023,
+      "split": "test",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-05",
+      "title_name": "Mid Budget Genre Synthetic 05"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.03",
+        "churn_reduction_pct": "1.70",
+        "projected_viewing_hours": "54090909",
+        "watch_time_elasticity": "0.98"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.39",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.32",
+        "normalized_rating": "0.70",
+        "production_scale": "6.32",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.82"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2015,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-06",
+      "title_name": "Mid Budget Genre Synthetic 06"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.03",
+        "churn_reduction_pct": "1.74",
+        "projected_viewing_hours": "57272727",
+        "watch_time_elasticity": "1.00"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.41",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.45",
+        "normalized_rating": "0.71",
+        "production_scale": "6.45",
+        "runtime_minutes": 105,
+        "talent_pedigree": "6.95"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2017,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-07",
+      "title_name": "Mid Budget Genre Synthetic 07"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.04",
+        "churn_reduction_pct": "1.78",
+        "projected_viewing_hours": "60454545",
+        "watch_time_elasticity": "1.01"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.43",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.59",
+        "normalized_rating": "0.73",
+        "production_scale": "6.59",
+        "runtime_minutes": 105,
+        "talent_pedigree": "7.09"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-08",
+      "title_name": "Mid Budget Genre Synthetic 08"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.04",
+        "churn_reduction_pct": "1.82",
+        "projected_viewing_hours": "63636363",
+        "watch_time_elasticity": "1.02"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.45",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.73",
+        "normalized_rating": "0.75",
+        "production_scale": "6.73",
+        "runtime_minutes": 105,
+        "talent_pedigree": "7.23"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-09",
+      "title_name": "Mid Budget Genre Synthetic 09"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.05",
+        "churn_reduction_pct": "1.86",
+        "projected_viewing_hours": "66818181",
+        "watch_time_elasticity": "1.04"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.48",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "6.86",
+        "normalized_rating": "0.76",
+        "production_scale": "6.86",
+        "runtime_minutes": 105,
+        "talent_pedigree": "7.36"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2021,
+      "split": "test",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-10",
+      "title_name": "Mid Budget Genre Synthetic 10"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.05",
+        "churn_reduction_pct": "1.90",
+        "projected_viewing_hours": "70000000",
+        "watch_time_elasticity": "1.05"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.50",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "thriller",
+        "is_exclusive": true,
+        "log_vote_count": "7.00",
+        "normalized_rating": "0.78",
+        "production_scale": "7.00",
+        "runtime_minutes": 105,
+        "talent_pedigree": "7.50"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2023,
+      "split": "test",
+      "stratum": "mid_budget_genre",
+      "title_id": "syn-mid_budget_genre-11",
+      "title_name": "Mid Budget Genre Synthetic 11"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.95",
+        "churn_reduction_pct": "1.30",
+        "projected_viewing_hours": "18000000",
+        "watch_time_elasticity": "0.85"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.55",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "4.00",
+        "normalized_rating": "0.68",
+        "production_scale": "4.50",
+        "runtime_minutes": 112,
+        "talent_pedigree": "5.50"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2014,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-00",
+      "title_name": "Indie Drama Synthetic 00"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.95",
+        "churn_reduction_pct": "1.35",
+        "projected_viewing_hours": "20200000",
+        "watch_time_elasticity": "0.87"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.58",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "4.15",
+        "normalized_rating": "0.70",
+        "production_scale": "4.65",
+        "runtime_minutes": 112,
+        "talent_pedigree": "5.65"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2016,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-01",
+      "title_name": "Indie Drama Synthetic 01"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.96",
+        "churn_reduction_pct": "1.41",
+        "projected_viewing_hours": "22400000",
+        "watch_time_elasticity": "0.89"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.60",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "4.30",
+        "normalized_rating": "0.72",
+        "production_scale": "4.80",
+        "runtime_minutes": 112,
+        "talent_pedigree": "5.80"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-02",
+      "title_name": "Indie Drama Synthetic 02"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.96",
+        "churn_reduction_pct": "1.47",
+        "projected_viewing_hours": "24600000",
+        "watch_time_elasticity": "0.91"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.62",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "4.45",
+        "normalized_rating": "0.73",
+        "production_scale": "4.95",
+        "runtime_minutes": 112,
+        "talent_pedigree": "5.95"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-03",
+      "title_name": "Indie Drama Synthetic 03"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.97",
+        "churn_reduction_pct": "1.52",
+        "projected_viewing_hours": "26800000",
+        "watch_time_elasticity": "0.93"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.65",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "4.60",
+        "normalized_rating": "0.75",
+        "production_scale": "5.10",
+        "runtime_minutes": 112,
+        "talent_pedigree": "6.10"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-04",
+      "title_name": "Indie Drama Synthetic 04"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.97",
+        "churn_reduction_pct": "1.58",
+        "projected_viewing_hours": "29000000",
+        "watch_time_elasticity": "0.95"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.68",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "4.75",
+        "normalized_rating": "0.77",
+        "production_scale": "5.25",
+        "runtime_minutes": 112,
+        "talent_pedigree": "6.25"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2022,
+      "split": "test",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-05",
+      "title_name": "Indie Drama Synthetic 05"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.98",
+        "churn_reduction_pct": "1.63",
+        "projected_viewing_hours": "31200000",
+        "watch_time_elasticity": "0.97"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.70",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "4.90",
+        "normalized_rating": "0.79",
+        "production_scale": "5.40",
+        "runtime_minutes": 112,
+        "talent_pedigree": "6.40"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2014,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-06",
+      "title_name": "Indie Drama Synthetic 06"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.98",
+        "churn_reduction_pct": "1.69",
+        "projected_viewing_hours": "33399999",
+        "watch_time_elasticity": "0.99"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.73",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "5.05",
+        "normalized_rating": "0.81",
+        "production_scale": "5.55",
+        "runtime_minutes": 112,
+        "talent_pedigree": "6.55"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2016,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-07",
+      "title_name": "Indie Drama Synthetic 07"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.99",
+        "churn_reduction_pct": "1.74",
+        "projected_viewing_hours": "35600000",
+        "watch_time_elasticity": "1.01"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.75",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "5.20",
+        "normalized_rating": "0.82",
+        "production_scale": "5.70",
+        "runtime_minutes": 112,
+        "talent_pedigree": "6.70"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-08",
+      "title_name": "Indie Drama Synthetic 08"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.99",
+        "churn_reduction_pct": "1.80",
+        "projected_viewing_hours": "37800000",
+        "watch_time_elasticity": "1.03"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.78",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "5.35",
+        "normalized_rating": "0.84",
+        "production_scale": "5.85",
+        "runtime_minutes": 112,
+        "talent_pedigree": "6.85"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-09",
+      "title_name": "Indie Drama Synthetic 09"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "1.85",
+        "projected_viewing_hours": "40000000",
+        "watch_time_elasticity": "1.05"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "ORIGINAL_FILM",
+        "award_signal": "0.80",
+        "content_format": "original-film",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "5.50",
+        "normalized_rating": "0.86",
+        "production_scale": "6.00",
+        "runtime_minutes": 112,
+        "talent_pedigree": "7.00"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "indie_drama",
+      "title_id": "syn-indie_drama-10",
+      "title_name": "Indie Drama Synthetic 10"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.98",
+        "churn_reduction_pct": "1.60",
+        "projected_viewing_hours": "60000000",
+        "watch_time_elasticity": "0.95"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.40",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "5.00",
+        "normalized_rating": "0.64",
+        "production_scale": "6.00",
+        "runtime_minutes": 95,
+        "talent_pedigree": "6.50"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2015,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-00",
+      "title_name": "International Coproduction Synthetic 00"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.98",
+        "churn_reduction_pct": "1.65",
+        "projected_viewing_hours": "66000000",
+        "watch_time_elasticity": "0.96"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.43",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "5.15",
+        "normalized_rating": "0.66",
+        "production_scale": "6.15",
+        "runtime_minutes": 95,
+        "talent_pedigree": "6.65"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2017,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-01",
+      "title_name": "International Coproduction Synthetic 01"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.99",
+        "churn_reduction_pct": "1.69",
+        "projected_viewing_hours": "72000000",
+        "watch_time_elasticity": "0.98"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.45",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "5.30",
+        "normalized_rating": "0.68",
+        "production_scale": "6.30",
+        "runtime_minutes": 95,
+        "talent_pedigree": "6.80"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-02",
+      "title_name": "International Coproduction Synthetic 02"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "0.99",
+        "churn_reduction_pct": "1.74",
+        "projected_viewing_hours": "78000000",
+        "watch_time_elasticity": "0.99"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.48",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "5.45",
+        "normalized_rating": "0.69",
+        "production_scale": "6.45",
+        "runtime_minutes": 95,
+        "talent_pedigree": "6.95"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-03",
+      "title_name": "International Coproduction Synthetic 03"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "1.78",
+        "projected_viewing_hours": "84000000",
+        "watch_time_elasticity": "1.01"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.50",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "5.60",
+        "normalized_rating": "0.71",
+        "production_scale": "6.60",
+        "runtime_minutes": 95,
+        "talent_pedigree": "7.10"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2021,
+      "split": "test",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-04",
+      "title_name": "International Coproduction Synthetic 04"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.00",
+        "churn_reduction_pct": "1.83",
+        "projected_viewing_hours": "90000000",
+        "watch_time_elasticity": "1.02"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.53",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "5.75",
+        "normalized_rating": "0.73",
+        "production_scale": "6.75",
+        "runtime_minutes": 95,
+        "talent_pedigree": "7.25"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2022,
+      "split": "test",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-05",
+      "title_name": "International Coproduction Synthetic 05"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.01",
+        "churn_reduction_pct": "1.87",
+        "projected_viewing_hours": "96000000",
+        "watch_time_elasticity": "1.04"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.55",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "5.90",
+        "normalized_rating": "0.75",
+        "production_scale": "6.90",
+        "runtime_minutes": 95,
+        "talent_pedigree": "7.40"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2015,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-06",
+      "title_name": "International Coproduction Synthetic 06"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.01",
+        "churn_reduction_pct": "1.92",
+        "projected_viewing_hours": "102000000",
+        "watch_time_elasticity": "1.05"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.57",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "6.05",
+        "normalized_rating": "0.77",
+        "production_scale": "7.05",
+        "runtime_minutes": 95,
+        "talent_pedigree": "7.55"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2017,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-07",
+      "title_name": "International Coproduction Synthetic 07"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.02",
+        "churn_reduction_pct": "1.96",
+        "projected_viewing_hours": "108000000",
+        "watch_time_elasticity": "1.07"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.60",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "6.20",
+        "normalized_rating": "0.78",
+        "production_scale": "7.20",
+        "runtime_minutes": 95,
+        "talent_pedigree": "7.70"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-08",
+      "title_name": "International Coproduction Synthetic 08"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.02",
+        "churn_reduction_pct": "2.00",
+        "projected_viewing_hours": "114000000",
+        "watch_time_elasticity": "1.08"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.62",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": false,
+        "log_vote_count": "6.35",
+        "normalized_rating": "0.80",
+        "production_scale": "7.35",
+        "runtime_minutes": 95,
+        "talent_pedigree": "7.85"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-09",
+      "title_name": "International Coproduction Synthetic 09"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.03",
+        "churn_reduction_pct": "2.05",
+        "projected_viewing_hours": "120000000",
+        "watch_time_elasticity": "1.10"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": true,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "GREENLIGHT",
+      "features": {
+        "asset_type": "CO_PRODUCTION",
+        "award_signal": "0.65",
+        "content_format": "scripted-series",
+        "franchise_flag": false,
+        "genre": "drama",
+        "is_exclusive": true,
+        "log_vote_count": "6.50",
+        "normalized_rating": "0.82",
+        "production_scale": "7.50",
+        "runtime_minutes": 95,
+        "talent_pedigree": "8.00"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2021,
+      "split": "test",
+      "stratum": "international_coproduction",
+      "title_id": "syn-international_coproduction-10",
+      "title_name": "International Coproduction Synthetic 10"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.08",
+        "churn_reduction_pct": "0.70",
+        "projected_viewing_hours": "45000000",
+        "watch_time_elasticity": "0.75"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.12",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": true,
+        "log_vote_count": "3.00",
+        "normalized_rating": "0.52",
+        "production_scale": "3.00",
+        "runtime_minutes": 88,
+        "talent_pedigree": "3.50"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2006,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-00",
+      "title_name": "Library Catalog Synthetic 00"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.09",
+        "churn_reduction_pct": "0.77",
+        "projected_viewing_hours": "48500000",
+        "watch_time_elasticity": "0.77"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.14",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": false,
+        "log_vote_count": "3.15",
+        "normalized_rating": "0.54",
+        "production_scale": "3.15",
+        "runtime_minutes": 88,
+        "talent_pedigree": "3.65"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2010,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-01",
+      "title_name": "Library Catalog Synthetic 01"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.09",
+        "churn_reduction_pct": "0.85",
+        "projected_viewing_hours": "52000000",
+        "watch_time_elasticity": "0.78"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.17",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": true,
+        "log_vote_count": "3.30",
+        "normalized_rating": "0.56",
+        "production_scale": "3.30",
+        "runtime_minutes": 88,
+        "talent_pedigree": "3.80"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2014,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-02",
+      "title_name": "Library Catalog Synthetic 02"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.10",
+        "churn_reduction_pct": "0.92",
+        "projected_viewing_hours": "55500000",
+        "watch_time_elasticity": "0.80"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": false,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.20",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": false,
+        "log_vote_count": "3.45",
+        "normalized_rating": "0.57",
+        "production_scale": "3.45",
+        "runtime_minutes": 88,
+        "talent_pedigree": "3.95"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-03",
+      "title_name": "Library Catalog Synthetic 03"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.11",
+        "churn_reduction_pct": "1.00",
+        "projected_viewing_hours": "59000000",
+        "watch_time_elasticity": "0.81"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.22",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": true,
+        "log_vote_count": "3.60",
+        "normalized_rating": "0.59",
+        "production_scale": "3.60",
+        "runtime_minutes": 88,
+        "talent_pedigree": "4.10"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-04",
+      "title_name": "Library Catalog Synthetic 04"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.11",
+        "churn_reduction_pct": "1.07",
+        "projected_viewing_hours": "62500000",
+        "watch_time_elasticity": "0.82"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.24",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": false,
+        "log_vote_count": "3.75",
+        "normalized_rating": "0.61",
+        "production_scale": "3.75",
+        "runtime_minutes": 88,
+        "talent_pedigree": "4.25"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2020,
+      "split": "test",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-05",
+      "title_name": "Library Catalog Synthetic 05"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.12",
+        "churn_reduction_pct": "1.15",
+        "projected_viewing_hours": "66000000",
+        "watch_time_elasticity": "0.84"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.27",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": true,
+        "log_vote_count": "3.90",
+        "normalized_rating": "0.63",
+        "production_scale": "3.90",
+        "runtime_minutes": 88,
+        "talent_pedigree": "4.40"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2006,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-06",
+      "title_name": "Library Catalog Synthetic 06"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.13",
+        "churn_reduction_pct": "1.22",
+        "projected_viewing_hours": "69500000",
+        "watch_time_elasticity": "0.85"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.29",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": false,
+        "log_vote_count": "4.05",
+        "normalized_rating": "0.65",
+        "production_scale": "4.05",
+        "runtime_minutes": 88,
+        "talent_pedigree": "4.55"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2010,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-07",
+      "title_name": "Library Catalog Synthetic 07"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.14",
+        "churn_reduction_pct": "1.30",
+        "projected_viewing_hours": "73000000",
+        "watch_time_elasticity": "0.87"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.32",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": true,
+        "log_vote_count": "4.20",
+        "normalized_rating": "0.66",
+        "production_scale": "4.20",
+        "runtime_minutes": 88,
+        "talent_pedigree": "4.70"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2014,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-08",
+      "title_name": "Library Catalog Synthetic 08"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.14",
+        "churn_reduction_pct": "1.38",
+        "projected_viewing_hours": "76500000",
+        "watch_time_elasticity": "0.89"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.34",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": false,
+        "log_vote_count": "4.35",
+        "normalized_rating": "0.68",
+        "production_scale": "4.35",
+        "runtime_minutes": 88,
+        "talent_pedigree": "4.85"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2018,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-09",
+      "title_name": "Library Catalog Synthetic 09"
+    },
+    {
+      "expected_drivers": {
+        "ad_load_receptivity": "1.15",
+        "churn_reduction_pct": "1.45",
+        "projected_viewing_hours": "80000000",
+        "watch_time_elasticity": "0.90"
+      },
+      "expected_guardrails": {
+        "CHURN_MITIGATION": false,
+        "CPVH": true,
+        "LTV_TO_COST": true,
+        "PAYBACK_HORIZON": true
+      },
+      "expected_recommendation": "PASS",
+      "features": {
+        "asset_type": "LICENSED_LIBRARY",
+        "award_signal": "0.37",
+        "content_format": "library",
+        "franchise_flag": false,
+        "genre": "comedy",
+        "is_exclusive": true,
+        "log_vote_count": "4.50",
+        "normalized_rating": "0.70",
+        "production_scale": "4.50",
+        "runtime_minutes": 88,
+        "talent_pedigree": "5.00"
+      },
+      "label_type": "SYNTHETIC",
+      "provenance": "Synthetic coverage row (generated for stratification; no real outcome).",
+      "release_year": 2019,
+      "split": "train",
+      "stratum": "library_catalog",
+      "title_id": "syn-library_catalog-10",
+      "title_name": "Library Catalog Synthetic 10"
+    }
+  ]
+}
