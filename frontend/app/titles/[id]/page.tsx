@@ -8,6 +8,8 @@
  * panels — with a pending state when no completed valuation exists (R15.4).
  */
 
+import { Suspense } from "react";
+
 import { TitleEvaluationView } from "./_components/title-evaluation-view";
 
 export default function TitleEvaluationPage({
@@ -15,5 +17,9 @@ export default function TitleEvaluationPage({
 }: {
   params: { id: string };
 }) {
-  return <TitleEvaluationView titleId={params.id} />;
+  return (
+    <Suspense fallback={null}>
+      <TitleEvaluationView titleId={params.id} />
+    </Suspense>
+  );
 }

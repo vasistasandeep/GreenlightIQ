@@ -36,6 +36,7 @@ import type {
   MarketTelemetry,
   TitleDecision,
   WhatIfRequest,
+  WhatIfResponse,
   ValuationScorecard,
 } from "./types";
 
@@ -251,7 +252,7 @@ export const api = {
    * scenario multipliers WITHOUT persisting (read-only sensitivity analysis).
    */
   whatIf(titleId: string, body: WhatIfRequest, options?: RequestOptions) {
-    return apiFetch<ValuationScorecard>(`/valuation/${titleId}/what-if`, {
+    return apiFetch<WhatIfResponse>(`/valuation/${titleId}/what-if`, {
       method: "POST",
       body,
       ...options,

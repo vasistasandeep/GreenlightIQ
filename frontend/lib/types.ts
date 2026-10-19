@@ -274,10 +274,50 @@ export interface CalibrationApplyResponse {
 }
 
 /** Scenario multipliers for the stateless what-if recompute. */
+/** Direct input overrides for the What-If Explorer (absent => Baseline). */
+export interface ScenarioInputOverrides {
+  cost_usd?: number;
+  projected_viewing_hours?: number;
+  churn_reduction_pct?: number;
+  ltv?: number;
+  churn_reduction_value?: number;
+  cpm?: number;
+  ad_impressions?: number;
+  watch_time_elasticity?: number;
+}
+
+/** Direct threshold overrides for the What-If Explorer (absent => model constant). */
+export interface ScenarioThresholdOverrides {
+  cpvh_ceiling_override?: number;
+  ltv_hurdle_override?: number;
+  churn_hurdle_override?: number;
+  payback_max_months_override?: number;
+}
+
 export interface WhatIfRequest {
   cost_multiplier: number;
   viewership_multiplier: number;
   churn_multiplier?: number;
+  input_overrides?: ScenarioInputOverrides;
+  threshold_overrides?: ScenarioThresholdOverrides;
+}
+
+/** The Baseline comparison block returned by the What-If endpoint. */
+export interface BaselineSummary {
+  recommendation_status: string | null;
+  calculated_cpvh: number | string | null;
+  ltv_to_cost_multiple: number | string | null;
+  churn_reduction_pct: number | string | null;
+  payback_horizon_months: number | null;
+  ltv_subscription_value: number | string | null;
+  ltv_advertising_value: number | string | null;
+  explanation: Explanation | null;
+}
+
+/** The What-If Explorer response: the Scenario scorecard + Baseline + ceiling. */
+export interface WhatIfResponse extends ValuationScorecard {
+  baseline: BaselineSummary;
+  negotiation_ceiling_usd: number | string | null;
 }
 
 /** Inclusive slider bounds for what-if multipliers (include 1.0). */

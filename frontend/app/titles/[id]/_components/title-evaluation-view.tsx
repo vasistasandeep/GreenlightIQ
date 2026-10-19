@@ -20,6 +20,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { ApiError, api } from "@/lib/api-client";
 import type { ValuationScorecard } from "@/lib/types";
@@ -38,6 +39,8 @@ import { MarketTelemetryCard } from "./market-telemetry-card";
 import { DealStageControl } from "./deal-stage-control";
 import { NegotiationLeverage } from "./negotiation-leverage";
 import { PendingValuationState } from "./pending-state";
+import { TitleTabs, type TitleTab } from "./title-tabs";
+import { WhatIfExplorer } from "./whatif-explorer";
 
 type LoadState =
   | { status: "loading" }
@@ -93,6 +96,8 @@ function RecommendationBanner({
 
 export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const searchParams = useSearchParams();
+  const activeTab: TitleTab = searchParams.get("tab") === "what-if" ? "what-if" : "scorecard";
 
   const load = useCallback(async () => {
     setState({ status: "loading" });
@@ -160,9 +165,6 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
         ) : null}
       </header>
 
-      {state.status === "ready" ? (
-        <RecommendationBanner status={state.scorecard.recommendation_status} />
-      ) : null}
 
       {state.status === "loading" ? (
         <div
@@ -195,42 +197,53 @@ export function TitleEvaluationView({ titleId }: TitleEvaluationViewProps) {
       ) : null}
 
       {state.status === "ready" ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="lg:col-span-2">
-            <DealStageControl titleId={titleId} />
-          </div>
-          <MetadataRadar breakdown={state.scorecard.metadata_breakdown} />
-          <NegotiationLeverage scorecard={state.scorecard} />
-          <div className="lg:col-span-2">
-            <ComparableTitlesPanel titleId={titleId} />
-          </div>
-          <div className="lg:col-span-2">
-            <MarketTelemetryCard
-              genre={state.scorecard.genre_tag}
-              territory={state.scorecard.primary_territory}
-            />
-          </div>
-          <div className="lg:col-span-2">
-            <FinancialAccordion scorecard={state.scorecard} />
-          </div>
-          <div className="lg:col-span-2">
-            <ExplanationPanel explanation={state.scorecard.explanation} />
-          </div>
-          <div className="lg:col-span-2">
-            <SensitivityPanel titleId={titleId} />
-          </div>
-          <div className="lg:col-span-2">
-            <OverridePanel
-              titleId={titleId}
-              currentStatus={state.scorecard.recommendation_status}
-              onOverridden={() => void load()}
-            />
-          </div>
-          <div className="lg:col-span-2">
-            <AuditLineage titleId={titleId} />
-          </div>
-          <GreenlightMemo titleId={titleId} scorecard={state.scorecard} />
-        </div>
+        <>
+          <TitleTabs titleId={titleId} active={activeTab} />
+
+          {activeTab === "what-if" ? (
+            <WhatIfExplorer titleId={titleId} />
+          ) : (
+            <>
+              <RecommendationBanner status={state.scorecard.recommendation_status} />
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="lg:col-span-2">
+                  <DealStageControl titleId={titleId} />
+                </div>
+                <MetadataRadar breakdown={state.scorecard.metadata_breakdown} />
+                <NegotiationLeverage scorecard={state.scorecard} />
+                <div className="lg:col-span-2">
+                  <ComparableTitlesPanel titleId={titleId} />
+                </div>
+                <div className="lg:col-span-2">
+                  <MarketTelemetryCard
+                    genre={state.scorecard.genre_tag}
+                    territory={state.scorecard.primary_territory}
+                  />
+                </div>
+                <div className="lg:col-span-2">
+                  <FinancialAccordion scorecard={state.scorecard} />
+                </div>
+                <div className="lg:col-span-2">
+                  <ExplanationPanel explanation={state.scorecard.explanation} />
+                </div>
+                <div className="lg:col-span-2">
+                  <SensitivityPanel titleId={titleId} />
+                </div>
+                <div className="lg:col-span-2">
+                  <OverridePanel
+                    titleId={titleId}
+                    currentStatus={state.scorecard.recommendation_status}
+                    onOverridden={() => void load()}
+                  />
+                </div>
+                <div className="lg:col-span-2">
+                  <AuditLineage titleId={titleId} />
+                </div>
+                <GreenlightMemo titleId={titleId} scorecard={state.scorecard} />
+              </div>
+            </>
+          )}
+        </>
       ) : null}
     </AppShell>
   );
