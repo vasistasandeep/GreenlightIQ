@@ -38,10 +38,14 @@ from app.repositories.financial_projections import FinancialProjectionRepository
 from app.repositories.metadata_vectors import MetadataVectorRepository
 from app.repositories.titles import TitleRepository
 from app.schemas.api import (
+    BaselineSummary,
     ChurnCohortOut,
     ComparableTitlesResponse,
     CounterProposalLeverOut,
     LtvAttributionOut,
+    ScenarioInputOverrides,
+    ScenarioThresholdOverrides,
+    WhatIfResponse,
     MetadataBreakdown,
     TitleCompOut,
     ValuationCalculateRequest,
@@ -366,13 +370,17 @@ class WhatIfRequest(BaseModel):
     churn_multiplier: Decimal = Field(
         default=Decimal("1.0"), gt=Decimal("0"), ge=Decimal("0.5"), le=Decimal("2.0")
     )
+    # WhatIf_Explorer: optional direct overrides (range-validated by their
+    # schemas). Absent => Baseline. Direct overrides win over multipliers (R1.6).
+    input_overrides: ScenarioInputOverrides | None = None
+    threshold_overrides: ScenarioThresholdOverrides | None = None
 
 
 @router.post(
     "/{title_id}/what-if",
-    response_model=ValuationScorecardResponse,
+    response_model=WhatIfResponse,
     dependencies=[Depends(require_operation(Operation.VALUATION))],
-    summary="Recompute a scorecard over scenario multipliers without persisting (R1, R2).",
+    summary="Recompute a scorecard over scenario overrides + multipliers without persisting (R1-R4).",
 )
 async def what_if_valuation(
     title_id: uuid.UUID,
@@ -380,19 +388,47 @@ async def what_if_valuation(
     actor: CurrentUser,
     session: SessionDep,
     engine: GuardrailsEngineDep,
-) -> ValuationScorecardResponse:
-    """Return a freshly computed scorecard under scenario multipliers, read-only.
+) -> WhatIfResponse:
+    """Return a freshly computed Scenario scorecard plus the Baseline, read-only.
 
     Delegates to the engine's non-persisting ``evaluate_scenario``; writes
-    nothing and records no audit entry (R2). A missing title raises
-    ``404 TITLE_NOT_FOUND`` (R1.3); out-of-bounds multipliers are rejected by the
-    request model as ``422`` before this handler runs (R4).
+    nothing and records no audit entry (R2). Computes the Baseline once at
+    identity (no overrides, multipliers 1.0) for the Scenario_Diff, then the
+    Scenario from the request overrides. A missing title raises
+    ``404 TITLE_NOT_FOUND`` (R1.3); invalid overrides are rejected ``422`` by the
+    request model before this handler runs (R4.6).
     """
+    # Baseline: identity scenario (no overrides) -> the Scenario_Diff reference
+    # and the Target Deal negotiation ceiling (WhatIf_Explorer R2, R3.4, R4.4).
+    baseline_result = await engine.evaluate_scenario(
+        title_id,
+        cost_multiplier=Decimal("1"),
+        viewership_multiplier=Decimal("1"),
+        churn_multiplier=Decimal("1"),
+    )
+    b_expl = baseline_result["explanation"]
+    b_checks = b_expl["checks"] if isinstance(b_expl, dict) else []
+    baseline = BaselineSummary(
+        recommendation_status=str(baseline_result["recommendation_status"]),
+        calculated_cpvh=baseline_result["calculated_cpvh"],
+        ltv_to_cost_multiple=baseline_result["ltv_to_cost_multiple"],
+        churn_reduction_pct=baseline_result["churn_reduction_pct"],
+        payback_horizon_months=baseline_result["payback_horizon_months"],
+        ltv_subscription_value=baseline_result.get("ltv_subscription_value"),
+        ltv_advertising_value=baseline_result.get("ltv_advertising_value"),
+        explanation=b_expl if isinstance(b_expl, dict) else None,
+    )
+    negotiation_ceiling = negotiation.target_purchase_ceiling(
+        baseline_result["normalized_cost_usd"], b_checks
+    )
+
     result = await engine.evaluate_scenario(
         title_id,
         cost_multiplier=body.cost_multiplier,
         viewership_multiplier=body.viewership_multiplier,
         churn_multiplier=body.churn_multiplier,
+        input_overrides=body.input_overrides,
+        threshold_overrides=body.threshold_overrides,
     )
 
     explanation = result["explanation"]
@@ -436,7 +472,7 @@ async def what_if_valuation(
     )
 
     # No session.commit(): the scenario path is strictly read-only (R2).
-    return ValuationScorecardResponse(
+    return WhatIfResponse(
         title_id=title_id,
         calculated_cpvh=result["calculated_cpvh"],
         ltv_to_cost_multiple=result["ltv_to_cost_multiple"],
@@ -452,6 +488,8 @@ async def what_if_valuation(
         counter_proposal_levers=levers,
         ltv_attribution=ltv_attr,
         churn_cohort=churn_cohort,
+        baseline=baseline,
+        negotiation_ceiling_usd=negotiation_ceiling,
     )
 
 

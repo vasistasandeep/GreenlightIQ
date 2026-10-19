@@ -299,6 +299,19 @@ class BaselineSummary(BaseModel):
     explanation: dict[str, Any] | None = None
 
 
+class WhatIfResponse(ValuationScorecardResponse):
+    """The WhatIf_Explorer scenario response (R4.3).
+
+    Inherits every field of :class:`ValuationScorecardResponse` (so existing
+    callers see the full scenario scorecard unchanged) and adds the Baseline
+    comparison block plus the Baseline negotiation ceiling for the Target Deal
+    preset. Additive and backward-compatible.
+    """
+
+    baseline: BaselineSummary
+    negotiation_ceiling_usd: Decimal | None = None
+
+
 class TitleCompOut(BaseModel):
     """One nearest-neighbour title in the Top-3 comps surface (R2.6, R17.6).
 
