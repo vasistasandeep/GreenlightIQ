@@ -16,6 +16,7 @@ against historical ground truth to auto-calibrate the model.
 │   └── Dockerfile      #   standalone production image
 ├── database/           # Alembic migrations + schema init / seed scripts
 ├── docker-compose.yml  # orchestrates Postgres+pgvector, Redis, backend, worker, frontend
+├── presentation/       # self-contained interactive overview deck (index.html)
 └── README.md
 ```
 
@@ -181,3 +182,17 @@ cd frontend && npm run typecheck && npm run lint
 Integration tests marked `@pytest.mark.integration` require a reachable
 PostgreSQL 16 + pgvector instance (via Docker/testcontainers or
 `CINEROI_DATABASE_URL`) and skip cleanly when none is available.
+
+## Documentation & demo deck
+
+- **Interactive overview deck** — a self-contained 12-slide HTML presentation
+  (`presentation/index.html`) that walks anyone through the product, including a
+  draggable live verdict demo. Published at
+  <https://vasistasandeep.github.io/GreenlightIQ/presentation/> (push to `main`
+  to update). It uses illustrative sample data, not production figures; see
+  `presentation/SPEAKER_NOTES.md` for controls and the live-portal link setup.
+- **Knowledge base** — `CineROI_AI_Complete_Knowledge_Base.md` (full reference).
+- **Architecture & data flow** — `CineROI_AI_Architecture_And_Data_Flow.md`.
+- **Calculations reference** — `CineROI_AI_Calculations_Reference.md` (every
+  formula, threshold, and worked example). Mirrored in the in-portal **How It
+  Works** guide (`/guide`).

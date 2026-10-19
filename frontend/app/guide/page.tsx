@@ -1185,6 +1185,21 @@ function FeaturesTab() {
         ]}
       />
 
+      <SectionHead note="A self-running interactive deck that walks anyone through the product.">
+        Share &amp; present
+      </SectionHead>
+      <HowTo
+        title="Share the interactive overview deck"
+        where="Anywhere - a browser link"
+        what="A single self-contained HTML deck (12 slides) that tells the whole story: the problem, the credit-check analogy, a draggable live verdict, the four guardrails, the AI stack, and a button into this portal. No install, no login."
+        steps={[
+          <>Send the public link: <a href="https://vasistasandeep.github.io/GreenlightIQ/presentation/" target="_blank" rel="noopener" className="text-emerald-400 underline">vasistasandeep.github.io/GreenlightIQ/presentation/</a>. It opens fully interactive in any browser.</>,
+          <>Navigate with the bottom bar (Home / prev / next / click any dot to jump) or the arrow keys; press <span className="font-medium text-slate-100">F</span> for full screen.</>,
+          <>On the <span className="font-medium text-slate-100">Verdict Machine</span> slide, drag the acquisition price and watch the four checks and the verdict flip live.</>,
+          <>The deck uses illustrative sample-slate figures - it is a demo, not production data.</>,
+        ]}
+        tip={<>The deck&apos;s &quot;Open the live demo portal&quot; button is off by default so a shared copy never links to a dead address. To light it up for a live demo, set <code className="text-emerald-300">PORTAL_URL</code> near the top of the deck&apos;s inline script to where the portal is reachable (a deployment, <code className="text-emerald-300">http://localhost:3000</code>, or a current ngrok URL), then push.</>}
+      />
       <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4 text-sm text-slate-300">
         <span className="font-medium text-emerald-300">Fastest way to learn the app: </span>
         open the <Link href="/studio" className="text-emerald-400 underline">Asset Studio</Link>,
