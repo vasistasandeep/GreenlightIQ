@@ -395,6 +395,8 @@ A dedicated **What-If Explorer** tab on each title page lets an analyst model a 
 
 It is a strict **read-only sandbox**: it persists nothing, writes no audit entry, forks no model version, and never changes the saved scorecard or the standard thresholds - so the platform's "every saved verdict is reproducible" guarantee is untouched. Direct overrides win over the coarse multipliers; a cost change scales the milestone schedule and monthly margin proportionally (in USD) so payback stays coherent, and a direct USD cost on a non-USD title is applied without FX distortion. Three one-click presets seed scenarios - Bear, Bull, and Target Deal (cost set to the negotiation ceiling that clears all correctable guardrails; disabled for already-GREENLIGHT or structural-PASS titles). The whole scenario is encoded sparsely in the URL as a shareable link (nothing stored), and the tab is excluded from the Greenlight Memo PDF.
 
+The surface is designed to teach as you use it: every field shows its Baseline value inline (as the input placeholder) and carries a hover/focus **info tooltip** explaining what the field is and how raising or lowering it moves the verdict. Quick-scenario presets (Bear, Bull) do not just scale hidden multipliers - they fill the actual input fields with concrete numbers derived from the Baseline, so you can see exactly what each preset changed and then fine-tune from there.
+
 ---
 
 ## 6. Enhancement Features In Detail

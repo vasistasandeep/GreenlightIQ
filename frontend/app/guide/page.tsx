@@ -1097,6 +1097,7 @@ function FeaturesTab() {
         steps={[
           <>Open a title and switch to the <span className="font-medium text-slate-100">What-If Explorer</span> tab.</>,
           <>Type exact values on the left (e.g. a seller&apos;s asking price in dollars, or a higher CPM). Each field shows the Baseline; blank means &quot;use Baseline&quot;.</>,
+          <>Not sure what a field does? Hover the small <span className="font-medium text-slate-100">i</span> beside its label for what it is and how raising or lowering it moves the verdict.</>,
           <>Watch the right panel: each guardrail shows Baseline &rarr; Scenario with a PASS/BREACH badge, and a callout appears if the verdict would flip.</>,
           <>Try a preset - <span className="font-medium text-slate-100">Bear</span>, <span className="font-medium text-slate-100">Bull</span>, or <span className="font-medium text-slate-100">Target deal</span> (sets cost to the price that clears all correctable guardrails).</>,
           <>Click <span className="font-medium text-slate-100">Copy scenario link</span> to share the exact scenario - it lives in the URL, nothing is stored.</>,
