@@ -21,28 +21,61 @@ const DEBOUNCE_MS = 400;
 
 type NumMap = Record<string, number>;
 
-/** Editable fields: key -> {label, group, kind}. */
+/** Editable fields: key, label, group, formatter, and plain-English help. */
 const INPUT_FIELDS = [
-  { key: "cost_usd", label: "Acquisition cost (USD)", group: "Deal anchors", fmt: formatUsd },
-  { key: "projected_viewing_hours", label: "Projected viewing hours", group: "Deal anchors", fmt: (v: number) => formatNumber(v, 0) },
-  { key: "churn_reduction_pct", label: "Churn reduction (%)", group: "Deal anchors", fmt: (v: number) => formatPercent(v) },
-  { key: "ltv", label: "LTV (USD)", group: "Revenue drivers", fmt: formatUsd },
-  { key: "churn_reduction_value", label: "Churn value / sub (USD)", group: "Revenue drivers", fmt: formatUsd },
-  { key: "cpm", label: "CPM (USD / 1k)", group: "Revenue drivers", fmt: formatUsd },
-  { key: "ad_impressions", label: "Ad impressions", group: "Revenue drivers", fmt: (v: number) => formatNumber(v, 0) },
-  { key: "watch_time_elasticity", label: "Watch-time elasticity", group: "Revenue drivers", fmt: (v: number) => formatNumber(v, 2) },
+  { key: "cost_usd", label: "Acquisition cost (USD)", group: "Deal anchors", fmt: formatUsd,
+    help: "What you pay for the title. Lowering it improves Cost-per-Viewing-Hour and the LTV-to-Cost multiple - the usual lever to turn a NEGOTIATE HARD into a GREENLIGHT." },
+  { key: "projected_viewing_hours", label: "Projected viewing hours", group: "Deal anchors", fmt: (v: number) => formatNumber(v, 0),
+    help: "Total hours audiences are expected to watch. More hours lower CPVH (cost spread over more viewing) and tend to help the verdict." },
+  { key: "churn_reduction_pct", label: "Churn reduction (%)", group: "Deal anchors", fmt: (v: number) => formatPercent(v),
+    help: "How much the title cuts monthly subscriber cancellations. It must clear the churn hurdle (default 1.5%). A churn breach is non-correctable - no price fixes it - so this is often the make-or-break driver." },
+  { key: "ltv", label: "LTV (USD)", group: "Revenue drivers", fmt: formatUsd,
+    help: "Lifetime value of a subscriber the title helps retain (SVOD side). Higher LTV raises the LTV-to-Cost multiple toward its floor." },
+  { key: "churn_reduction_value", label: "Churn value / sub (USD)", group: "Revenue drivers", fmt: formatUsd,
+    help: "Dollar value saved per retained subscriber. It multiplies with LTV to form the subscription (SVOD) share of modeled value." },
+  { key: "cpm", label: "CPM (USD / 1k)", group: "Revenue drivers", fmt: formatUsd,
+    help: "Ad revenue per 1,000 impressions (AVOD side). Higher CPM raises the advertising value and the LTV-to-Cost multiple." },
+  { key: "ad_impressions", label: "Ad impressions", group: "Revenue drivers", fmt: (v: number) => formatNumber(v, 0),
+    help: "Projected ad impressions. With CPM and elasticity, drives the advertising (AVOD) share of modeled value." },
+  { key: "watch_time_elasticity", label: "Watch-time elasticity", group: "Revenue drivers", fmt: (v: number) => formatNumber(v, 2),
+    help: "How strongly watch-time converts into ad yield. Higher elasticity amplifies the AVOD contribution to the LTV-to-Cost multiple." },
 ] as const;
 
 const THRESHOLD_FIELDS = [
-  { key: "ltv_hurdle_override", label: "LTV-to-Cost floor", group: "Guardrail thresholds", fmt: formatMultiple },
-  { key: "churn_hurdle_override", label: "Churn hurdle (%)", group: "Guardrail thresholds", fmt: (v: number) => formatPercent(v) },
-  { key: "cpvh_ceiling_override", label: "CPVH ceiling (USD/hr)", group: "Guardrail thresholds", fmt: (v: number) => formatNumber(v, 2) },
-  { key: "payback_max_months_override", label: "Payback max (months)", group: "Guardrail thresholds", fmt: (v: number) => `${v} mo` },
+  { key: "ltv_hurdle_override", label: "LTV-to-Cost floor", group: "Guardrail thresholds", fmt: formatMultiple,
+    help: "The minimum LTV-to-Cost multiple a deal must clear (standard 3.2). Lowering it is easier to pass; raising it is stricter. Exploration only - the saved yardstick never changes." },
+  { key: "churn_hurdle_override", label: "Churn hurdle (%)", group: "Guardrail thresholds", fmt: (v: number) => formatPercent(v),
+    help: "The minimum churn reduction a title must deliver (standard 1.5%). Relax it and a borderline title passes churn; tighten it and more titles breach." },
+  { key: "cpvh_ceiling_override", label: "CPVH ceiling (USD/hr)", group: "Guardrail thresholds", fmt: (v: number) => formatNumber(v, 2),
+    help: "The maximum allowed Cost-per-Viewing-Hour (standard 0.18 premium / 0.05 library). Raise it and an expensive title passes CPVH." },
+  { key: "payback_max_months_override", label: "Payback max (months)", group: "Guardrail thresholds", fmt: (v: number) => `${v} mo`,
+    help: "The longest acceptable payback horizon (standard 12 months). Extend it to tolerate slower break-even; shorten it to be stricter." },
 ] as const;
 
 const INPUT_KEYS = INPUT_FIELDS.map((f) => f.key) as readonly string[];
 const THRESHOLD_KEYS = THRESHOLD_FIELDS.map((f) => f.key) as readonly string[];
 const ALL_KEYS = [...INPUT_KEYS, ...THRESHOLD_KEYS, "cost_multiplier", "viewership_multiplier", "churn_multiplier"];
+
+/** Accessible info tooltip: a focusable "i" that reveals help on hover/focus. */
+function InfoTip({ text }: { text: string }) {
+  return (
+    <span className="group/tip relative inline-flex">
+      <button
+        type="button"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-600 text-[10px] font-semibold text-slate-400 hover:border-emerald-500 hover:text-emerald-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400"
+        aria-label={text}
+      >
+        i
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 w-56 -translate-x-1/2 rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-left text-[11px] leading-snug text-slate-200 opacity-0 shadow-xl transition-opacity duration-150 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
 
 export interface WhatIfExplorerProps {
   titleId: string;
@@ -211,7 +244,10 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
         {/* Controls */}
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h2 id="whatif-heading" className="text-lg font-semibold text-slate-100">What-If Explorer</h2>
+            <div>
+              <h2 id="whatif-heading" className="text-lg font-semibold text-slate-100">What-If Explorer</h2>
+              <p className="mt-0.5 text-xs text-slate-500">Set any value to see how the verdict would change. Hover the <span className="font-semibold">i</span> on a label for what it means and how it moves the result.</p>
+            </div>
             <div className="flex gap-2">
               <button type="button" onClick={resetAll} className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800">Reset all</button>
               <button type="button" onClick={copyLink} className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-emerald-300 hover:bg-slate-800">Copy scenario link</button>
@@ -236,9 +272,13 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
                   <div className="space-y-2">
                     {[...INPUT_FIELDS, ...THRESHOLD_FIELDS].filter((f) => f.group === group).map((f) => (
                       <div key={f.key} className="flex items-center gap-2">
-                        <label htmlFor={`wf-${f.key}`} className="flex-1 text-sm text-slate-300">{f.label}</label>
+                        <span className="flex flex-1 items-center gap-1.5 text-sm text-slate-300">
+                          <span id={`wf-lbl-${f.key}`}>{f.label}</span>
+                          <InfoTip text={(f as { help: string }).help} />
+                        </span>
                         <input
                           id={`wf-${f.key}`}
+                          aria-labelledby={`wf-lbl-${f.key}`}
                           type="number"
                           inputMode="decimal"
                           value={f.key in values ? String(values[f.key]) : ""}
