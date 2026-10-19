@@ -81,8 +81,9 @@
     box-shadow:0 0 0 4px rgba(4,32,22,.25);animation:livepulse 1.6s ease-in-out infinite}
   @keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(4,32,22,.5)}50%{box-shadow:0 0 0 6px rgba(4,32,22,0)}}
   .portal-btn .parrow{font-size:1.2rem}
-  .portal-url{margin-top:1rem;color:var(--faint);font-size:.82rem;font-family:ui-monospace,monospace;word-break:break-all}
-  .portal-url .disc{display:inline-block;margin-top:.5rem;color:var(--amber);font-family:'Segoe UI',system-ui,sans-serif;font-size:.8rem;line-height:1.4;max-width:46ch}
+  .portal-url{margin-top:1rem;color:var(--faint);font-size:.82rem;line-height:1.5}
+  .portal-url .u{font-family:ui-monospace,monospace;word-break:break-all}
+  .portal-url .disc{display:block;margin-top:.5rem;color:var(--amber);font-family:'Segoe UI',system-ui,sans-serif;font-size:.8rem;line-height:1.45;max-width:46ch;margin-left:auto;margin-right:auto;word-break:normal;overflow-wrap:break-word}
   .closetags{display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:1.4rem;color:var(--faint);font-size:.9rem;letter-spacing:.02em}
   .closetags .tagline{color:var(--muted)} .closetags .dot{color:var(--faint)}
 
@@ -486,7 +487,7 @@
       return;
     }
     if(a){ a.href=url; }
-    if(u){ u.innerHTML = url + (temporary ? '<br><span class="disc">Live demo link - only works while a demo is running; it may be offline later. If a browser warning appears, tap \u201cVisit Site\u201d to continue.</span>' : ''); }
+    if(u){ u.innerHTML = '<span class="u">'+url+'</span>' + (temporary ? '<span class="disc">Live demo link. Only works while a demo is running; it may be offline later. If a browser warning appears, tap \u201cVisit Site\u201d to continue.</span>' : ''); }
   })();
   let i=0;
   function show(n){
