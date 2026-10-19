@@ -54,7 +54,7 @@ describe("WhatIfExplorer", () => {
     // Set a cost override so a request fires.
     fireEvent.change(screen.getByLabelText("Acquisition cost (USD)"), { target: { value: "600000" } });
     await waitFor(() =>
-      expect(screen.getByText(/was NEGOTIATE HARD/i)).toBeInTheDocument(),
+      expect(screen.getByText(/changed from NEGOTIATE HARD/i)).toBeInTheDocument(),
     );
   });
 

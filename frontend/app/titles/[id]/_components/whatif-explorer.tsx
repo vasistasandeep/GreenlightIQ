@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import type { WhatIfResponse } from "@/lib/types";
 import { RecommendationBadge, recommendationLabel } from "@/components/recommendation-badge";
+import { Card, CardBody, CardHeader, SectionHeading } from "@/components/ui/card";
 import { formatMultiple, formatNumber, formatPercent, formatUsd, guardrailLabel, toNumber } from "./format";
 
 const DEBOUNCE_MS = 400;
@@ -232,45 +233,52 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
     return "baseline";
   }
 
+  const overrideCount = Object.keys(values).length;
+
   return (
     <section aria-labelledby="whatif-heading" className="no-print space-y-5">
       {/* Sandbox banner */}
       <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-200">
         <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 9v4M12 17h.01M10.3 3.9l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        <span><strong>Exploration sandbox.</strong> Nothing here is saved - the official scorecard is unchanged.</span>
+        <span><strong className="font-semibold">Exploration sandbox.</strong> Nothing here is saved &mdash; the official scorecard is unchanged.</span>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 id="whatif-heading" className="text-xl font-semibold tracking-tight text-slate-50">What-If Explorer</h2>
+          <p className="mt-1 max-w-xl text-sm text-slate-400">
+            Set any value to see how the verdict would change. Hover the <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-slate-600 text-[9px] align-middle">i</span> on a label for what it means and how it moves the result.
+          </p>
+        </div>
+        {overrideCount > 0 ? (
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">{overrideCount} override{overrideCount === 1 ? "" : "s"} active</span>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Controls */}
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
+        <Card>
+          <CardBody className="space-y-5">
             <div>
-              <h2 id="whatif-heading" className="text-lg font-semibold text-slate-100">What-If Explorer</h2>
-              <p className="mt-0.5 text-xs text-slate-500">Set any value to see how the verdict would change. Hover the <span className="font-semibold">i</span> on a label for what it means and how it moves the result.</p>
+              <SectionHeading className="mb-2">Quick scenarios</SectionHeading>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => applyPreset("bear")} className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-rose-500/50 hover:bg-slate-800">&darr; Bear case</button>
+                <button type="button" onClick={() => applyPreset("bull")} className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-emerald-500/50 hover:bg-slate-800">&uarr; Bull case</button>
+                <button type="button" onClick={() => applyPreset("target")} disabled={targetDisabled} title={targetTooltip} className="rounded-lg border border-emerald-600/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40">&#9678; Target deal</button>
+                <div className="ml-auto flex gap-2">
+                  <button type="button" onClick={resetAll} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-800">Reset all</button>
+                  <button type="button" onClick={copyLink} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-slate-800">Copy link</button>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={resetAll} className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800">Reset all</button>
-              <button type="button" onClick={copyLink} className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-emerald-300 hover:bg-slate-800">Copy scenario link</button>
-            </div>
-          </div>
 
-          {/* Presets */}
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => applyPreset("bear")} className="rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800">Bear case</button>
-            <button type="button" onClick={() => applyPreset("bull")} className="rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800">Bull case</button>
-            <button type="button" onClick={() => applyPreset("target")} disabled={targetDisabled} title={targetTooltip} className="rounded-full border border-emerald-600/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40">Target deal</button>
-          </div>
-
-          {[...INPUT_FIELDS, ...THRESHOLD_FIELDS].reduce<Record<string, typeof INPUT_FIELDS[number][]>>((acc, f) => {
-            (acc[f.group] ??= []).push(f as never);
-            return acc;
-          }, {}) && (
-            <div className="space-y-4">
-              {["Deal anchors", "Revenue drivers", "Guardrail thresholds"].map((group) => (
-                <div key={group}>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{group}</p>
-                  <div className="space-y-2">
-                    {[...INPUT_FIELDS, ...THRESHOLD_FIELDS].filter((f) => f.group === group).map((f) => (
+            {["Deal anchors", "Revenue drivers", "Guardrail thresholds"].map((group) => (
+              <div key={group}>
+                <SectionHeading className="mb-2.5">{group}</SectionHeading>
+                <div className="space-y-2.5">
+                  {[...INPUT_FIELDS, ...THRESHOLD_FIELDS].filter((f) => f.group === group).map((f) => {
+                    const edited = f.key in values;
+                    return (
                       <div key={f.key} className="flex items-center gap-2">
                         <span className="flex flex-1 items-center gap-1.5 text-sm text-slate-300">
                           <span id={`wf-lbl-${f.key}`}>{f.label}</span>
@@ -281,73 +289,102 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
                           aria-labelledby={`wf-lbl-${f.key}`}
                           type="number"
                           inputMode="decimal"
-                          value={f.key in values ? String(values[f.key]) : ""}
+                          value={edited ? String(values[f.key]) : ""}
                           onChange={(e) => setField(f.key, e.target.value)}
                           placeholder={baselinePlaceholder(f.key, (f as { fmt: (v: number) => string }).fmt)}
-                          className="w-32 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-right text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+                          className={
+                            "w-36 rounded-lg border bg-slate-950 px-2.5 py-1.5 text-right text-sm tabular-nums text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 " +
+                            (edited ? "border-emerald-500/60 focus:border-emerald-500" : "border-slate-700 focus:border-emerald-500")
+                          }
                         />
-                        <button type="button" onClick={() => resetField(f.key)} aria-label={`Reset ${f.label}`} className="text-slate-500 hover:text-slate-300" title="Reset to baseline">&times;</button>
+                        <button
+                          type="button"
+                          onClick={() => resetField(f.key)}
+                          aria-label={`Reset ${f.label}`}
+                          title="Reset to baseline"
+                          className={"text-lg leading-none transition " + (edited ? "text-slate-400 hover:text-rose-300" : "pointer-events-none select-none text-transparent")}
+                        >
+                          &times;
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
 
         {/* Live verdict */}
-        <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-400">Scenario verdict</span>
-            {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" /> : null}
-          </div>
+        <Card className="self-start lg:sticky lg:top-20">
+          <CardHeader
+            title="Scenario verdict"
+            description="How the saved Baseline would change under your inputs"
+            action={loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" aria-label="Computing" /> : null}
+          />
+          <CardBody className="space-y-4">
+            {error ? <p role="alert" className="text-sm text-rose-400">{error}</p> : null}
 
-          {error ? <p role="alert" className="text-sm text-rose-400">{error}</p> : null}
+            {resp ? (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <RecommendationBadge status={scenarioRec as never} className="text-sm" />
+                  {verdictMoved ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
+                      changed from {recommendationLabel(baselineRec as never)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-500">same as baseline ({recommendationLabel(baselineRec as never)})</span>
+                  )}
+                </div>
 
-          {resp ? (
-            <>
-              <div className="flex items-center gap-3">
-                <RecommendationBadge status={scenarioRec as never} />
-                {verdictMoved ? (
-                  <span className="text-xs text-amber-300">
-                    was {recommendationLabel(baselineRec as never)} &rarr; now {recommendationLabel(scenarioRec as never)}
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-500">same as baseline</span>
-                )}
-              </div>
-
-              <div aria-live="polite" className="space-y-1.5 text-sm">
-                {scenarioChecks.map((c, i) => {
-                  const b = baselineChecks.find((x) => x.name === c.name);
-                  return (
-                    <div key={c.name ?? i} className="flex items-center justify-between gap-2 border-b border-slate-800 py-1.5 last:border-0">
-                      <span className="text-slate-300">{guardrailLabel(c.name)}</span>
-                      <span className="flex items-center gap-2 tabular-nums">
-                        {b ? <span className="text-slate-500">{formatNumber(b.computed_value)}</span> : null}
-                        <span aria-hidden>&rarr;</span>
-                        <span className={c.breached ? "text-rose-400" : "text-emerald-400"}>{formatNumber(c.computed_value)}</span>
-                        <span className={"rounded px-1.5 py-0.5 text-[10px] font-semibold " + (c.breached ? "bg-rose-500/15 text-rose-300" : "bg-emerald-500/15 text-emerald-300")}>
-                          {c.breached ? "BREACH" : "PASS"}
+                <div aria-live="polite" className="overflow-hidden rounded-lg border border-slate-800">
+                  <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 bg-slate-800/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    <span>Guardrail</span>
+                    <span className="text-right">Base &rarr; Scenario</span>
+                    <span className="pl-1 text-right">Status</span>
+                  </div>
+                  {scenarioChecks.map((c, i) => {
+                    const b = baselineChecks.find((x) => x.name === c.name);
+                    return (
+                      <div key={c.name ?? i} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 border-t border-slate-800 px-3 py-2 text-sm">
+                        <span className="truncate text-slate-300">{guardrailLabel(c.name)}</span>
+                        <span className="flex items-center justify-end gap-1.5 text-xs tabular-nums">
+                          <span className="text-slate-500">{formatNumber(b?.computed_value)}</span>
+                          <span aria-hidden className="text-slate-600">&rarr;</span>
+                          <span className={c.breached ? "font-medium text-rose-300" : "font-medium text-emerald-300"}>{formatNumber(c.computed_value)}</span>
                         </span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                        <span className="pl-1 text-right">
+                          <span className={"inline-block rounded px-1.5 py-0.5 text-[10px] font-bold " + (c.breached ? "bg-rose-500/15 text-rose-300" : "bg-emerald-500/15 text-emerald-300")}>
+                            {c.breached ? "BREACH" : "PASS"}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
 
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-800/40 p-3 text-xs">
-                <div><span className="text-slate-500">SVOD (subscription)</span><div className="tabular-nums text-slate-200">{formatUsd(resp.ltv_attribution?.subscription_value)}</div></div>
-                <div><span className="text-slate-500">AVOD (advertising)</span><div className="tabular-nums text-slate-200">{formatUsd(resp.ltv_attribution?.advertising_value)}</div></div>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-slate-400">
-              {loading ? "Computing scenario..." : "Edit a value on the left to explore how the verdict would change, or try a preset."}
-            </p>
-          )}
-        </div>
+                <div>
+                  <SectionHeading className="mb-2">Modeled value mix</SectionHeading>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-slate-800 bg-slate-800/30 p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400"><span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />SVOD (subscription)</div>
+                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-100">{formatUsd(resp.ltv_attribution?.subscription_value)}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-800 bg-slate-800/30 p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400"><span className="h-2 w-2 rounded-full bg-violet-400" aria-hidden />AVOD (advertising)</div>
+                      <div className="mt-1 text-sm font-semibold tabular-nums text-slate-100">{formatUsd(resp.ltv_attribution?.advertising_value)}</div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="py-6 text-center text-sm text-slate-400">
+                {loading ? "Computing scenario..." : "Edit a value on the left or try a quick scenario to explore how the verdict would change."}
+              </p>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </section>
   );
