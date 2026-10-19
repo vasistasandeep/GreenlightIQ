@@ -9,7 +9,7 @@ Open `CineROI_AI_Presentation.html` in any browser. One self-contained file, no 
 - The slider and buttons on slide 5 are fully interactive - arrow keys there move the slider, not the slide.
 
 ## The interactive moments (this is what makes it land)
-- **Slide 5 - Verdict Machine (the star).** Hand someone the mouse. Drag the price of *The Ledger* down from $9.5M. The four checks recompute live and badges flip. At **$7.2M it turns GREENLIGHT** - that is the real negotiation ceiling. Use the "Jump to target deal" button to show it instantly. The story line at the bottom narrates every state. This single slide teaches the whole product.
+- **Slide 5 - Verdict Machine (the star).** Hand someone the mouse. Drag the price of *The Ledger* (a sample demo title) down from $9.5M. The four checks recompute live and badges flip. At **$7.2M it turns GREENLIGHT** - that is its negotiation ceiling in the demo. Use the "Jump to target deal" button to show it instantly. The story line at the bottom narrates every state. This single slide teaches the whole product.
 - **Slides 2, 3, 4, 8, 10 - click-to-reveal cards.** Don't read them aloud; click one and let the reveal do the talking. Keeps the room engaged and the slides uncluttered.
 
 ## Flow (11 slides)
@@ -19,7 +19,7 @@ Open `CineROI_AI_Presentation.html` in any browser. One self-contained file, no 
 4. Four checks - click each. Punchline: three are price, one is the title itself.
 5. **Verdict Machine** - DRAG THE PRICE. Let them play. This is the memorable moment.
 6. Explainable AI - intelligence that shows its work. The trust pillars (consistent / explainable / auditable / reproducible). The point: it's AI you can defend.
-7. Live proof - real numbers (21 / $259M / 3.60x / 11-3-7).
+7. The demo at a glance - the stat cards count up (21 / $259M / 3.60x / 11-3-7). These are illustrative sample-slate figures, not production data.
 8. What-If - the negotiation-room sandbox; click the three cards.
 9. Keeps itself honest - backtest, recalibrate, govern.
 10. The AI stack - click each layer: Perception AI (content understanding), Decision AI (the verdict engine), Conversational AI (the Copilot). The line: the AI understands the content and explains the call, while the decision stays transparent and auditable.

@@ -86,6 +86,72 @@
   ul.clean li{display:flex;gap:.7rem;color:var(--muted);font-size:1.02rem;line-height:1.45}
   ul.clean li b{color:var(--ink)}
   .tick{color:var(--emerald);font-weight:800;flex-shrink:0}
+  /* ===== motion layer (additive) ===== */
+  @keyframes auroraDrift{0%{background-position:0% 0%,100% 0%}50%{background-position:40% 30%,60% 20%}100%{background-position:0% 0%,100% 0%}}
+  body{background:
+      radial-gradient(1100px 760px at 72% -12%, rgba(52,211,153,.10), transparent 60%),
+      radial-gradient(1000px 720px at 12% 108%, rgba(56,189,248,.08), transparent 60%),
+      radial-gradient(1200px 800px at 70% -10%, #15223c 0%, var(--bg) 55%);
+    background-size:200% 200%,200% 200%,100% 100%;
+    animation:auroraDrift 26s ease-in-out infinite;}
+
+  /* staggered entrance for the active slide's children */
+  @keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  .slide.active > *{animation:riseIn .55s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active > *:nth-child(1){animation-delay:.04s}
+  .slide.active > *:nth-child(2){animation-delay:.12s}
+  .slide.active > *:nth-child(3){animation-delay:.20s}
+  .slide.active > *:nth-child(4){animation-delay:.28s}
+  .slide.active > *:nth-child(5){animation-delay:.36s}
+  .slide.active > *:nth-child(6){animation-delay:.44s}
+  /* cascade grid cards individually */
+  .slide.active .grid > *{animation:riseIn .5s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active .grid > *:nth-child(1){animation-delay:.22s}
+  .slide.active .grid > *:nth-child(2){animation-delay:.33s}
+  .slide.active .grid > *:nth-child(3){animation-delay:.44s}
+  .slide.active .grid > *:nth-child(4){animation-delay:.55s}
+
+  /* card sheen + springier hover */
+  .card{position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.07),transparent);
+    transform:skewX(-18deg);transition:left .6s ease;pointer-events:none}
+  .clickcard:hover{transform:translateY(-5px) scale(1.012)}
+  .clickcard:hover::after{left:140%}
+
+  /* glowing logo mark */
+  @keyframes markPulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.45)}50%{box-shadow:0 0 22px 2px rgba(52,211,153,.55)}}
+  .logo .mark{animation:markPulse 3.2s ease-in-out infinite}
+
+  /* progress bar glow */
+  .progress{box-shadow:0 0 12px rgba(52,211,153,.7)}
+
+  /* live verdict box subtle breathing */
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+  .verdictbox{animation:breathe 4s ease-in-out infinite}
+
+  /* badge flip pop when state changes */
+  @keyframes popIn{0%{transform:scale(.6);opacity:.3}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+  .badge.pop{animation:popIn .32s ease}
+
+  /* slider thumb glow pulse to invite dragging */
+  @keyframes thumbGlow{0%,100%{box-shadow:0 0 0 1px var(--emerald),0 0 0 0 rgba(52,211,153,.5)}50%{box-shadow:0 0 0 1px var(--emerald),0 0 0 8px rgba(52,211,153,.18)}}
+  input[type=range]#cost::-webkit-slider-thumb{animation:thumbGlow 2.4s ease-in-out infinite}
+
+  /* floating accent dots on title/close */
+  .particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .particles span{position:absolute;bottom:-12px;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle,var(--emerald),transparent 70%);opacity:.0;
+    animation:floatUp linear infinite}
+  @keyframes floatUp{0%{transform:translateY(0);opacity:0}10%{opacity:.6}90%{opacity:.4}100%{transform:translateY(-104vh);opacity:0}}
+  .center > *{position:relative;z-index:1}
+
+  @media (prefers-reduced-motion: reduce){
+    body{animation:none}
+    .slide.active > *,.slide.active .grid > *{animation:none}
+    .verdictbox,.logo .mark,input[type=range]#cost::-webkit-slider-thumb,.particles span{animation:none}
+    .card::after{display:none}
+  }
 </style>
 </head>
 <body><div class="progress" id="progress"></div>
@@ -93,9 +159,10 @@
 
 <!-- 1 TITLE -->
 <section class="slide active center">
+  <div class="particles" data-particles></div>
   <div class="logo" style="font-size:1.1rem;margin-bottom:1.8rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy it, haggle, or walk away?<br/><span class="em">Answered in seconds &mdash; with the receipts.</span></h1>
-  <p class="lede" style="margin-left:auto;margin-right:auto">A decision engine for content deals. In two slides you&rsquo;ll run a real verdict yourself and watch it flip as you change the price.</p>
+  <p class="lede" style="margin-left:auto;margin-right:auto">A decision engine for content deals. In two slides you&rsquo;ll run a verdict yourself in this demo and watch it flip as you change the price.</p>
   <div class="foot"><span class="logo"><span class="mark" style="width:20px;height:20px">&#9650;</span> CineROI AI</span><span>Tap right to begin &rarr;</span></div>
 </section>
 
@@ -139,8 +206,8 @@
 <!-- 5 INTERACTIVE: VERDICT MACHINE -->
 <section class="slide">
   <div class="kicker">Try it yourself &middot; drag the price</div>
-  <h2>Watch a real deal flip in real time.</h2>
-  <p class="lede" style="max-width:62ch">This is <b class="em">The Ledger</b>, a real title in the platform. Drag its acquisition price and watch the four checks &mdash; and the verdict &mdash; react live.</p>
+  <h2>Watch a deal flip in real time.</h2>
+  <p class="lede" style="max-width:62ch">This is <b class="em">The Ledger</b>, a sample title from the demo. Drag its acquisition price and watch the four checks &mdash; and the verdict &mdash; react live.</p>
   <div class="machine">
     <div class="panel">
       <div class="slider-row">
@@ -177,16 +244,16 @@
 </section>
 <!-- 7 LIVE PROOF -->
 <section class="slide">
-  <div class="kicker">Live, today</div>
-  <h2>A working portfolio &mdash; not a mock-up.</h2>
-  <p class="lede">Real figures from the running platform&rsquo;s seeded slate right now.</p>
+  <div class="kicker">In the demo</div>
+  <h2>A working demo you can click through.</h2>
+  <p class="lede">Illustrative figures from the demo&rsquo;s sample slate &mdash; not production data.</p>
   <div class="grid g4" style="margin-top:1.6rem">
-    <div class="card"><div class="big">21</div><div class="stat-label">titles in pipeline</div></div>
-    <div class="card"><div class="big em">$259M</div><div class="stat-label">active pipeline value</div></div>
-    <div class="card"><div class="big">3.60&times;</div><div class="stat-label">avg LTV-to-Cost</div></div>
+    <div class="card"><div class="big" data-count="21">0</div><div class="stat-label">titles in pipeline</div></div>
+    <div class="card"><div class="big em" data-count="259" data-prefix="$" data-suffix="M">$0M</div><div class="stat-label">active pipeline value</div></div>
+    <div class="card"><div class="big" data-count="3.60" data-decimals="2" data-suffix="&times;">0.00&times;</div><div class="stat-label">avg LTV-to-Cost</div></div>
     <div class="card"><div class="big"><span class="em">11</span>/<span class="amberc">3</span>/<span class="rosec">7</span></div><div class="stat-label">green / negotiate / pass</div></div>
   </div>
-  <p class="lede" style="margin-top:1.4rem">Dashboard, instant valuation, bulk slate ingest, deep-dive, and backtesting &mdash; all live behind one link.</p>
+  <p class="lede" style="margin-top:1.4rem">Dashboard, instant valuation, bulk slate ingest, deep-dive, and backtesting &mdash; all clickable in the demo.</p>
 </section>
 
 <!-- 8 WHAT-IF -->
@@ -220,13 +287,14 @@
   <div class="grid g3" style="margin-top:1.4rem">
     <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Perception AI</div><h3>Content understanding</h3><div class="reveal"><p>Embedding models turn a script into &ldquo;Narrative DNA&rdquo; &mdash; themes, tone, cast strength, scale &mdash; the signals that feed every decision.</p></div></div>
     <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Decision AI</div><h3>The verdict engine</h3><div class="reveal"><p>A transparent, explainable decision layer that turns those signals into a verdict you can trace to the exact number &mdash; and reproduce on demand.</p></div></div>
-    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Conversational AI</div><h3>CineROI Copilot</h3><div class="reveal"><p>An assistant that explains any verdict in plain English and answers how-to questions &mdash; grounded in your real data, never making numbers up.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Conversational AI</div><h3>CineROI Copilot</h3><div class="reveal"><p>An assistant that explains any verdict in plain English and answers how-to questions &mdash; grounded in the demo&rsquo;s data, never making numbers up.</p></div></div>
   </div>
   <p class="lede" style="margin-top:1.6rem">The AI <b class="em">understands</b> the content and <b class="em">explains</b> the call &mdash; while the decision stays <b class="em">transparent and auditable</b>. That&rsquo;s what makes it safe to bet millions on.</p>
 </section>
 
 <!-- 11 CLOSE -->
 <section class="slide center">
+  <div class="particles" data-particles></div>
   <div class="logo" style="font-size:1rem;margin-bottom:1.4rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy, haggle, or walk away &mdash;<br/><span class="em">with the numbers to back it up.</span></h1>
   <p class="lede" style="margin-left:auto;margin-right:auto">Faster decisions. Defensible every time. Honest by design.</p>
@@ -244,6 +312,7 @@
     i=Math.max(0,Math.min(slides.length-1,n));
     slides.forEach((s,k)=>s.classList.toggle('active',k===i));
     document.getElementById('progress').style.width=((i+1)/slides.length*100)+'%';
+    runCounters(slides[i]);
   }
   document.addEventListener('keydown',e=>{
     const t=e.target.tagName;
@@ -267,7 +336,7 @@
   });
 
   // ----- the verdict machine (The Ledger) -----
-  // Real anchors at $9.5M: CPVH 0.2375 (ceiling 0.18), LTV 2.90 (floor 3.2),
+  // Sample-title anchors at $9.5M: CPVH 0.2375 (ceiling 0.18), LTV 2.90 (floor 3.2),
   // payback 15mo (max 12), churn 1.60 (hurdle 1.5, fixed - title fact).
   // CPVH and payback scale ~linearly with cost; LTV scales inversely with cost.
   const BASE=9.5, CPVH0=0.2375, LTV0=2.90, PAY0=15, CHURN=1.60;
@@ -286,8 +355,12 @@
     function paint(valId,bId,valText,breached){
       document.getElementById(valId).textContent=valText;
       const b=document.getElementById(bId);
+      const prev=b.dataset.state;
+      const now=breached?'no':'ok';
       b.textContent=breached?'BREACH':'PASS';
-      b.className='badge '+(breached?'no':'ok');
+      b.className='badge '+now;
+      if(prev && prev!==now){ b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+      b.dataset.state=now;
     }
     paint('cpvhVal','cpvhB',cpvh.toFixed(2)+' vs 0.18',cB);
     paint('ltvVal','ltvB',ltv.toFixed(2)+' vs 3.2',lB);
@@ -302,6 +375,45 @@
     else{cls='G';label='GREENLIGHT';s='All four checks pass &mdash; buy it';
       note='At <b>'+fmtM(cost)+'</b> all four checks clear. This is the price where the deal makes sense &mdash; your <b class="em">negotiation target</b>.';}
     box.className='verdictbox '+cls; lab.textContent=label; sub.innerHTML=s; story.innerHTML=note;
+  }
+  // ----- animated count-up for stat numbers -----
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function runCounters(slide){
+    if(!slide) return;
+    slide.querySelectorAll('[data-count]').forEach(el=>{
+      if(el.dataset.done) return;
+      el.dataset.done='1';
+      const target=parseFloat(el.dataset.count);
+      const dec=parseInt(el.dataset.decimals||'0',10);
+      const pre=el.dataset.prefix||'', suf=el.dataset.suffix||'';
+      if(reduceMotion){ el.innerHTML=pre+target.toFixed(dec)+suf; return; }
+      const dur=1100, t0=performance.now();
+      function tick(now){
+        const p=Math.min(1,(now-t0)/dur);
+        const e=1-Math.pow(1-p,3); // easeOutCubic
+        el.innerHTML=pre+(target*e).toFixed(dec)+suf;
+        if(p<1) requestAnimationFrame(tick);
+        else el.innerHTML=pre+target.toFixed(dec)+suf;
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ----- floating particles on hero slides -----
+  if(!reduceMotion){
+    document.querySelectorAll('[data-particles]').forEach(box=>{
+      const N=18;
+      for(let k=0;k<N;k++){
+        const s=document.createElement('span');
+        const size=3+Math.random()*6;
+        s.style.left=(Math.random()*100)+'%';
+        s.style.width=s.style.height=size+'px';
+        s.style.animationDuration=(9+Math.random()*10)+'s';
+        s.style.animationDelay=(-Math.random()*12)+'s';
+        s.style.opacity=(0.25+Math.random()*0.4);
+        box.appendChild(s);
+      }
+    });
   }
   document.getElementById('cost').addEventListener('input',update);
   update();
