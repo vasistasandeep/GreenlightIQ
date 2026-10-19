@@ -1,6 +1,6 @@
 # CineROI AI - Interactive Presentation (Speaker Notes)
 
-Open `CineROI_AI_Presentation.html` in any browser. One self-contained file, no internet needed.
+Open `presentation/index.html` in any browser. One self-contained file, no internet needed.
 
 ## Controls
 - **Navigate:** the bottom nav bar (Home / prev / next / click any dot to jump / slide counter), arrow keys, or click the far-left / far-right third of the screen.
@@ -43,6 +43,6 @@ const PORTAL_URL = "";   // empty by default (safe for sharing)
 
 ## Sharing this deck
 It is a single self-contained HTML file (all CSS/JS inline, no assets), so:
-- **Email / Slack / Teams:** attach `CineROI_AI_Presentation.html`; the recipient double-clicks to open. No internet needed for the deck itself.
-- **Public link (GitHub Pages):** served from this repo at `https://vasistasandeep.github.io/GreenlightIQ/presentation/CineROI_AI_Presentation.html`.
+- **Email / Slack / Teams:** attach `presentation/index.html`; the recipient double-clicks to open. No internet needed for the deck itself.
+- **Public link (GitHub Pages):** `https://vasistasandeep.github.io/GreenlightIQ/presentation/` (served from this repo once Pages is enabled on `main`).
 - **PDF fallback:** browser Print -> Save as PDF (loses all interactivity - use only for read-only recipients).
