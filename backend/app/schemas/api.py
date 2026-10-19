@@ -297,6 +297,9 @@ class BaselineSummary(BaseModel):
     ltv_subscription_value: Decimal | None = None
     ltv_advertising_value: Decimal | None = None
     explanation: dict[str, Any] | None = None
+    # Effective Baseline input values so the Explorer can show them in its fields
+    # and derive concrete preset values (keys mirror ScenarioInputOverrides).
+    inputs: dict[str, Any] | None = None
 
 
 class WhatIfResponse(ValuationScorecardResponse):

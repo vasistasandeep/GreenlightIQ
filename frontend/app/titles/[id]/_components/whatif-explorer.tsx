@@ -136,14 +136,35 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
     if (typeof window !== "undefined") void navigator.clipboard?.writeText(window.location.href);
   }, []);
 
-  const applyPreset = useCallback((preset: "bear" | "bull" | "target") => {
-    if (preset === "bear") setValues({ viewership_multiplier: 0.75, cpm: undefined as never, churn_multiplier: 0.85 });
-    if (preset === "bull") setValues({ viewership_multiplier: 1.3, churn_multiplier: 1.2 });
-    if (preset === "target") {
-      const ceiling = toNumber(resp?.negotiation_ceiling_usd);
-      if (ceiling !== null) setValues({ cost_usd: ceiling });
-    }
-  }, [resp]);
+  const applyPreset = useCallback(
+    (preset: "bear" | "bull" | "target") => {
+      const b = resp?.baseline?.inputs ?? {};
+      const bn = (k: string): number | null => toNumber((b as Record<string, number | string | null>)[k]);
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+
+      if (preset === "target") {
+        const ceiling = toNumber(resp?.negotiation_ceiling_usd);
+        if (ceiling !== null) setValues({ cost_usd: round2(ceiling) });
+        return;
+      }
+
+      // Bear / Bull apply concrete deltas to the Baseline driver values so the
+      // fields fill with real numbers the user can see and tweak.
+      const f = preset === "bear" ? { view: 0.75, cpm: 0.8, churn: 0.85 } : { view: 1.3, cpm: 1.25, churn: 1.2 };
+      const next: NumMap = {};
+      const hours = bn("projected_viewing_hours");
+      const imps = bn("ad_impressions");
+      const cpm = bn("cpm");
+      const churnPct = bn("churn_reduction_pct");
+      // Viewership scales both viewing hours and ad impressions.
+      if (hours !== null) next.projected_viewing_hours = Math.round(hours * f.view);
+      if (imps !== null) next.ad_impressions = Math.round(imps * f.view);
+      if (cpm !== null) next.cpm = round2(cpm * f.cpm);
+      if (churnPct !== null) next.churn_reduction_pct = round2(churnPct * f.churn);
+      setValues(next);
+    },
+    [resp],
+  );
 
   const baseline = resp?.baseline ?? null;
   const scenarioRec = resp?.recommendation_status ?? null;
@@ -168,12 +189,14 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
     return e && typeof e === "object" ? (e.checks ?? []) : [];
   }, [baseline]);
 
-  function baselineFor(key: string): number | null {
-    // Baseline field values are not all returned explicitly; show the scorecard
-    // metrics we do have for the anchor fields and leave drivers blank (the
-    // field shows the scenario value, baseline inferred from an untouched run).
-    if (key === "cost_usd") return toNumber(baseline?.ltv_to_cost_multiple === null ? null : resp?.normalized_cost_usd);
-    return null;
+  const baselineInputs = (baseline?.inputs ?? {}) as Record<string, number | string | null>;
+  function baselinePlaceholder(key: string, fmt: (v: number) => string): string {
+    // Thresholds have no baseline input value; show the model default label.
+    if (key in baselineInputs) {
+      const n = toNumber(baselineInputs[key]);
+      if (n !== null) return fmt(n);
+    }
+    return "baseline";
   }
 
   return (
@@ -220,7 +243,7 @@ export function WhatIfExplorer({ titleId }: WhatIfExplorerProps) {
                           inputMode="decimal"
                           value={f.key in values ? String(values[f.key]) : ""}
                           onChange={(e) => setField(f.key, e.target.value)}
-                          placeholder="baseline"
+                          placeholder={baselinePlaceholder(f.key, (f as { fmt: (v: number) => string }).fmt)}
                           className="w-32 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-right text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
                         />
                         <button type="button" onClick={() => resetField(f.key)} aria-label={`Reset ${f.label}`} className="text-slate-500 hover:text-slate-300" title="Reset to baseline">&times;</button>

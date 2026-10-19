@@ -417,6 +417,7 @@ async def what_if_valuation(
         ltv_subscription_value=baseline_result.get("ltv_subscription_value"),
         ltv_advertising_value=baseline_result.get("ltv_advertising_value"),
         explanation=b_expl if isinstance(b_expl, dict) else None,
+        inputs=baseline_result.get("inputs_snapshot"),
     )
     negotiation_ceiling = negotiation.target_purchase_ceiling(
         baseline_result["normalized_cost_usd"], b_checks

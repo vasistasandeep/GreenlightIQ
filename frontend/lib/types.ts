@@ -312,6 +312,8 @@ export interface BaselineSummary {
   ltv_subscription_value: number | string | null;
   ltv_advertising_value: number | string | null;
   explanation: Explanation | null;
+  /** Effective Baseline input values (keys mirror ScenarioInputOverrides). */
+  inputs?: Partial<Record<keyof ScenarioInputOverrides, number | string | null>> | null;
 }
 
 /** The What-If Explorer response: the Scenario scorecard + Baseline + ceiling. */

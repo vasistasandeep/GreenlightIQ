@@ -548,6 +548,23 @@ class Guardrails_Engine:
             "ltv_total_modeled_value": ltv_total,
             "modeled_cohort_size": cohort_size,
             "retained_subscribers": retained,
+            # Effective input values used for this compute, surfaced so the
+            # What-If Explorer can show the Baseline figures in its fields and
+            # derive concrete preset values (whatif-explore-inputs-guardrails).
+            "inputs_snapshot": {
+                "cost_usd": normalized.amount_usd,
+                "projected_viewing_hours": (
+                    cpvh_hours_override
+                    if cpvh_hours_override is not None
+                    else getattr(title, "projected_viewing_hours", None)
+                ),
+                "churn_reduction_pct": churn_pct,
+                "ltv": inputs.ltv,
+                "churn_reduction_value": inputs.churn_reduction_value,
+                "cpm": inputs.cpm,
+                "ad_impressions": inputs.ad_impressions,
+                "watch_time_elasticity": inputs.watch_time_elasticity,
+            },
         }
 
     async def evaluate_scenario(
