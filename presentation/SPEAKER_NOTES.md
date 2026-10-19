@@ -45,5 +45,5 @@ const PORTAL_URL = "https://overlabor-stumbling-praising.ngrok-free.dev";
 ## Sharing this deck
 It is a single self-contained HTML file (all CSS/JS inline, no assets), so:
 - **Email / Slack / Teams:** attach `presentation/index.html`; the recipient double-clicks to open. No internet needed for the deck itself.
-- **Public link (GitHub Pages):** `https://vasistasandeep.github.io/GreenlightIQ/presentation/` (served from this repo once Pages is enabled on `main`).
+- **Public link (GitHub Pages):** `https://vasistasandeep.github.io/GreenlightIQ` (served from this repo via GitHub Pages on `main`).
 - **PDF fallback:** browser Print -> Save as PDF (loses all interactivity - use only for read-only recipients).

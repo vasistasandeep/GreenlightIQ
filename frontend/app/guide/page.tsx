@@ -1193,7 +1193,7 @@ function FeaturesTab() {
         where="Anywhere - a browser link"
         what="A single self-contained HTML deck (12 slides) that tells the whole story: the problem, the credit-check analogy, a draggable live verdict, the four guardrails, the AI stack, and a button into this portal. No install, no login."
         steps={[
-          <>Send the public link: <a href="https://vasistasandeep.github.io/GreenlightIQ/presentation/" target="_blank" rel="noopener" className="text-emerald-400 underline">vasistasandeep.github.io/GreenlightIQ/presentation/</a>. It opens fully interactive in any browser.</>,
+          <>Send the public link: <a href="https://vasistasandeep.github.io/GreenlightIQ" target="_blank" rel="noopener" className="text-emerald-400 underline">vasistasandeep.github.io/GreenlightIQ</a>. It opens fully interactive in any browser.</>,
           <>Navigate with the bottom bar (Home / prev / next / click any dot to jump) or the arrow keys; press <span className="font-medium text-slate-100">F</span> for full screen.</>,
           <>On the <span className="font-medium text-slate-100">Verdict Machine</span> slide, drag the acquisition price and watch the four checks and the verdict flip live.</>,
           <>The deck uses illustrative sample-slate figures - it is a demo, not production data.</>,

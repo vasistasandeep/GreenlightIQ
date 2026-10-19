@@ -188,7 +188,7 @@ PostgreSQL 16 + pgvector instance (via Docker/testcontainers or
 - **Interactive overview deck**: a self-contained 12-slide HTML presentation
   (`presentation/index.html`) that walks anyone through the product, including a
   draggable live verdict demo. Published at
-  <https://vasistasandeep.github.io/GreenlightIQ/presentation/> (push to `main`
+  <https://vasistasandeep.github.io/GreenlightIQ> (push to `main`
   to update). It uses illustrative sample data, not production figures; see
   `presentation/SPEAKER_NOTES.md` for controls and the live-portal link setup.
 - **Knowledge base**: `CineROI_AI_Complete_Knowledge_Base.md` (full reference).
