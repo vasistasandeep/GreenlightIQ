@@ -18,7 +18,10 @@
     color:var(--ink);overflow:hidden}
   .deck{height:100vh;width:100vw;position:relative}
   .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
-    padding:4vh 7vw;opacity:0;transition:opacity .35s ease;overflow-y:auto}
+    padding:3.5vh 7vw 9vh;opacity:0;transition:opacity .35s ease;overflow-y:auto}
+  .slide:not(.center){justify-content:center}
+  .slide > *{max-width:1100px}
+  .slide:not(.center){width:100%}
   .slide.active{display:flex;opacity:1}
   .kicker{color:var(--emerald);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem}
   h1{font-size:clamp(1.9rem,4.6vw,3.4rem);font-weight:800;line-height:1.08;letter-spacing:-.02em}
@@ -29,6 +32,7 @@
   .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
   .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:1.3rem 1.4rem}
   .card h3{font-size:1.02rem;font-weight:700;margin-bottom:.35rem}
+  .icoround{width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--emerald);background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);margin-bottom:.8rem}
   .card p{color:var(--muted);font-size:.92rem;line-height:1.45}
   .big{font-size:clamp(2rem,3.8vw,3rem);font-weight:800;line-height:1}
   .stat-label{color:var(--faint);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;margin-top:.5rem}
@@ -64,7 +68,22 @@
   .nsep{width:1px;height:20px;background:var(--line)}
   @media(max-width:620px){.ndots{display:none}}
   .center{text-align:center;align-items:center}
-  .closetags{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;margin-top:1.6rem}
+  .portal-btn{display:inline-flex;align-items:center;gap:.7rem;margin:2rem auto 0;cursor:pointer;
+    padding:1rem 1.8rem;border-radius:14px;font-size:1.1rem;font-weight:800;text-decoration:none;
+    color:#042016;background:linear-gradient(135deg,var(--emerald),var(--emerald-deep));
+    box-shadow:0 10px 30px rgba(16,185,129,.35);border:1px solid rgba(52,211,153,.6);
+    transition:transform .15s,box-shadow .15s}
+  .portal-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 42px rgba(16,185,129,.5)}
+  .portal-btn.disabled{background:linear-gradient(135deg,#334155,#1e293b);color:var(--muted);box-shadow:none;border-color:var(--line);cursor:default}
+  .portal-btn.disabled:hover{transform:none;box-shadow:none}
+  .portal-btn.disabled .pdot{background:var(--faint);animation:none}
+  .portal-btn .pdot{width:10px;height:10px;border-radius:50%;background:#042016;
+    box-shadow:0 0 0 4px rgba(4,32,22,.25);animation:livepulse 1.6s ease-in-out infinite}
+  @keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(4,32,22,.5)}50%{box-shadow:0 0 0 6px rgba(4,32,22,0)}}
+  .portal-btn .parrow{font-size:1.2rem}
+  .portal-url{margin-top:1rem;color:var(--faint);font-size:.82rem;font-family:ui-monospace,monospace;word-break:break-all}
+  .closetags{display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:1.4rem;color:var(--faint);font-size:.9rem;letter-spacing:.02em}
+  .closetags .tagline{color:var(--muted)} .closetags .dot{color:var(--faint)}
 
   /* interactive bits */
   .clickcard{cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
@@ -329,12 +348,12 @@
 <section class="slide">
   <div class="kicker">Keeps itself honest</div>
   <h2>It grades its own homework.</h2>
-  <ul class="clean" style="max-width:66ch">
-    <li><span class="tick">&#8635;</span><span><b>Backtest</b> &mdash; enter what actually happened; it scores predicted vs reality with one accuracy number.</span></li>
-    <li><span class="tick">&#8635;</span><span><b>Recalibrate</b> &mdash; if it drifts, it retunes and forks a new <b>immutable</b> version (never edits in place).</span></li>
-    <li><span class="tick">&#8635;</span><span><b>Govern</b> &mdash; any buy over $25M needs two executive sign-offs before it&rsquo;s final.</span></li>
-  </ul>
-  <p class="lede" style="margin-top:1.3rem">It gets smarter over time &mdash; and every past decision stays reproducible under the version that made it.</p>
+  <p class="lede">It gets smarter over time &mdash; and every past decision stays reproducible under the exact version that made it.</p>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card"><div class="icoround">&#8635;</div><h3>Backtest</h3><p>Enter what actually happened; it scores predicted vs reality as one accuracy number.</p></div>
+    <div class="card"><div class="icoround">&#9874;</div><h3>Recalibrate</h3><p>If it drifts, it retunes and forks a new <b class="em">immutable</b> version &mdash; never edits in place.</p></div>
+    <div class="card"><div class="icoround">&#128274;</div><h3>Govern</h3><p>Any buy over <b class="em">$25M</b> needs two executive sign-offs before it&rsquo;s final.</p></div>
+  </div>
 </section>
 
 <!-- 10 THE AI STACK -->
@@ -349,12 +368,23 @@
   <p class="lede" style="margin-top:1.6rem">The AI <b class="em">understands</b> the content and <b class="em">explains</b> the call &mdash; while the decision stays <b class="em">transparent and auditable</b>. That&rsquo;s what makes it safe to bet millions on.</p>
 </section>
 
-<!-- 11 CLOSE -->
+<!-- 10b OPEN THE PORTAL -->
 <section class="slide center">
+  <div class="kicker">See it for real</div>
+  <h2>Stop reading &mdash; go click the actual product.</h2>
+  <p class="lede" style="margin-left:auto;margin-right:auto">Open the live demo portal in a new tab: the dashboard, instant valuation, the What-If Explorer you just drove, and the Copilot &mdash; all running.</p>
+  <a class="portal-btn" id="portalLink" href="#" target="_blank" rel="noopener">
+    <span class="pdot"></span> <span class="ptext">Open the live demo portal</span>
+    <span class="parrow">&#8599;</span>
+  </a>
+  <p class="portal-url" id="portalUrl"></p>
+</section>
+
+<!-- 11 CLOSE --><section class="slide center">
   <div class="logo" style="font-size:1rem;margin-bottom:1.4rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
   <h1>Buy, haggle, or walk away &mdash;<br/><span class="em">with the numbers to back it up.</span></h1>
   <p class="lede" style="margin-left:auto;margin-right:auto">Faster decisions. Defensible every time. Honest by design.</p>
-  <div class="closetags"><span class="pill g" style="cursor:default">Credit check for content deals</span><span class="pill" style="color:var(--muted);border-color:var(--line);cursor:default">Deterministic &middot; Explainable &middot; Auditable</span></div>
+  <div class="closetags"><span class="tagline">Credit check for content deals</span><span class="dot">&middot;</span><span class="tagline">Deterministic &middot; Explainable &middot; Auditable</span></div>
 </section>
 
 </div>
@@ -364,13 +394,36 @@
   <button class="nbtn" id="nPrev" title="Previous (Left arrow)"><span class="ic">&#8249;</span></button>
   <span class="ndots" id="nDots"></span>
   <button class="nbtn" id="nNext" title="Next (Right arrow)"><span class="ic">&#8250;</span></button>
-  <span class="ncount" id="nCount">1 / 11</span>
+  <span class="ncount" id="nCount">1 / 12</span>
 </nav>
 <div class="hint">&larr; &rarr; or use the bar &middot; click a dot to jump &middot; F = full screen</div>
 
 <script>
   // ----- navigation -----
   const slides=[...document.querySelectorAll('.slide')];
+  // ===== EDIT ME: where "Open the live demo portal" points =====
+  // Set this to the URL where the portal is reachable when you present:
+  //   - a permanent deployment  -> e.g. "https://demo.yourdomain.com"
+  //   - a local run             -> "http://localhost:3000"
+  //   - a live ngrok tunnel     -> paste the current https ngrok URL
+  // Leave it "" when sharing the deck as a file, so the button shows a
+  // "available during a live demo" note instead of a dead link.
+  const PORTAL_URL = "";
+  (function(){
+    const a=document.getElementById('portalLink');
+    const u=document.getElementById('portalUrl');
+    const url=(PORTAL_URL||'').trim();
+    const temporary=/ngrok|trycloudflare|localhost|127\.0\.0\.1/i.test(url);
+    if(!url){
+      // no live endpoint configured for this copy
+      if(a){ a.removeAttribute('href'); a.setAttribute('aria-disabled','true'); a.classList.add('disabled');
+        a.querySelector('.ptext')&&(a.querySelector('.ptext').textContent='Portal opens during a live demo'); }
+      if(u){ u.textContent='Ask the presenter for the live link, or run the stack locally at http://localhost:3000'; }
+      return;
+    }
+    if(a){ a.href=url; }
+    if(u){ u.textContent = url + (temporary ? '  (live only while the demo is running)' : ''); }
+  })();
   let i=0;
   function show(n){
     i=Math.max(0,Math.min(slides.length-1,n));
@@ -402,7 +455,7 @@
 
   // ----- edge-click navigation (ignore interactive elements) -----
   document.addEventListener('click',e=>{
-    if(e.target.closest('.clickcard,input,button,.tipbtn,.navbar,.hint')) return;
+    if(e.target.closest('.clickcard,input,button,a,.tipbtn,.navbar,.hint,.portal-btn')) return;
     if(e.clientX > window.innerWidth*0.6) show(i+1);
     else if(e.clientX < window.innerWidth*0.4) show(i-1);
   });
