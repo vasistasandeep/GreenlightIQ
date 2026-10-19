@@ -96,7 +96,7 @@ export function MetadataRadar({ breakdown }: MetadataRadarProps) {
   return (
     <section
       aria-labelledby="metadata-radar-heading"
-      className="rounded-lg border bg-background p-5 shadow-sm"
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <div className="mb-3 flex items-baseline justify-between">
         <h2 id="metadata-radar-heading" className="text-lg font-semibold">

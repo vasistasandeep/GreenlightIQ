@@ -97,7 +97,7 @@ export function FinancialAccordion({ scorecard }: FinancialAccordionProps) {
   return (
     <section
       aria-labelledby="financial-accordion-heading"
-      className="rounded-lg border bg-background p-5 shadow-sm"
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <h2 id="financial-accordion-heading" className="mb-2 text-lg font-semibold">
         Financial breakdown

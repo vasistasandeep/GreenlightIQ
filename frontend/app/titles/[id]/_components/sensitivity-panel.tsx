@@ -72,7 +72,7 @@ export function SensitivityPanel({ titleId }: SensitivityPanelProps) {
   return (
     <section
       aria-labelledby="sensitivity-heading"
-      className="no-print rounded-lg border bg-background p-5 shadow-sm"
+      className="no-print rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id="sensitivity-heading" className="text-lg font-semibold">

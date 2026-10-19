@@ -75,7 +75,7 @@ export function AuditLineage({ titleId }: AuditLineageProps) {
   return (
     <section
       aria-labelledby="audit-lineage-heading"
-      className="no-print rounded-lg border bg-background p-5 shadow-sm"
+      className="no-print rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <button
         type="button"

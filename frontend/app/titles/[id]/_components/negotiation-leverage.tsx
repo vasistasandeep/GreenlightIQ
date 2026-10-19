@@ -69,7 +69,7 @@ export function NegotiationLeverage({ scorecard }: NegotiationLeverageProps) {
   return (
     <section
       aria-labelledby="negotiation-leverage-heading"
-      className="rounded-lg border bg-background p-5 shadow-sm"
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <h2 id="negotiation-leverage-heading" className="mb-3 text-lg font-semibold">
         Negotiation playbook

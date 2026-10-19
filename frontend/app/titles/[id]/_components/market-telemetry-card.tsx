@@ -97,7 +97,7 @@ export function MarketTelemetryCard({ genre, territory }: MarketTelemetryCardPro
   return (
     <section
       aria-labelledby="telemetry-heading"
-      className="rounded-lg border bg-background p-5 shadow-sm"
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 id="telemetry-heading" className="text-lg font-semibold">

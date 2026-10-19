@@ -25,7 +25,7 @@ export function ExplanationPanel({ explanation }: ExplanationPanelProps) {
   return (
     <section
       aria-labelledby="explanation-panel-heading"
-      className="rounded-lg border bg-background p-5 shadow-sm"
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <h2 id="explanation-panel-heading" className="mb-3 text-lg font-semibold">
         Why this recommendation

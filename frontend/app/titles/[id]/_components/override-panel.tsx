@@ -68,7 +68,7 @@ export function OverridePanel({ titleId, currentStatus, onOverridden }: Override
   return (
     <section
       aria-labelledby="override-heading"
-      className="no-print rounded-lg border bg-background p-5 shadow-sm"
+      className="no-print rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="override-heading" className="text-lg font-semibold">
