@@ -3,7 +3,7 @@
 Open `presentation/index.html` in any browser. One self-contained file, no internet needed.
 
 ## Controls
-- **Navigate:** the bottom nav bar (Home / prev / next / click any dot to jump / slide counter), arrow keys, or click the far-left / far-right third of the screen.
+- **Navigate:** the bottom nav bar (Home / prev / next / click any dot to jump / slide counter) works everywhere. On desktop you can also use arrow keys or click the far-left / far-right third of the screen; on phones/tablets, swipe left/right.
 - **Expand cards:** click any card with a > chevron to reveal more (clicking a card does NOT advance the slide).
 - **Full screen:** press **F**.
 - The slider and buttons on slide 5 are fully interactive - arrow keys there move the slider, not the slide.
@@ -36,10 +36,11 @@ Yes - and the best kind for betting millions: **explainable, decision-grade AI**
 ## Setting the "Open the live demo portal" link
 The button on slide 11 reads its target from a single constant near the top of the inline `<script>`:
 ```js
-const PORTAL_URL = "";   // empty by default (safe for sharing)
+// currently set to a live ngrok tunnel for demos:
+const PORTAL_URL = "https://overlabor-stumbling-praising.ngrok-free.dev";
 ```
 - **Sharing the deck as a file or a public link:** leave it `""`. The button shows "Portal opens during a live demo" instead of a dead link - nobody lands on a broken ngrok URL.
-- **Presenting live:** set it to wherever the portal is reachable right then - a permanent deployment, `http://localhost:3000` for a local run, or your current https ngrok URL (changes every restart). The caption flags temporary (ngrok/localhost) links as "live only while the demo is running".
+- **Presenting live:** set it to wherever the portal is reachable right then - a permanent deployment, `http://localhost:3000` for a local run, or your current https ngrok URL. **ngrok URLs change every time the tunnel restarts**, so re-paste it and push before each demo. The slide shows an amber disclaimer under temporary (ngrok/localhost) links: "Live demo link - only works while a demo is running... if a browser warning appears, tap Visit Site". When sharing the deck for later reading, set it back to `""` so nobody hits a dead tunnel.
 
 ## Sharing this deck
 It is a single self-contained HTML file (all CSS/JS inline, no assets), so:
