@@ -91,11 +91,20 @@ function CheckLine({
 // Glossary data (exact to the system's requirements glossary)
 // --------------------------------------------------------------------------- //
 type GlossaryEntry = { term: string; def: string };
-type GlossaryGroup = { group: string; items: GlossaryEntry[] };
+type GlossaryGroup = {
+  group: string;
+  /** Short slug for the jump/filter chips and the section anchor id. */
+  id: string;
+  /** One-line purpose shown under the group header for quick orientation. */
+  blurb: string;
+  items: GlossaryEntry[];
+};
 
 const GLOSSARY: GlossaryGroup[] = [
   {
     group: "The Verdict",
+    id: "verdict",
+    blurb: "The three possible answers and how a breach decides between them.",
     items: [
       { term: "Recommendation Status", def: "The final verdict for a title: GREENLIGHT, NEGOTIATE HARD, or PASS. Shown as the big banner on the scorecard." },
       { term: "GREENLIGHT", def: "All four guardrails pass. Acquire the title as proposed." },
@@ -109,6 +118,8 @@ const GLOSSARY: GlossaryGroup[] = [
   },
   {
     group: "The Four Guardrails",
+    id: "guardrails",
+    blurb: "The four money checks every title must clear, and their thresholds.",
     items: [
       { term: "CPVH", def: "Cost-Per-Viewing-Hour = Acquisition Cost / Projected Viewing Hours. What you pay per hour watched. Lower is better." },
       { term: "CPVH Ceiling", def: "The maximum allowed CPVH: 0.18 USD for premium originals, 0.05 USD for library titles. Over it = breach." },
@@ -125,7 +136,9 @@ const GLOSSARY: GlossaryGroup[] = [
     ],
   },
   {
-    group: "Asset Studio - Form Fields",
+    group: "What You Enter",
+    id: "inputs",
+    blurb: "The fields you fill in to evaluate a title in the Asset Studio.",
     items: [
       { term: "Title Name", def: "The name of the content being evaluated (e.g. 'The Bengaluru Syndicate'). Required." },
       { term: "Asset Type", def: "The content category: ORIGINAL_SERIES, ORIGINAL_FILM, LICENSED_LIBRARY, or CO_PRODUCTION. Sets the CPVH ceiling." },
@@ -144,7 +157,9 @@ const GLOSSARY: GlossaryGroup[] = [
     ],
   },
   {
-    group: "Scorecard & Charts",
+    group: "Reading the Scorecard",
+    id: "scorecard",
+    blurb: "Everything on the valuation report: the checks, charts, and panels.",
     items: [
       { term: "Executive Scorecard", def: "The right-hand valuation report: banner, four checks, explainability, governance, radar, and payback chart." },
       { term: "Four Quantitative Checks", def: "The CPVH / LTV / Churn / Payback results panel, each showing computed value vs threshold and PASS/BREACH." },
@@ -160,7 +175,9 @@ const GLOSSARY: GlossaryGroup[] = [
     ],
   },
   {
-    group: "Governance & Security",
+    group: "Governance & Trust",
+    id: "governance",
+    blurb: "Sign-off gates, roles, and the audit trail that make a decision defensible.",
     items: [
       { term: "Governance Panel", def: "The scorecard section showing whether executive sign-off is required and which approvals are outstanding." },
       { term: "Approval Workflow", def: "Multi-tier executive sign-off: a GREENLIGHT whose normalized cost exceeds $25M needs both CCO and CFO approval before it is final." },
@@ -177,11 +194,15 @@ const GLOSSARY: GlossaryGroup[] = [
     ],
   },
   {
-    group: "Backtesting & the Model",
+    group: "Accuracy & the Model",
+    id: "model",
+    blurb: "How the system measures and tunes its own accuracy over time.",
     items: [
       { term: "Backtesting", def: "Comparing past predictions against actual observed outcomes to measure how accurate the model has been." },
       { term: "Ground Truth Record", def: "The actual observed outcome for a historical title, entered in the Backtest Studio to score predictions." },
-      { term: "MAPE", def: "Mean Absolute Percentage Error = (1/n) x sum(|(Actual - Predicted)/Actual|) x 100. The accuracy metric; lower is better." },
+      { term: "Actual Payback Horizon", def: "One of the four observed outcomes entered in the Backtest Studio (alongside actual CPVH, LTV-to-Cost, and churn reduction): the real number of months the title took to pay for itself. Left blank it is simply omitted from the accuracy scoring." },
+      { term: "MAPE", def: "Mean Absolute Percentage Error = (1/n) x sum(|(Actual - Predicted)/Actual|) x 100. The per-metric backtest accuracy; lower is better." },
+      { term: "Model Accuracy (Verdict-Match Rate)", def: "The dashboard KPI card: the share of audited titles whose predicted verdict (GREENLIGHT / NEGOTIATE HARD / PASS) matched the verdict recomputed from the actual observed outcomes. Higher is better. It stays blank until at least one title has enough ground truth to judge, so it is never a fabricated number." },
       { term: "Calibration", def: "Auto-tuning the model's feature weights when MAPE exceeds 10%, so future predictions improve." },
       { term: "Model Version", def: "An immutable snapshot of the active weights and parameters stamped on each valuation, so any past result is reproducible." },
       { term: "Weight Offsets", def: "The adjustments applied to feature weights during calibration (each within -1.00 to 1.00)." },
@@ -194,7 +215,9 @@ const GLOSSARY: GlossaryGroup[] = [
     ],
   },
   {
-    group: "Platform & Data",
+    group: "Under the Hood",
+    id: "platform",
+    blurb: "Platform plumbing: currencies, licensing, telemetry, and async jobs.",
     items: [
       { term: "Premium Original", def: "ORIGINAL_SERIES / ORIGINAL_FILM / CO_PRODUCTION. CPVH ceiling 0.18 USD." },
       { term: "Library Filler", def: "LICENSED_LIBRARY. CPVH ceiling 0.05 USD (cheaper content, stricter per-hour cap)." },
@@ -213,7 +236,9 @@ const GLOSSARY: GlossaryGroup[] = [
     ],
   },
   {
-    group: "Decision-Support Features",
+    group: "Acting on the Verdict",
+    id: "decision-support",
+    blurb: "Negotiation, what-if, and export tools for turning a verdict into action.",
     items: [
       { term: "Negotiation Playbook", def: "On a NEGOTIATE HARD / PASS title, the panel that gives a target purchase ceiling, the implied discount vs the ask, and per-guardrail counter-proposal talking points." },
       { term: "Target Purchase Ceiling", def: "The highest price at which every cost-correctable guardrail would pass - the number to negotiate the seller down to." },
@@ -1164,7 +1189,7 @@ function FeaturesTab() {
         steps={[
           <>Open <Link href="/backtest" className="text-emerald-400 underline">Backtest Studio</Link>.</>,
           <>Pick a title from the <span className="font-medium text-slate-100">Historical title</span> dropdown (titles with a stored prediction; the ID is shown to tell duplicates apart).</>,
-          <>Enter the actual CPVH and LTV-to-Cost; the predicted values show read-only beside them.</>,
+          <>Enter the actual outcomes - CPVH, LTV-to-Cost, churn reduction, and payback horizon (months); the predicted values show read-only beside each, and any field left blank is skipped.</>,
           <>Press <span className="font-medium text-slate-100">Run audit</span> to see Predicted vs Actual and the overall Prediction Error (MAPE - lower is better).</>,
         ]}
       />
@@ -1229,35 +1254,114 @@ function FeaturesTab() {
   );
 }
 
+// Display order for the glossary groups: follows a user's journey through the
+// product (what you enter -> how it is judged -> the answer -> what to do ->
+// trust -> under the hood) rather than the internal data order.
+const GLOSSARY_ORDER = [
+  "inputs",
+  "guardrails",
+  "verdict",
+  "scorecard",
+  "decision-support",
+  "governance",
+  "model",
+  "platform",
+] as const;
+
+const GLOSSARY_ORDERED: GlossaryGroup[] = [...GLOSSARY].sort(
+  (a, b) => GLOSSARY_ORDER.indexOf(a.id as (typeof GLOSSARY_ORDER)[number]) -
+    GLOSSARY_ORDER.indexOf(b.id as (typeof GLOSSARY_ORDER)[number]),
+);
+
+/** Render a definition/term with the matched query substring highlighted. */
+function highlight(text: string, q: string): React.ReactNode {
+  if (!q) return text;
+  const i = text.toLowerCase().indexOf(q);
+  if (i < 0) return text;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="rounded bg-emerald-500/25 px-0.5 text-emerald-200">
+        {text.slice(i, i + q.length)}
+      </mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+}
+
 function GlossaryTab() {
   const [query, setQuery] = useState("");
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const q = query.trim().toLowerCase();
 
-  const groups = GLOSSARY.map((g) => ({
-    group: g.group,
+  // Apply the text filter, then the optional single-group filter.
+  const groups = GLOSSARY_ORDERED.map((g) => ({
+    ...g,
     items: q
       ? g.items.filter(
           (it) =>
             it.term.toLowerCase().includes(q) || it.def.toLowerCase().includes(q),
         )
       : g.items,
-  })).filter((g) => g.items.length > 0);
+  }))
+    .filter((g) => g.items.length > 0)
+    .filter((g) => (activeGroup ? g.id === activeGroup : true));
 
   const shown = groups.reduce((n, g) => n + g.items.length, 0);
 
+  // Jump to a group's anchor (and clear any single-group filter so it is visible).
+  function jumpTo(id: string) {
+    setActiveGroup((cur) => (cur === id ? null : id));
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Search + live count */}
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search terms (e.g. CPVH, governance, payback)..."
-          className="w-full max-w-sm rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          aria-label="Search glossary terms"
+          className="min-h-[44px] w-full max-w-sm rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:min-h-0"
         />
-        <span className="text-xs text-slate-500">
-          {q ? `${shown} of ${GLOSSARY_COUNT}` : `${GLOSSARY_COUNT} terms`}
+        <span className="text-xs text-slate-500" role="status" aria-live="polite">
+          {q || activeGroup ? `${shown} of ${GLOSSARY_COUNT} terms` : `${GLOSSARY_COUNT} terms in ${GLOSSARY_ORDERED.length} groups`}
         </span>
+      </div>
+
+      {/* Category chips: jump to / filter by a single group. */}
+      <div className="flex flex-wrap gap-2" aria-label="Glossary categories">
+        <button
+          type="button"
+          onClick={() => setActiveGroup(null)}
+          aria-pressed={activeGroup === null}
+          className={
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+            (activeGroup === null
+              ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300"
+              : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200")
+          }
+        >
+          All
+        </button>
+        {GLOSSARY_ORDERED.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => jumpTo(g.id)}
+            aria-pressed={activeGroup === g.id}
+            className={
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+              (activeGroup === g.id
+                ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300"
+                : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200")
+            }
+          >
+            {g.group}
+          </button>
+        ))}
       </div>
 
       {groups.length === 0 ? (
@@ -1266,19 +1370,25 @@ function GlossaryTab() {
         </p>
       ) : (
         groups.map((g) => (
-          <div key={g.group}>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-emerald-400">
-              {g.group}
-            </h3>
+          <section key={g.id} id={`glossary-${g.id}`} className="scroll-mt-20">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-emerald-400">
+                {g.group}
+              </h3>
+              <span className="shrink-0 text-xs text-slate-600">
+                {g.items.length} {g.items.length === 1 ? "term" : "terms"}
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-slate-500">{g.blurb}</p>
             <dl className="divide-y divide-slate-800 rounded-lg border border-slate-800 bg-slate-900/40">
               {g.items.map((it) => (
                 <div key={it.term} className="grid grid-cols-1 gap-1 p-4 sm:grid-cols-[220px_1fr] sm:gap-4">
-                  <dt className="font-semibold text-slate-100">{it.term}</dt>
-                  <dd className="text-sm text-slate-400">{it.def}</dd>
+                  <dt className="font-semibold text-slate-100">{highlight(it.term, q)}</dt>
+                  <dd className="text-sm text-slate-400">{highlight(it.def, q)}</dd>
                 </div>
               ))}
             </dl>
-          </div>
+          </section>
         ))
       )}
     </div>
@@ -1339,7 +1449,7 @@ export default function GuidePage() {
         <div
           role="tablist"
           aria-label="Guide sections"
-          className="mb-8 flex gap-2 overflow-x-auto scroll-smooth rounded-lg border border-slate-800 bg-slate-900/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x sm:flex-wrap sm:gap-1 sm:overflow-visible"
+          className="mb-8 flex gap-2 overflow-x-auto scroll-smooth rounded-lg border border-slate-800 bg-slate-900/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x sm:gap-1"
         >
           {TABS.map((t, i) => (
             <button
@@ -1353,7 +1463,7 @@ export default function GuidePage() {
               onClick={() => setTab(t.id)}
               onKeyDown={(e) => onTabKeyDown(e, i)}
               className={
-                "flex-shrink-0 snap-start whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors " +
+                "flex-shrink-0 snap-start whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors sm:px-3 " +
                 (tab === t.id
                   ? "bg-emerald-500 text-emerald-950"
                   : "text-slate-300 hover:bg-slate-800")
