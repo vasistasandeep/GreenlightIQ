@@ -26,6 +26,103 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 // --------------------------------------------------------------------------- //
+// End-to-end walkthrough video
+// --------------------------------------------------------------------------- //
+// To publish the walkthrough, drop an MP4 into frontend/public (e.g.
+// public/walkthrough.mp4) and set WALKTHROUGH_VIDEO_SRC to its public path
+// ("/walkthrough.mp4"). Optionally add a poster image the same way. While the
+// source is empty the section renders a tidy "coming soon" placeholder, so the
+// guide looks intentional with or without a video. Keep it a DEMO walkthrough
+// caption (honest: the app runs on sample data).
+const WALKTHROUGH_VIDEO_SRC = ""; // e.g. "/walkthrough.mp4"
+const WALKTHROUGH_VIDEO_POSTER = ""; // e.g. "/walkthrough-poster.png"
+
+// The chapters the walkthrough covers, shown beside the player as a quick map of
+// the end-to-end flow (also useful as a shot list when recording the video).
+const WALKTHROUGH_CHAPTERS: { step: string; detail: string }[] = [
+  { step: "Enter a title", detail: "Type one in the Asset Studio (or click a preset) and run it." },
+  { step: "See the four checks", detail: "CPVH, LTV-to-Cost, churn, and payback, each value vs its line." },
+  { step: "Read the verdict", detail: "GREENLIGHT, NEGOTIATE HARD, or PASS, with the reason spelled out." },
+  { step: "Act on it", detail: "Use the negotiation target, what-if sliders, or export the memo." },
+];
+
+function WalkthroughVideo() {
+  const hasVideo = WALKTHROUGH_VIDEO_SRC !== "";
+  return (
+    <section
+      aria-labelledby="walkthrough-heading"
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5"
+    >
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 id="walkthrough-heading" className="text-lg font-semibold text-slate-100">
+          Watch the 2-minute walkthrough
+        </h3>
+        <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-400">
+          Demo &middot; sample data
+        </span>
+      </div>
+      <p className="mb-4 text-sm text-slate-400">
+        One title taken end to end: enter it, watch the four money checks, read the
+        verdict, and act on it. No finance background needed.
+      </p>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.6fr_1fr]">
+        {/* Player (or placeholder) */}
+        <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+          {hasVideo ? (
+            <video
+              controls
+              preload="metadata"
+              playsInline
+              poster={WALKTHROUGH_VIDEO_POSTER || undefined}
+              className="aspect-video w-full bg-black"
+            >
+              <source src={WALKTHROUGH_VIDEO_SRC} type="video/mp4" />
+              Your browser does not support the video tag. You can still follow the
+              step-by-step guide in the tabs above.
+            </video>
+          ) : (
+            <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-900 to-slate-950 text-center">
+              <span
+                aria-hidden
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-500"
+              >
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+              <p className="text-sm font-medium text-slate-300">Walkthrough video coming soon</p>
+              <p className="max-w-xs px-6 text-xs text-slate-500">
+                In the meantime, the step-by-step guide below and the Worked Examples
+                tab cover the same end-to-end flow.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Chapters / what the video covers */}
+        <ol className="flex flex-col gap-3">
+          {WALKTHROUGH_CHAPTERS.map((c, i) => (
+            <li key={c.step} className="flex gap-3">
+              <span
+                aria-hidden
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-300"
+              >
+                {i + 1}
+              </span>
+              <div>
+                <p className="text-sm font-medium text-slate-200">{c.step}</p>
+                <p className="text-xs text-slate-500">{c.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+// --------------------------------------------------------------------------- //
 // Small presentational helpers
 // --------------------------------------------------------------------------- //
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -266,6 +363,8 @@ const GLOSSARY_COUNT = GLOSSARY.reduce((n, g) => n + g.items.length, 0);
 function OverviewTab() {
   return (
     <div className="space-y-8">
+      <WalkthroughVideo />
+
       <div className="space-y-3 text-sm leading-relaxed text-slate-300">
         <p>
           <span className="font-medium text-slate-100">In one sentence:</span> CineROI AI
