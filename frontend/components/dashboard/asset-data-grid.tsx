@@ -330,7 +330,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
             onChange={(e) => updateParams({ q: e.target.value })}
             placeholder="Search titles..."
             aria-label="Search titles by name"
-            className="w-full rounded-md border border-slate-700 bg-slate-900/60 py-2 pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="min-h-[44px] w-full rounded-md border border-slate-700 bg-slate-900/60 py-2 pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:min-h-0"
           />
         </div>
 
@@ -342,7 +342,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
             id="rec-filter"
             value={recFilter ?? ""}
             onChange={(e) => updateParams({ rec: e.target.value || null })}
-            className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="min-h-[44px] rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:min-h-0"
           >
             <option value="">All</option>
             {RECOMMENDATION_FILTERS.map((status) => (
@@ -361,7 +361,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
             id="stage-filter"
             value={stageFilter ?? ""}
             onChange={(e) => updateParams({ stage: e.target.value || null })}
-            className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="min-h-[44px] rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:min-h-0"
           >
             <option value="">All</option>
             {DEAL_STAGES.map((stage) => (
@@ -376,7 +376,7 @@ export function AssetDataGrid({ titles, className }: AssetDataGridProps) {
           <button
             type="button"
             onClick={() => updateParams({ q: null, rec: null, stage: null })}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="inline-flex min-h-[44px] items-center gap-1 rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:min-h-0"
           >
             <X className="h-3.5 w-3.5" aria-hidden />
             Clear

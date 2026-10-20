@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { TopNav } from "@/components/layout/top-nav";
@@ -1290,6 +1290,36 @@ function GlossaryTab() {
 // --------------------------------------------------------------------------- //
 export default function GuidePage() {
   const [tab, setTab] = useState<TabId>("overview");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const isFirstTabEffect = useRef(true);
+  const activeIndex = TABS.findIndex((t) => t.id === tab);
+
+  // Keep the selected tab centered in the mobile scroll strip; skip the initial
+  // mount so there is no jarring horizontal slide on first load.
+  useEffect(() => {
+    if (isFirstTabEffect.current) {
+      isFirstTabEffect.current = false;
+      return;
+    }
+    tabRefs.current[activeIndex]?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [activeIndex]);
+
+  // Roving arrow-key navigation (ArrowLeft/Right with wrap-around).
+  function onTabKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    let next = index;
+    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
+    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = TABS.length - 1;
+    else return;
+    e.preventDefault();
+    setTab(TABS[next].id);
+    tabRefs.current[next]?.focus();
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100">
@@ -1306,15 +1336,24 @@ export default function GuidePage() {
         </div>
 
         {/* Tabs */}
-        <div role="tablist" aria-label="Guide sections" className="mb-8 flex flex-wrap gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-1">
-          {TABS.map((t) => (
+        <div
+          role="tablist"
+          aria-label="Guide sections"
+          className="mb-8 flex gap-2 overflow-x-auto scroll-smooth rounded-lg border border-slate-800 bg-slate-900/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x sm:flex-wrap sm:gap-1 sm:overflow-visible"
+        >
+          {TABS.map((t, i) => (
             <button
               key={t.id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
               role="tab"
               aria-selected={tab === t.id}
+              tabIndex={tab === t.id ? 0 : -1}
               onClick={() => setTab(t.id)}
+              onKeyDown={(e) => onTabKeyDown(e, i)}
               className={
-                "rounded-md px-4 py-2 text-sm font-medium transition-colors " +
+                "flex-shrink-0 snap-start whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors " +
                 (tab === t.id
                   ? "bg-emerald-500 text-emerald-950"
                   : "text-slate-300 hover:bg-slate-800")
