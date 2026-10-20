@@ -86,6 +86,7 @@ function summaryWith(): DashboardSummary {
         native_currency: "USD",
         cpvh_status: "PASS",
         ltv_to_cost_multiple: 3.1,
+        payback_horizon_months: 10,
         recommendation_status: "GREENLIGHT",
       },
       {
@@ -96,6 +97,7 @@ function summaryWith(): DashboardSummary {
         native_currency: "USD",
         cpvh_status: "PENDING",
         ltv_to_cost_multiple: null,
+        payback_horizon_months: null,
         recommendation_status: null,
       },
     ],

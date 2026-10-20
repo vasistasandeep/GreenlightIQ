@@ -20,8 +20,8 @@ import type { AuditableTitleOption } from "@/lib/backtest/select-auditable-title
  */
 
 const TITLES: AuditableTitleOption[] = [
-  { title_id: "title-123", title_name: "Maharani", ltv_to_cost_multiple: 3.1 },
-  { title_id: "title-456", title_name: "The Long Road", ltv_to_cost_multiple: 2.4 },
+  { title_id: "title-123", title_name: "Maharani", ltv_to_cost_multiple: 3.1, payback_horizon_months: 10 },
+  { title_id: "title-456", title_name: "The Long Road", ltv_to_cost_multiple: 2.4, payback_horizon_months: null },
 ];
 
 /** Capture the request the form hands to its parent on a valid submit. */
@@ -217,5 +217,61 @@ describe("GroundTruthForm (R16.1)", () => {
         screen.getByRole("button", { name: /Running audit/i }),
       ).toBeDisabled();
     });
+
+  // --- payback_horizon input (dashboard-accuracy-and-payback-audit) --------- //
+
+  it("includes a payback_horizon metric when an actual payback is entered (Property 7, R7.2)", async () => {
+    const user = userEvent.setup();
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-123");
+    await user.type(
+      screen.getByLabelText("Actual payback horizon (months)"),
+      "13",
+    );
+    await user.click(screen.getByRole("button", { name: /Run audit/i }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(lastRequest(onSubmit).metrics).toContainEqual({
+      metric_name: "payback_horizon",
+      actual_value: 13,
+    });
+  });
+
+  it("omits payback_horizon when the field is left blank (Property 7, R7.3)", async () => {
+    const user = userEvent.setup();
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-123");
+    await user.type(screen.getByLabelText("Actual CPVH"), "0.12");
+    await user.click(screen.getByRole("button", { name: /Run audit/i }));
+
+    const metricNames = lastRequest(onSubmit).metrics.map((m) => m.metric_name);
+    expect(metricNames).not.toContain("payback_horizon");
+  });
+
+
+  it("shows the predicted payback read-only when present and a dash when absent (R8.1, R8.2)", async () => {
+    const user = userEvent.setup();
+    render(
+      <GroundTruthForm titles={TITLES} titlesStatus="loaded" onSubmit={onSubmit} />,
+    );
+
+    const predicted = screen.getByLabelText(
+      "Actual payback horizon (months)",
+    ).parentElement?.querySelector("#gt-payback_horizon-predicted") as HTMLInputElement;
+
+    // Title with a known predicted payback (10).
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-123");
+    expect(predicted.value).toBe("10");
+
+    // Title whose predicted payback is null -> dash placeholder, not zero.
+    await user.selectOptions(screen.getByLabelText("Historical title"), "title-456");
+    expect(predicted.value).toBe("-");
+  });
   });
 });

@@ -332,11 +332,19 @@ def test_narrative_dna_rejects_wrong_dimension(conn: "psycopg.Connection") -> No
 # --------------------------------------------------------------------------- #
 def test_model_versions_allows_single_active(conn: "psycopg.Connection") -> None:
     """One active model version is permitted; many inactive ones coexist."""
-    _insert_model_version(conn, active=True)
-    _insert_model_version(conn, active=False)
-    _insert_model_version(conn, active=False)
+    # Neutralize any pre-existing active row (seed/migration or a prior committing
+    # test) inside this test's own transaction, which is rolled back at the end,
+    # so the global one-active partial-unique index reflects only this test.
+    conn.execute("UPDATE model_versions SET is_active = FALSE WHERE is_active")
+    mv_active = _insert_model_version(conn, active=True)
+    mv_i1 = _insert_model_version(conn, active=False)
+    mv_i2 = _insert_model_version(conn, active=False)
+    # Scope the assertion to the rows THIS test created so pre-existing active
+    # rows (migration/seed or a prior committing test) do not perturb the count.
     active_count = conn.execute(
-        "SELECT count(*) FROM model_versions WHERE is_active"
+        "SELECT count(*) FROM model_versions "
+        "WHERE is_active AND model_version_id = ANY(%s)",
+        ([mv_active, mv_i1, mv_i2],),
     ).fetchone()[0]
     assert active_count == 1
     conn.rollback()
@@ -344,6 +352,7 @@ def test_model_versions_allows_single_active(conn: "psycopg.Connection") -> None
 
 def test_model_versions_rejects_two_active(conn: "psycopg.Connection") -> None:
     """The partial unique index blocks a second active model version."""
+    conn.execute("UPDATE model_versions SET is_active = FALSE WHERE is_active")
     _insert_model_version(conn, active=True)
     with pytest.raises(pg_errors.UniqueViolation):
         _insert_model_version(conn, active=True)
@@ -391,7 +400,9 @@ def test_title_versions_allows_active_per_distinct_title(
             (title_id, 1, Json({"v": 1}), True),
         )
     active_count = conn.execute(
-        "SELECT count(*) FROM title_versions WHERE is_active"
+        "SELECT count(*) FROM title_versions "
+        "WHERE is_active AND title_id = ANY(%s)",
+        ([title_a, title_b],),
     ).fetchone()[0]
     assert active_count == 2
     conn.rollback()

@@ -301,6 +301,7 @@ def test_dashboard_summary_aggregates_titles_and_kpis(app, monkeypatch):
         ltv_to_cost_multiple: Decimal | None
         recommendation_status: str | None
         normalized_cost_usd: Decimal | None = field(default=None)
+        payback_horizon_months: int | None = field(default=None)
 
     t1 = _Title(_uuid.uuid4(), "Aurora", "ORIGINAL_SERIES", Decimal("42000000"), "USD")
     t2 = _Title(_uuid.uuid4(), "Ledger", "ORIGINAL_FILM", Decimal("9500000"), "USD")
@@ -326,8 +327,18 @@ def test_dashboard_summary_aggregates_titles_and_kpis(app, monkeypatch):
         async def get_latest_for_title(self, tid):
             return projections.get(tid)
 
+    class _GroundTruth:
+        # No seeded ground truth in this fixture -> the accuracy rate stays None
+        # (no Eligible_Audited_Title), exercising the honest blank-until-measured path.
+        def __init__(self, session):
+            ...
+
+        async def list_for_title(self, tid):
+            return []
+
     monkeypatch.setattr(dash, "TitleRepository", _Titles)
     monkeypatch.setattr(dash, "FinancialProjectionRepository", _Projections)
+    monkeypatch.setattr(dash, "GroundTruthRepository", _GroundTruth)
 
     async def _fake_session():
         yield object()

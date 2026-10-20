@@ -358,6 +358,21 @@ async def test_ingest_dispatches_202_and_job_is_pollable(
     """
     client = make_client(ANALYST)
 
+    # The ingest handler writes a job whose ``requested_by`` references the
+    # authenticated user, so that user must exist (the testcontainers DB has the
+    # migrated schema but no seed data). Persist the ANALYST row with its exact id.
+    async with session_factory() as session:
+        session.add(
+            User(
+                user_id=ANALYST.user_id,
+                external_subject=f"idp|{ANALYST.user_id}",
+                display_name=ANALYST.display_name,
+                user_role=ANALYST.role.value,
+                authorized_territories=[],
+            )
+        )
+        await session.commit()
+
     resp = client.post(
         "/api/v1/titles/ingest",
         content=b"title_name,acquisition_cost_or_budget\nFoo,1000.00\n",

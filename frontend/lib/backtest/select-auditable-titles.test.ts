@@ -38,6 +38,7 @@ function titleArb(): fc.Arbitrary<TitleSummary> {
       "PENDING",
     ) as fc.Arbitrary<TitleSummary["cpvh_status"]>,
     ltv_to_cost_multiple: fc.option(fc.float({ min: 0, max: 10 }), { nil: null }),
+    payback_horizon_months: fc.option(fc.integer({ min: 1, max: 36 }), { nil: null }),
     recommendation_status: fc.constantFrom(...STATUSES),
   });
 }
@@ -58,6 +59,7 @@ describe("selectAuditableTitles (Property 1)", () => {
             title_id: title.title_id,
             title_name: title.title_name,
             ltv_to_cost_multiple: title.ltv_to_cost_multiple,
+            payback_horizon_months: title.payback_horizon_months,
           });
         });
 

@@ -33,14 +33,18 @@ import type {
  */
 
 /** Local field keys for the audited metrics surfaced in this form. */
-type AuditedMetricKey = "cpvh" | "ltv_to_cost_multiple" | "churn_reduction";
+type AuditedMetricKey =
+  | "cpvh"
+  | "ltv_to_cost_multiple"
+  | "churn_reduction"
+  | "payback_horizon";
 
 /** The audited metrics surfaced in the form (CPVH, LTV, and churn — R11.3). */
 const AUDITED_METRICS: {
   /** Local field key / predicted-value selector in this form. */
   key: AuditedMetricKey;
   /** Canonical metric name the backend audit pairs with its prediction. */
-  metricName: "cpvh" | "ltv_to_cost" | "churn_reduction";
+  metricName: "cpvh" | "ltv_to_cost" | "churn_reduction" | "payback_horizon";
   label: string;
   hint: string;
 }[] = [
@@ -61,6 +65,12 @@ const AUDITED_METRICS: {
     metricName: "churn_reduction",
     label: "Actual churn reduction (%)",
     hint: "Observed monthly churn reduction (%)",
+  },
+  {
+    key: "payback_horizon",
+    metricName: "payback_horizon",
+    label: "Actual payback horizon (months)",
+    hint: "Realized months to recoup the acquisition cost",
   },
 ];
 
@@ -180,6 +190,10 @@ export function GroundTruthForm({
     }
     if (key === "ltv_to_cost_multiple") {
       return formatPredicted(selectedTitle.ltv_to_cost_multiple);
+    }
+    if (key === "payback_horizon") {
+      // Predicted payback is known as soon as a title is selected (like LTV).
+      return formatPredicted(selectedTitle.payback_horizon_months);
     }
     // CPVH and churn are only known once the audit has run.
     const predicted = key === "churn_reduction" ? predictedChurn : predictedCpvh;

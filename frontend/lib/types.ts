@@ -263,6 +263,8 @@ export interface TitleSummary {
   native_currency: string;
   cpvh_status: CpvhStatus;
   ltv_to_cost_multiple: number | null;
+  /** Predicted payback horizon in whole months; null until a valuation exists. */
+  payback_horizon_months: number | null;
   recommendation_status: RecommendationStatus | null;
   deal_stage?: DealStage;
 }

@@ -20,6 +20,8 @@ export interface AuditableTitleOption {
   title_name: string;
   /** Predicted LTV-to-cost multiple from the stored valuation, or null. */
   ltv_to_cost_multiple: number | null;
+  /** Predicted payback horizon in whole months from the stored valuation, or null. */
+  payback_horizon_months: number | null;
 }
 
 /** Load lifecycle for the title list; drives selector enable + placeholder. */
@@ -38,5 +40,6 @@ export function selectAuditableTitles(
       title_id: title.title_id,
       title_name: title.title_name,
       ltv_to_cost_multiple: title.ltv_to_cost_multiple,
+      payback_horizon_months: title.payback_horizon_months,
     }));
 }

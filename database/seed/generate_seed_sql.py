@@ -1011,6 +1011,36 @@ def render() -> str:
     w("ON CONFLICT (projection_id) DO NOTHING;")
     w("")
 
+    # --- historical_ground_truth (demo/illustrative) --------------------------
+    # Demo/illustrative ground truth (NOT real production outcomes): seeds one
+    # Eligible_Audited_Title ("Echoes of 2019") so the dashboard Model Accuracy
+    # card shows a real verdict-match rate on a clean boot. The four actuals are
+    # plausible vs the seeded prediction (cpvh 0.1667, ltv 3.50, churn 2.00,
+    # payback 10, GREENLIGHT) and all PASS their guardrails, so the recomputed
+    # Actual_Verdict is GREENLIGHT -- a match -- yielding a non-null rate.
+    w("-- Demo/illustrative ground truth (NOT real production outcomes): seeds one")
+    w("-- audited historical title so the dashboard Model Accuracy card shows a real")
+    w("-- verdict-match rate on a clean boot. Actuals all pass their guardrails, so")
+    w("-- the recomputed actual verdict is GREENLIGHT (a match with the prediction).")
+    w("INSERT INTO historical_ground_truth (ground_truth_id, title_id, "
+      "metric_name, actual_value) VALUES")
+    _gt_title = det_uuid("title-echoes")
+    _gt_rows = [
+        ("cpvh", "0.1710"),
+        ("ltv_to_cost", "3.42"),
+        ("churn_reduction", "1.90"),
+        ("payback_horizon", "11"),
+    ]
+    rows = []
+    for _metric, _actual in _gt_rows:
+        rows.append(
+            f"  ('{det_uuid('title-echoes-gt-' + _metric)}', '{_gt_title}', "
+            f"'{_metric}', {_actual})"
+        )
+    w(",\n".join(rows))
+    w("ON CONFLICT (ground_truth_id) DO NOTHING;")
+    w("")
+
     # --- license_terms --------------------------------------------------------
     w("-- License terms per title (R22). The deal-term columns (windowing_rules,")
     w("-- holdbacks, milestone_schedule) are encrypted-at-rest TEXT (R28.1); the")

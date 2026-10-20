@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Copies every tracked .md file into notebooklm-export/ with unique,
+    Copies every tracked .md and .csv file into notebooklm-export/ with unique,
     folder-prefixed names so they are easy to tell apart in NotebookLM.
 
 .DESCRIPTION
@@ -30,7 +30,7 @@ $outDir   = Join-Path $repoRoot "notebooklm-export"
 # Collect tracked .md files, excluding tooling noise.
 Push-Location $repoRoot
 try {
-    $files = git ls-files "*.md" |
+    $files = @(git ls-files "*.md" "*.csv") |
         Where-Object { $_ -notmatch "pytest_cache" -and $_ -notmatch "node_modules" }
 }
 finally {
@@ -38,7 +38,7 @@ finally {
 }
 
 if (-not $files) {
-    Write-Error "No tracked .md files found."
+    Write-Error "No tracked .md/.csv files found."
     exit 1
 }
 

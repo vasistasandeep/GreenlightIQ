@@ -151,6 +151,17 @@ INSERT INTO financial_projections (projection_id, title_id, title_version_id, ca
   ('462ee7c7-ec7d-55c8-b9f4-ebeb75fd3f5c', '4c15af3c-85d8-5cff-bbe0-4844b4c0e1b4', 'c9e5b5d4-4d9f-5a6c-b2e3-79d1bf3f895a', 0.0300, 4.20, 0.69, 8, 'PASS', 600000.00, '1099e3dd-e531-5d03-86da-dc99edae5884', 'ecb72653-161a-531e-8161-ce62245a1f43', '{"checks":[{"breached":false,"computed_value":"0.0300","correctable":null,"name":"CPVH","passed":true,"shortfall_magnitude":null,"threshold":"0.05"},{"breached":false,"computed_value":"4.2000","correctable":null,"name":"LTV_TO_COST","passed":true,"shortfall_magnitude":null,"threshold":"3.2"},{"breached":true,"computed_value":"0.69","correctable":false,"name":"CHURN_MITIGATION","passed":false,"shortfall_magnitude":"0.540000","threshold":"1.5"},{"breached":false,"computed_value":"8","correctable":null,"name":"PAYBACK_HORIZON","passed":true,"shortfall_magnitude":null,"threshold":"12"}],"churn_model":{"churn_breakdown":{"asset_cadence":"0.00","base_platform_rate":"0.03","content_format":"0.00","exclusivity_lift":"0.00","genre_affinity":"0.05","market_telemetry_heat":"0.25","production_scale_contribution":"0.09","talent_pedigree_contribution":"0.27"},"churn_method":"CALCULATED","is_borderline":false,"missing_features":[],"model_version_id":"ecb72653-161a-531e-8161-ce62245a1f43","params_source":"MODEL_VERSION"},"dominant_factor":"CHURN_MITIGATION","unclassifiable":false}'::jsonb)
 ON CONFLICT (projection_id) DO NOTHING;
 
+-- Demo/illustrative ground truth (NOT real production outcomes): seeds one
+-- audited historical title so the dashboard Model Accuracy card shows a real
+-- verdict-match rate on a clean boot. Actuals all pass their guardrails, so
+-- the recomputed actual verdict is GREENLIGHT (a match with the prediction).
+INSERT INTO historical_ground_truth (ground_truth_id, title_id, metric_name, actual_value) VALUES
+  ('bec0f49a-2858-5c7c-9adc-b62ba315c744', '7b1c3771-86fc-5ac3-aa53-84d4c969135c', 'cpvh', 0.1710),
+  ('c68705df-3353-5952-bc17-51d77a034213', '7b1c3771-86fc-5ac3-aa53-84d4c969135c', 'ltv_to_cost', 3.42),
+  ('929337fd-f4ce-5267-bdd3-9de101973d16', '7b1c3771-86fc-5ac3-aa53-84d4c969135c', 'churn_reduction', 1.90),
+  ('1154b165-d7d5-5927-8a07-becd18b0205d', '7b1c3771-86fc-5ac3-aa53-84d4c969135c', 'payback_horizon', 11)
+ON CONFLICT (ground_truth_id) DO NOTHING;
+
 -- License terms per title (R22). The deal-term columns (windowing_rules,
 -- holdbacks, milestone_schedule) are encrypted-at-rest TEXT (R28.1); the
 -- seed loads plaintext JSON for the local/dev passthrough.
