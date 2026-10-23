@@ -18,5 +18,19 @@ export default defineConfig({
     include: ["**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", ".next"],
     css: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary", "html", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["app/**", "components/**", "lib/**"],
+      exclude: [
+        "**/*.{test,spec}.{ts,tsx}",
+        "**/*.d.ts",
+        "**/node_modules/**",
+        ".next/**",
+        "**/layout.tsx",
+        "lib/types.ts",
+      ],
+    },
   },
 });

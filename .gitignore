@@ -9,6 +9,13 @@ venv/
 .ruff_cache/
 .hypothesis/
 
+# Coverage reports (generated)
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+coverage/
+
 # Node / Next.js
 node_modules/
 .next/
