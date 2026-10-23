@@ -1,0 +1,21 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Create the Comps_Engine pure math module (Driver A)": [],
+    "2. Create the Lineage_Decay pure math module (Driver B)": [],
+    "3. Create the Momentum_Telemetry pure math module (Driver C)": [],
+    "4. Create the Macro_Modifiers pure math module (Driver D)": [],
+    "5. Create the combined log-space assembler (`driver_assembly.py`)": [],
+    "6. Property-test the drivers and the assembler (gating suite)": [],
+    "7. Add the four per-driver kill-switches to settings": [],
+    "8. Extend viewing_hours.py with the comps base-hours override (Driver A anchor)": [],
+    "9. Extend churn.py with the comps churn override and the franchise loyalty credit (Drivers A + B)": [],
+    "10. Wire the flag-gated provider and prove inertness (`deps.py`)": [],
+    "11. Add Alembic migration 0005 with explicit neutral server defaults": [],
+    "12. Add the budget-band comps retrieval method (pgvector, I/O)": [],
+    "13. Backfill the seed with neutral defaults and add the demo-invariance guard": [],
+    "14. Extend the explanation schema with per-driver provenance (`schemas/api.py`)": [],
+    "15. Extend the comps endpoint with the anchor fields": [],
+    "16. Render the per-driver breakdown and signed diffs in the frontend": []
+  }
+}

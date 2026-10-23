@@ -1,0 +1,54 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "id": 1,
+      "severity": "HIGH",
+      "title": "Design silently supersedes the normative requirements conservation/attribution identity by inserting the momentum term",
+      "where": "design.md: 'The combined log-space model' deviation callout; 'Normative application / attribution order'; conservation identity",
+      "problem": "R5.1 y_log, R5.2 conservation identity, R5.4 Attribution_Order, and the glossary Attribution_Order all omit ln(M_momentum), but R3 requires a Momentum_Multiplier that scales the full prediction. The requirements are internally inconsistent; the design resolves it by inserting ln(M_momentum) as Stage 2 and declaring the design the single source of truth. A design cannot unilaterally make a normative acceptance-criterion identity non-binding; the two spec documents now disagree on the most audit-critical contract.",
+      "fix": "Raise a requirements erratum adding ln(M_momentum) as Stage 2 to R5.1, R5.2, R5.4 and the glossary Attribution_Order, then change the design callout to 'aligned with R5.x as amended'. Make the two documents state the same normative identity."
+    },
+    {
+      "id": 2,
+      "severity": "MEDIUM",
+      "title": "Momentum_Multiplier upper clamp [1.00,1.50] is unsupported by any requirement; R3.5 mandates only >= 1.00",
+      "where": "design.md: 'Driver C — Momentum_Telemetry' clamp(raw,1.00,1.50); Hypothesis Property 3; explanation JSON bounds",
+      "problem": "R3.5 specifies only the >=1.00 floor and monotonicity direction, no upper bound. The design introduces 1.50 as an inclusive clamp and asserts it as a tested invariant without derivation or justification (unlike S_velocity [0.50,2.00] from R3.2 or seasonality [0.80,1.35] from R4.3). The composition raw = 1 + 0.15*norm(V_trailer) + 0.20*E_ratio + 0.25*(S_velocity-1) also never defines the ranges of norm(V_trailer) or E_ratio, so it is not shown the clamp is not trivially saturated.",
+      "fix": "Either add a justified momentum_multiplier_max coefficient to the momentum sub-object with empirical rationale and define the norm(V_trailer)/E_ratio ranges, or drop the 1.50 ceiling and clamp only at >=1.00 per R3.5. Make the formula, clamp, Property 3, and the explanation bounds string agree."
+    },
+    {
+      "id": 3,
+      "severity": "MEDIUM",
+      "title": "Churn-side attribution order called 'fixed and normative' without stating the additive terms commute",
+      "where": "design.md: 'Churn-space conservation' identity and 'Application order on the churn side is fixed and normative'",
+      "problem": "The churn model is purely additive (confirmed in churn.py), so term summation commutes; only 'credit before clamp before hurdle' is normative. Calling the whole churn order 'fixed and normative' and listing the additive terms as a sequence invites an implementer to treat the listing order as significant or to quantize delta_C_franchise at a different point than the per-feature points, which could shift the single bounds_adjustment residual.",
+      "fix": "State that the churn summation commutes, that comps_anchor / per-feature / franchise_loyalty_credit lines are each quantized to 2 dp (_Q, ROUND_HALF_UP) as existing contributions are, with bounds_adjustment the single reconciliation residual, and that the only normative ordering is delta_C_franchise summed into the unclamped total before the [MIN_CHURN,MAX_CHURN] clamp and the 1.5 hurdle/BORDERLINE_BAND classification."
+    },
+    {
+      "id": 4,
+      "severity": "NIT",
+      "title": "norm(V_trailer) referenced in momentum composition but never defined",
+      "where": "design.md: 'Driver C — Momentum_Telemetry' raw formula",
+      "problem": "V_trailer is defined but the normalizer norm(.) that feeds the composition has no defined range, baseline, or neutral value. NIT because Driver C is flag-off by default and cannot affect the demo, but it must be defined before implementation.",
+      "fix": "Define norm(V_trailer) concretely (e.g. clamp(V_trailer/baseline_V, 0, cap) with baseline and cap as named DETERMINISTIC_FALLBACK coefficients) so the composition has no free symbol."
+    },
+    {
+      "id": 5,
+      "severity": "NIT",
+      "title": "release_month neutral default is NULL with no server_default, inconsistent with R8.4's 'explicit neutral default'",
+      "where": "design.md: 'Data model changes' release_month row; migration add_column without server_default",
+      "problem": "Every other new Driver-D column has an explicit server-side default; release_month is nullable with none, relying on resolver NULL->1.00. R8.1/R8.4 require an explicit neutral server-side default. Byte-identity still holds (NULL -> 1.00 seasonality), so not demo-threatening.",
+      "fix": "Add server_default=sa.text('NULL') and state NULL is the explicit neutral sentinel (resolver maps NULL->1.00), or give a concrete neutral integer default with a documented month->multiplier map yielding 1.00. Make the data-model table and migration agree."
+    },
+    {
+      "id": 6,
+      "severity": "NIT",
+      "title": "Design embeds a prior review's counts in a 'Responses to design review findings' section that will go stale",
+      "where": "design.md: 'Responses to design review findings' (references the current .design-review.md, 2 HIGH / 2 MEDIUM / 2 NIT)",
+      "problem": "A transient review artifact's counts are embedded in the normative design document; once .design-review.md is overwritten by this review, the embedded snapshot is stale and misleading. Organizational only.",
+      "fix": "Move the resolution log to a separate dated changelog/decision-log file or a clearly marked 'resolution log for review iteration N' appendix, leaving design.md to state only the resulting decisions."
+    }
+  ],
+  "reviewDoc": "c:\\Projects\\GreenlightIQ\\.kiro\\specs\\advanced-content-eval-drivers\\.design-review.md"
+}
