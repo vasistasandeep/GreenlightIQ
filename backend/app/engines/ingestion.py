@@ -82,6 +82,7 @@ from typing import Any, Awaitable, Callable, Literal, Optional, Protocol, TypedD
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import RowLimitExceededError, UnsupportedFormatError
+from app.domain import drivers
 from app.models.license_term import LicenseTerm
 from app.models.title import ASSET_TYPES, Title
 from app.models.title_version import TitleVersion
@@ -114,6 +115,35 @@ DEFAULT_NATIVE_CURRENCY = "USD"
 
 _JOB_TYPE_INGEST = "INGEST"
 _JOB_STATUS_COMPLETED = "COMPLETED"
+
+#: Accepted textual spellings of a boolean ``is_franchise`` on the batch path. A
+#: CSV cell is always a string, so a bare ``bool(cell)`` would read ``"false"`` as
+#: truthy; this maps the common manifest spellings to a native bool.
+_TRUE_TOKENS = frozenset({"true", "t", "yes", "y", "1"})
+_FALSE_TOKENS = frozenset({"false", "f", "no", "n", "0"})
+
+
+def _coerce_bool(value: Any) -> bool | None:
+    """Coerce a manifest ``is_franchise`` value to a native bool, else ``None``.
+
+    Native bools pass through; numbers map by truthiness; strings are matched
+    case-insensitively against the true/false token sets. An unrecognized value
+    (including a blank string) returns ``None`` so the key is omitted rather than
+    guessed — ``is_franchise`` carries no validation bound to reject against.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in _TRUE_TOKENS:
+            return True
+        if text in _FALSE_TOKENS:
+            return False
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -498,7 +528,48 @@ class IngestionService:
                 ),
             )
 
+        # Driver facts (R3.1, R3.5): validate the twelve candidate keys through the
+        # shared pure builder *after* the title/cost/asset_type checks (unchanged
+        # order). The first FieldError becomes a per-field RejectionDetail and the
+        # record is rejected; the per-row loop in ``ingest`` continues, preserving
+        # the conservation invariant ``accepted + rejected == total`` (R3.5).
+        _facts, driver_errors = drivers.build_driver_facts(self._driver_candidates(record))
+        if driver_errors:
+            first = driver_errors[0]
+            return RejectionDetail(
+                row_index=record.row_index,
+                field=first.field,
+                reason=first.reason,
+            )
+
         return None
+
+    @staticmethod
+    def _driver_candidates(record: _ParsedRecord) -> dict[str, Any]:
+        """Extract the twelve candidate driver keys from a record's raw fields.
+
+        The batch path accepts an optional column/field for each driver key by its
+        exact snapshot name, including the raw momentum signals directly
+        (Raw_Signal_Mode — R3.1, R3.3). Only keys actually present on the record
+        are forwarded; ``build_driver_facts`` treats an absent key as omitted.
+
+        ``is_franchise`` is normalized from its CSV/JSON surface form to a native
+        ``bool`` here (a CSV cell is always a string, so a bare ``bool("false")``
+        would wrongly read truthy); the remaining keys are forwarded verbatim and
+        coerced by the shared builder.
+        """
+        candidates: dict[str, Any] = {}
+        for key in drivers.DRIVER_FACT_KEYS:
+            if key not in record.raw:
+                continue
+            value = record.raw[key]
+            if key == "is_franchise":
+                coerced = _coerce_bool(value)
+                if coerced is not None:
+                    candidates[key] = coerced
+                continue
+            candidates[key] = value
+        return candidates
 
     # ------------------------------------------------------------------ #
     # Persistence: versioned title children (R24) + native currency / license.
@@ -696,6 +767,15 @@ class IngestionService:
 
         Decimal/UUID values are stringified so the snapshot round-trips through
         JSONB unchanged.
+
+        Driver facts (R3.2, R6.4): the raw copies of the twelve driver keys are
+        overwritten with the provider-expected, correctly typed values produced by
+        the shared :func:`drivers.build_driver_facts` (decimal facts as canonical
+        strings, bools/ints/enums native) so the read side sees the exact types it
+        resolves — not whatever string the CSV cell carried. Every non-driver key
+        is left untouched (R6.4); a record that omits a driver key writes no key
+        for it (R3.4). ``_validate`` has already run the same builder successfully
+        for an accepted record, so no errors are produced here.
         """
         snapshot: dict[str, Any] = {}
         for key, value in record.raw.items():
@@ -703,6 +783,16 @@ class IngestionService:
                 snapshot[key] = str(value)
             else:
                 snapshot[key] = value
+
+        # Merge the validated, typed driver facts over the raw copies of the
+        # twelve driver keys, leaving every other key untouched (R3.2, R6.4).
+        facts, _errors = drivers.build_driver_facts(self._driver_candidates(record))
+        for key in drivers.DRIVER_FACT_KEYS:
+            # Drop any raw copy first so an omitted-but-present-as-blank cell
+            # (e.g. an empty CSV column) does not leak an un-typed value, and a
+            # key the builder omitted writes no key at all (R3.4).
+            snapshot.pop(key, None)
+        snapshot.update(facts)
         return snapshot
 
     def _parse_territories(self, record: _ParsedRecord) -> list[str]:

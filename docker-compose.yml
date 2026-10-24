@@ -38,6 +38,13 @@ x-backend-env: &backend-env
   # DEV/DEMO ONLY: resolve a synthetic demo user for unauthenticated UI calls so
   # the demo works without a live SSO session. Hard-blocked in production.
   CINEROI_DEMO_AUTH_BYPASS: ${CINEROI_DEMO_AUTH_BYPASS:-true}
+  # Advanced content-evaluation driver flags. Defaulted ON for the demo so
+  # supplied lineage/momentum/macro/comps facts affect evaluation; the Settings
+  # code defaults remain False, so these are the demo opt-in. Override via .env.
+  CINEROI_ENABLE_COMPS: ${CINEROI_ENABLE_COMPS:-true}
+  CINEROI_ENABLE_LINEAGE: ${CINEROI_ENABLE_LINEAGE:-true}
+  CINEROI_ENABLE_MOMENTUM: ${CINEROI_ENABLE_MOMENTUM:-true}
+  CINEROI_ENABLE_MACRO_MODIFIERS: ${CINEROI_ENABLE_MACRO_MODIFIERS:-true}
   # Chat assistant provider. Default "mock" (no key, no network, deterministic).
   # Set to "ollama" to use a local Ollama server on the host; override the model
   # via CINEROI_CHAT_OLLAMA_MODEL (e.g. llama3.1:latest or gemma4:26b).
