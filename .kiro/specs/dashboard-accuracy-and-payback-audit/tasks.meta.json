@@ -1,0 +1,81 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Create the pure accuracy helper and classify actual verdicts": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792813041794
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792813406202
+      }
+    ],
+    "3. Wire verdict-match accuracy into the dashboard handler": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792813421445
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814089165
+      }
+    ],
+    "5. Thread predicted payback through the frontend option shape": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792813422355
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814089992
+      }
+    ],
+    "3.3 Write pytest: null when zero eligible titles": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814101590
+      }
+    ],
+    "3.4 Write pytest: known fraction for a fixed title set": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814102979
+      }
+    ],
+    "3.5 Write pytest: insufficient ground truth is excluded": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814103957
+      }
+    ],
+    "6. Add the payback input and read-only predicted payback to the form": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814105328
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814417989
+      }
+    ],
+    "8. Seed deterministic demo ground truth and verify the accuracy card": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792814106125
+      }
+    ]
+  }
+}

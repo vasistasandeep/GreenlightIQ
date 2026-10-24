@@ -17,7 +17,7 @@ selector, vitest). No pseudocode was used, so no language choice is required.
 
 ## Tasks
 
-- [ ] 1. Create the pure accuracy helper and classify actual verdicts
+- [x] 1. Create the pure accuracy helper and classify actual verdicts
   - [x] 1.1 Implement `actual_verdict` and `verdict_match_rate` in `backend/app/domain/accuracy.py`
     - Create `backend/app/domain/accuracy.py` as a pure, I/O-free module.
     - Define `ACCURACY_DECIMAL_PLACES = 4` and `REQUIRED_METRICS = ("cpvh", "ltv_to_cost", "churn_reduction", "payback_horizon")`.
@@ -58,7 +58,7 @@ selector, vitest). No pseudocode was used, so no language choice is required.
 - [x] 2. Checkpoint - accuracy helper and its property tests
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Wire verdict-match accuracy into the dashboard handler
+- [x] 3. Wire verdict-match accuracy into the dashboard handler
   - [x] 3.1 Add `payback_horizon_months` to the backend `TitleSummary` and populate it
     - In `backend/app/api/dashboard.py`, add `payback_horizon_months: int | None = None` to `TitleSummary` (additive, optional, nullable).
     - Populate it in the per-title build from `projection.payback_horizon_months`; leave `None` when there is no projection.
@@ -73,15 +73,15 @@ selector, vitest). No pseudocode was used, so no language choice is required.
     - Leave `active_pipeline_valuation_usd`, `avg_ltv_to_cost`, and `portfolio_risk_exposure` computed from exactly the same inputs as today.
     - _Requirements: 1.1, 1.3, 1.4, 1.5, 2.2, 2.4, 4.2, 5.2, 5.3, 9.1, 9.2_
 
-  - [ ]* 3.3 Write pytest: null when zero eligible titles
+  - [x]* 3.3 Write pytest: null when zero eligible titles
     - Portfolio with no ground truth → `kpis.model_accuracy_rate is None`.
     - _Requirements: 6.1_
 
-  - [ ]* 3.4 Write pytest: known fraction for a fixed title set
+  - [x]* 3.4 Write pytest: known fraction for a fixed title set
     - Fixed titles with known predicted and classifiable actual verdicts (some matching, some not) → assert the exact rounded fraction.
     - _Requirements: 6.2_
 
-  - [ ]* 3.5 Write pytest: insufficient ground truth is excluded
+  - [x]* 3.5 Write pytest: insufficient ground truth is excluded
     - A title with only two of four metrics is excluded; adding/removing it does not change the rate (not counted as match or miss).
     - _Requirements: 6.3_
 
@@ -93,7 +93,7 @@ selector, vitest). No pseudocode was used, so no language choice is required.
 - [x] 4. Checkpoint - dashboard handler accuracy wiring
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Thread predicted payback through the frontend option shape
+- [x] 5. Thread predicted payback through the frontend option shape
   - [x] 5.1 Add `payback_horizon_months` to the frontend `TitleSummary`
     - In `frontend/lib/types.ts`, add `payback_horizon_months: number | null;` to the `TitleSummary` interface (frontend mirror of the backend field).
     - _Requirements: 8.3_
@@ -106,7 +106,7 @@ selector, vitest). No pseudocode was used, so no language choice is required.
     - **Feature: dashboard-accuracy-and-payback-audit, Property 8: selectAuditableTitles returns, in input order, the subset of titles with a non-null recommendation_status, each carrying payback_horizon_months unchanged**
     - **Validates: Requirements 8.4**
 
-- [ ] 6. Add the payback input and read-only predicted payback to the form
+- [x] 6. Add the payback input and read-only predicted payback to the form
   - [x] 6.1 Add the `payback_horizon` metric to `AUDITED_METRICS`
     - In `frontend/components/backtest/ground-truth-form.tsx`, extend the `AuditedMetricKey` union with `"payback_horizon"` and add the fourth `AUDITED_METRICS` entry (`label: "Actual payback horizon (months)"`), so rendering and `buildMetrics()` thread it automatically (blank omitted, non-finite rejected with a field-identifying message).
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 9.3_
@@ -127,7 +127,7 @@ selector, vitest). No pseudocode was used, so no language choice is required.
 - [x] 7. Checkpoint - frontend payback input and threading
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Seed deterministic demo ground truth and verify the accuracy card
+- [x] 8. Seed deterministic demo ground truth and verify the accuracy card
   - [x] 8.1 Emit `historical_ground_truth` rows in `generate_seed_sql.py`
     - Add a `TITLE_GROUND_TRUTH` data block and an INSERT section in `render()` for `title-echoes`: four rows (`cpvh`=0.1710, `ltv_to_cost`=3.42, `churn_reduction`=1.90, `payback_horizon`=11).
     - Use `ground_truth_id = det_uuid(f"title-echoes-gt-{metric_name}")`, `title_id = det_uuid("title-echoes")`, metric names only from `PREDICTED_METRIC_FIELDS`, and `ON CONFLICT (ground_truth_id) DO NOTHING;`.
@@ -139,7 +139,7 @@ selector, vitest). No pseudocode was used, so no language choice is required.
     - Run `generate_seed_sql.py` to regenerate `database/seed/02_seed_data.sql`, then run `generate_seed_sql.py --check` and confirm it passes (byte-stable, idempotent).
     - _Requirements: 12.2, 12.3_
 
-  - [ ]* 8.3 Write property test: seed idempotence and determinism
+  - [x]* 8.3 Write property test: seed idempotence and determinism
     - **Feature: dashboard-accuracy-and-payback-audit, Property 9: regenerating the seed produces byte-identical historical_ground_truth INSERTs, and re-applying inserts no duplicate and raises no error (ON CONFLICT DO NOTHING on the deterministic ground_truth_id)**
     - Hypothesis, backend, minimum 100 iterations (over re-run counts / ordering).
     - **Validates: Requirements 12.2, 12.3**

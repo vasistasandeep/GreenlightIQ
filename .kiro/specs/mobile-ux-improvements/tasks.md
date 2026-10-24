@@ -73,7 +73,7 @@ and the one test file (Req 7.3).
 - [x] 3. Checkpoint - TopNav complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Redesign the guide tablist for mobile
+- [x] 4. Redesign the guide tablist for mobile
   - [x] 4.1 Convert the tablist container to a mobile scroll-snap strip
     - In `frontend/app/guide/page.tsx`, change the `role="tablist"` container from `flex flex-wrap gap-1 ...` to a single-row `flex gap-2 overflow-x-auto scroll-smooth ... snap-x` strip with the inline no-scrollbar arbitrary variants (`[scrollbar-width:none]` and `[&::-webkit-scrollbar]:hidden`), restoring wrap at desktop with `sm:flex-wrap sm:overflow-visible`
     - Make each tab `flex-shrink-0 snap-start` so tabs keep size and snap instead of wrapping
@@ -93,7 +93,7 @@ and the one test file (Req 7.3).
     - _Requirements: 5.2_
     - _Design: Edge Case: guide initial-mount scroll jump_
 
-  - [ ]* 4.4 Write a light guide arrow-key test
+  - [x]* 4.4 Write a light guide arrow-key test
     - Render `GuidePage`, focus a tab, fire `ArrowRight`/`ArrowLeft`, and assert `aria-selected` moves to the adjacent tab (wrap-around)
     - _Requirements: 5.4_
 
