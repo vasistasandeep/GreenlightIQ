@@ -48,3 +48,35 @@ It is a single self-contained HTML file (all CSS/JS inline, no assets), so:
 - **Email / Slack / Teams:** attach `presentation/index.html`; the recipient double-clicks to open. No internet needed for the deck itself.
 - **Public link (GitHub Pages):** `https://vasistasandeep.github.io/GreenlightIQ` (served from this repo via GitHub Pages on `main`).
 - **PDF fallback:** browser Print -> Save as PDF (loses all interactivity - use only for read-only recipients).
+
+---
+
+# Capabilities Tour (`presentation/capabilities.html`)
+
+A second, longer deck for **future users and prospects** who want to see *everything* the product does, screen by screen, not just the core verdict story. Same controls and look as `index.html` (bottom nav bar, arrow keys, swipe, click-to-reveal cards, F for full screen, one self-contained file). Open `presentation/capabilities.html` in any browser.
+
+Use `index.html` to **sell the idea** (short, one memorable interactive moment). Use `capabilities.html` to **walk a new user through the whole product**.
+
+## Flow (17 slides)
+1. Title - "Everything it can do, one screen at a time." Sets the demo-build expectation.
+2. What it is - the credit-check one-liner and the three verdicts.
+3. The journey - the four stations (Ingest -> Understand -> Decide -> Defend). Everything else hangs off these.
+4. Three ways in - single title, whole slate (CSV/JSON), drop a pitch PDF. Click each.
+5. Advanced drivers - the optional sequel/franchise, buzz-level momentum (stage-gated), and macro facts; plus one-click Quick Presets that fill the whole form. Click each.
+6. Dashboard - portfolio at a glance; stat cards count up (illustrative sample-slate figures); search / filter / sort / shareable URL.
+7. The four checks - efficiency, return, stickiness, payback. Three are price, one is the title. Click each.
+8. Title deep-dive - scorecard, deal-stage tracker, one-page PDF, full history, what-if sliders, explain-this. Click each.
+9. What-If Explorer - the read-only negotiation sandbox: bear/bull, target deal, shareable link.
+10. Backtest Studio - backtest, recalibrate into an immutable version, the version catalog. Click each.
+11. Governance - the $25M two-signature sign-off gate and the audit trail.
+12. CineROI Copilot - the grounded conversational assistant across the app.
+13. The AI stack - Perception / Learning / Decision / Conversational. Click each layer.
+14. Trust - consistent, explainable, auditable, reproducible, honest.
+15. Works everywhere - responsive, keyboard/a11y, link-native.
+16. Open the live demo portal - the call to action (same `PORTAL_URL` constant as the other deck).
+17. Close - "One engine, from pitch to sign-off."
+
+## Presenting tips
+- Let the **click-to-reveal cards** carry slides 4, 5, 7, 8, 9, 10, 13 - click, do not read.
+- Be upfront on slide 1 and slide 6: this is a **demo build on a sample slate**, figures are illustrative.
+- The live-portal button on slide 16 reads the same `PORTAL_URL` constant near the top of the inline `<script>` - set it to your deploy URL, `http://localhost:3000`, or the current ngrok link before presenting; leave it `""` when emailing the file.

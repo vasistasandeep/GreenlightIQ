@@ -1,0 +1,475 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CineROI AI: Capabilities Tour</title>
+<style>
+  :root{
+    --bg:#0b1120; --card:#111a2e; --card2:#0e1627; --line:#1e293b;
+    --ink:#e2e8f0; --muted:#94a3b8; --faint:#64748b;
+    --emerald:#34d399; --emerald-deep:#059669;
+    --amber:#fbbf24; --rose:#fb7185; --sky:#38bdf8; --violet:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 800px at 70% -10%, #15223c 0%, var(--bg) 55%);
+    color:var(--ink);overflow:hidden}
+  .deck{height:100vh;height:100dvh;width:100vw;width:100dvw;position:relative}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;overscroll-behavior:contain;
+    padding:3.5vh 7vw 10vh;opacity:0;transition:opacity .35s ease;overflow-y:auto}
+  .slide:not(.center){justify-content:center}
+  .slide > *{max-width:1120px}
+  .slide:not(.center){width:100%}
+  .slide.active{display:flex;opacity:1}
+  .kicker{color:var(--emerald);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem}
+  h1{font-size:clamp(1.9rem,4.6vw,3.4rem);font-weight:800;line-height:1.08;letter-spacing:-.02em}
+  h2{font-size:clamp(1.5rem,3.4vw,2.5rem);font-weight:800;line-height:1.12;letter-spacing:-.02em;margin-bottom:.4rem}
+  .lede{font-size:clamp(1rem,1.7vw,1.3rem);color:var(--muted);max-width:60ch;line-height:1.5;margin-top:.9rem}
+  .em{color:var(--emerald)} .amberc{color:var(--amber)} .rosec{color:var(--rose)} .skyc{color:var(--sky)} .violetc{color:var(--violet)}
+  .grid{display:grid;gap:1rem;margin-top:1.8rem}
+  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:1.3rem 1.4rem;position:relative;overflow:hidden}
+  .card h3{font-size:1.02rem;font-weight:700;margin-bottom:.35rem}
+  .icoround{width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--emerald);background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);margin-bottom:.8rem}
+  .card p{color:var(--muted);font-size:.92rem;line-height:1.45}
+  .card .step-n{position:absolute;top:1rem;right:1.2rem;font:800 .8rem/1 ui-monospace,monospace;color:var(--faint)}
+  .big{font-size:clamp(2rem,3.8vw,3rem);font-weight:800;line-height:1}
+  .stat-label{color:var(--faint);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;margin-top:.5rem}
+  .pill{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.35rem .9rem;font-size:.85rem;font-weight:700;border:1px solid}
+  .pill.g{color:#6ee7b7;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.4)}
+  .pill.a{color:#fcd34d;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4)}
+  .pill.r{color:#fda4af;background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.4)}
+  .tag{color:var(--sky);font-size:.82rem;font-weight:600}
+  .logo{display:inline-flex;align-items:center;gap:.5rem;font-weight:800}
+  .logo .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--emerald),var(--emerald-deep));display:inline-flex;align-items:center;justify-content:center;color:#052e1b}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--emerald);transition:width .3s;z-index:50;box-shadow:0 0 12px rgba(52,211,153,.7)}
+  .navbar{position:fixed;left:50%;bottom:1.5vh;transform:translateX(-50%);z-index:60;
+    display:flex;align-items:center;gap:.5rem;padding:.45rem .55rem;border-radius:999px;
+    background:rgba(15,23,42,.82);border:1px solid var(--line);backdrop-filter:blur(10px);
+    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  .nbtn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+    height:34px;min-width:34px;padding:0 .7rem;border-radius:999px;border:1px solid transparent;
+    background:transparent;color:var(--muted);font:600 .82rem/1 "Segoe UI",system-ui,sans-serif;
+    transition:background .15s,color .15s,border-color .15s}
+  .nbtn:hover{color:var(--ink);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35)}
+  .nbtn:disabled{opacity:.3;cursor:default;background:transparent;border-color:transparent;color:var(--faint)}
+  .nbtn .ic{font-size:1rem;line-height:1}
+  .ndots{display:flex;align-items:center;gap:.34rem;padding:0 .4rem;flex-wrap:wrap;max-width:46vw;justify-content:center}
+  .ndot{width:9px;height:9px;border-radius:50%;background:#334155;cursor:pointer;border:0;padding:0;touch-action:manipulation;transition:background .2s,transform .2s}
+  .ndot:hover{background:#64748b;transform:scale(1.25)}
+  .ndot.on{background:var(--emerald);box-shadow:0 0 10px rgba(52,211,153,.8);transform:scale(1.25)}
+  .ncount{color:var(--faint);font:700 .78rem/1 ui-monospace,monospace;padding:0 .5rem;min-width:52px;text-align:center}
+  .nsep{width:1px;height:20px;background:var(--line)}
+  @media(max-width:760px){.ndots{display:none}}
+  .center{text-align:center;align-items:center}
+  .center .lede{margin-left:auto;margin-right:auto}
+  ul.clean{list-style:none;margin-top:1.2rem;display:grid;gap:.75rem}
+  ul.clean li{display:flex;gap:.7rem;color:var(--muted);font-size:1.02rem;line-height:1.45}
+  ul.clean li b{color:var(--ink)}
+  .tick{color:var(--emerald);font-weight:800;flex-shrink:0}
+  .flow{display:flex;align-items:stretch;gap:.7rem;flex-wrap:wrap;margin-top:1.6rem}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.2rem;flex:1;min-width:150px}
+  .step .n{color:var(--emerald);font-weight:800;font-size:.78rem}
+  .step h4{font-size:.98rem;margin:.3rem 0} .step p{color:var(--muted);font-size:.83rem;line-height:1.4}
+  .arrow{color:var(--faint);font-size:1.3rem;align-self:center}
+  .clickcard{cursor:pointer;touch-action:manipulation;transition:transform .15s,border-color .15s,background .15s}
+  .clickcard:hover{transform:translateY(-3px);border-color:rgba(52,211,153,.5)}
+  .clickcard .reveal{max-height:0;overflow:hidden;opacity:0;transition:max-height .3s,opacity .3s,margin .3s}
+  .clickcard.open .reveal{max-height:260px;opacity:1;margin-top:.7rem}
+  .clickcard .chev{float:right;color:var(--faint);transition:transform .3s}
+  .clickcard.open .chev{transform:rotate(90deg)}
+  .mono{font-family:ui-monospace,"Cascadia Code",monospace}
+  .portal-btn{display:inline-flex;align-items:center;gap:.7rem;margin:2rem auto 0;cursor:pointer;
+    padding:1rem 1.8rem;border-radius:14px;font-size:1.1rem;font-weight:800;text-decoration:none;
+    color:#042016;background:linear-gradient(135deg,var(--emerald),var(--emerald-deep));
+    box-shadow:0 10px 30px rgba(16,185,129,.35);border:1px solid rgba(52,211,153,.6);transition:transform .15s,box-shadow .15s}
+  .portal-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 42px rgba(16,185,129,.5)}
+  .portal-btn.disabled{background:linear-gradient(135deg,#334155,#1e293b);color:var(--muted);box-shadow:none;border-color:var(--line);cursor:default}
+  .portal-btn.disabled:hover{transform:none;box-shadow:none}
+  .portal-btn .pdot{width:10px;height:10px;border-radius:50%;background:#042016;box-shadow:0 0 0 4px rgba(4,32,22,.25);animation:livepulse 1.6s ease-in-out infinite}
+  @keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(4,32,22,.5)}50%{box-shadow:0 0 0 6px rgba(4,32,22,0)}}
+  .portal-url{margin-top:1rem;color:var(--faint);font-size:.82rem;line-height:1.5}
+  .portal-url .u{font-family:ui-monospace,monospace;word-break:break-all}
+  .portal-url .disc{display:block;margin-top:.5rem;color:var(--amber);font-size:.8rem;line-height:1.45;max-width:48ch;margin:.5rem auto 0}
+  .note-chip{display:inline-block;margin-top:1.3rem;padding:.5rem .9rem;border-radius:10px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.08);color:#fcd34d;font-size:.82rem}
+  .closetags{display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:1.4rem;color:var(--faint);font-size:.9rem}
+  .card::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.07),transparent);transform:skewX(-18deg);transition:left .6s ease;pointer-events:none}
+  .clickcard:hover::after{left:140%}
+  body{background:
+      radial-gradient(1100px 760px at 72% -12%, rgba(52,211,153,.10), transparent 60%),
+      radial-gradient(1000px 720px at 12% 108%, rgba(56,189,248,.08), transparent 60%),
+      radial-gradient(1200px 800px at 70% -10%, #15223c 0%, var(--bg) 55%);
+    background-size:200% 200%,200% 200%,100% 100%;animation:auroraDrift 26s ease-in-out infinite}
+  @keyframes auroraDrift{0%{background-position:0% 0%,100% 0%}50%{background-position:40% 30%,60% 20%}100%{background-position:0% 0%,100% 0%}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .slide.active > *:not(.foot){animation:riseIn .6s cubic-bezier(.22,.9,.3,1) both}
+  .slide.active .grid > *{animation:riseIn .5s cubic-bezier(.22,.8,.3,1) both}
+  .slide.active .grid > *:nth-child(1){animation-delay:.14s}
+  .slide.active .grid > *:nth-child(2){animation-delay:.22s}
+  .slide.active .grid > *:nth-child(3){animation-delay:.30s}
+  .slide.active .grid > *:nth-child(4){animation-delay:.38s}
+  .slide.active .grid > *:nth-child(5){animation-delay:.46s}
+  .slide.active .grid > *:nth-child(6){animation-delay:.54s}
+  .logo .mark{animation:markPulse 3.2s ease-in-out infinite}
+  @keyframes markPulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.45)}50%{box-shadow:0 0 22px 2px rgba(52,211,153,.55)}}
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .center h1{background:linear-gradient(100deg,var(--ink) 18%,var(--emerald) 38%,#a7f3d0 50%,var(--emerald) 62%,var(--ink) 82%);
+      background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:sheen 6.5s linear infinite}
+    .center h1 .em{-webkit-text-fill-color:var(--emerald);color:var(--emerald)}
+  }
+  @keyframes sheen{to{background-position:200% center}}
+  #fx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  #fx span{position:absolute;bottom:-14px;border-radius:50%;background:radial-gradient(circle,var(--emerald),transparent 70%);animation:floatUp linear infinite}
+  @keyframes floatUp{0%{transform:translateY(0) translateX(0);opacity:0}8%{opacity:.55}50%{transform:translateY(-52vh) translateX(14px)}92%{opacity:.35}100%{transform:translateY(-108vh) translateX(-8px);opacity:0}}
+  .deck,.slide{z-index:1}
+  @media(max-width:860px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}.slide{padding:3vh 5.5vw 12vh}}
+  @media(max-width:620px){
+    .slide{padding:4vh 5vw 13vh}
+    .slide:not(.center){justify-content:flex-start}
+    .g2,.g3,.g4{grid-template-columns:1fr}
+    .grid{gap:.8rem;margin-top:1.1rem}
+    h1{font-size:clamp(1.8rem,8.4vw,2.4rem)}h2{font-size:clamp(1.35rem,6.4vw,1.9rem)}
+    .lede{font-size:1rem;margin-top:.7rem}.kicker{font-size:.72rem;margin-bottom:.6rem}
+    .card{padding:1rem 1.1rem;border-radius:14px}
+    .navbar{gap:.15rem;padding:.35rem .5rem;bottom:1rem;max-width:92vw}
+    .nbtn{height:42px;min-width:42px}.nbtn .ic{font-size:1.25rem}
+    .portal-btn{width:100%;justify-content:center;font-size:1rem}
+    #fx{display:none}
+  }
+  @media (prefers-reduced-motion: reduce){
+    body{animation:none}.slide.active > *,.slide.active .grid > *{animation:none}
+    .logo .mark{animation:none}.center h1{animation:none;-webkit-text-fill-color:initial;background:none}
+    #fx{display:none}.card::after{display:none}
+  }
+  @media(hover:none){.clickcard:hover{transform:none}.clickcard:active{transform:scale(.99)}}
+</style>
+</head>
+<body><div class="progress" id="progress"></div>
+<div id="fx"></div>
+<div class="deck" id="deck">
+
+<!-- 1 TITLE -->
+<section class="slide active center">
+  <div class="logo" style="font-size:1.1rem;margin-bottom:1.8rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
+  <h1>Everything it can do,<br/><span class="em">one screen at a time.</span></h1>
+  <p class="lede">A guided tour of the whole product: how a title comes in, how it gets a verdict, how you negotiate with it, and how it stays honest. Built for buyers, analysts, and the execs who sign off.</p>
+  <span class="note-chip">Demo build &middot; runs on a sample slate, not production data</span>
+</section>
+
+<!-- 2 WHAT IT IS -->
+<section class="slide center">
+  <div class="kicker">In one line</div>
+  <h2>A credit check for content deals.</h2>
+  <p class="lede">Point it at a show or film, and it answers the only question that matters in the room: <b class="em">buy it, haggle, or walk away</b>, with every number shown and every decision logged.</p>
+  <div class="grid g3" style="margin-top:2rem">
+    <div class="card"><span class="pill g">&#10003; GREENLIGHT</span><p style="margin-top:.7rem">Buy it as proposed. All four checks pass.</p></div>
+    <div class="card"><span class="pill a">&#9878; NEGOTIATE HARD</span><p style="margin-top:.7rem">Right title, wrong price. Bargain to the number it clears at.</p></div>
+    <div class="card"><span class="pill r">&#10007; PASS</span><p style="margin-top:.7rem">A problem no discount fixes. Walk away.</p></div>
+  </div>
+</section>
+
+<!-- 3 THE JOURNEY -->
+<section class="slide">
+  <div class="kicker">The big picture</div>
+  <h2>The journey of one title.</h2>
+  <p class="lede">Four stations, start to finish. Every capability in this tour lives on one of them.</p>
+  <div class="flow">
+    <div class="step"><div class="n">01 &middot; INGEST</div><h4>It comes in</h4><p>Type one in, upload a whole slate, or drop a pitch PDF.</p></div>
+    <div class="arrow">&#8594;</div>
+    <div class="step"><div class="n">02 &middot; UNDERSTAND</div><h4>It&rsquo;s profiled</h4><p>&ldquo;Narrative DNA&rdquo;, tone, pedigree, and demand signals are modeled.</p></div>
+    <div class="arrow">&#8594;</div>
+    <div class="step"><div class="n">03 &middot; DECIDE</div><h4>It gets a verdict</h4><p>Four money checks &rarr; one explainable answer with a price target.</p></div>
+    <div class="arrow">&#8594;</div>
+    <div class="step"><div class="n">04 &middot; DEFEND</div><h4>It stays honest</h4><p>Backtested, versioned, signed off, and reproducible forever.</p></div>
+  </div>
+</section>
+
+<!-- 4 INTAKE: THREE WAYS IN -->
+<section class="slide">
+  <div class="kicker">Station 1 &middot; Asset Studio &middot; click each</div>
+  <h2>Three ways to get a title in.</h2>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#9999;</div><h3>One at a time</h3><div class="reveal"><p>Type the deal: name, cost &amp; currency (accepts <span class="mono">12 Cr / 1.5M / 500k</span> shorthand), synopsis, genre, format, territories, pedigree, exclusivity, viewing hours with a unit. Press RUN and get a scorecard instantly.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128229;</div><h3>A whole slate</h3><div class="reveal"><p>Upload or paste a CSV/JSON catalog. It processes in the background and returns an accepted / rejected summary with a reason per rejected row. A one-click CSV template gets you the right shape.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128196;</div><h3>Drop a pitch PDF</h3><div class="reveal"><p>Drag a pitch or script PDF and it auto-fills title, synopsis, genre, budget, and any advanced driver facts it recognizes, for you to review. Nothing is auto-submitted.</p></div></div>
+  </div>
+</section>
+
+<!-- 5 ADVANCED DRIVERS (driver-input-capture) -->
+<section class="slide">
+  <div class="kicker">Station 1 &middot; sharpen the inputs &middot; click each</div>
+  <h2>Tell it what makes this title special.</h2>
+  <p class="lede">An optional <b class="em">Advanced drivers</b> section lets you supply the signals that move the number. Leave it blank and nothing changes, every driver is off by default.</p>
+  <div class="grid g3" style="margin-top:1.2rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Lineage</div><h3>Sequel / franchise</h3><div class="reveal"><p>Flag a franchise entry and give its order plus the parent&rsquo;s viewing hours and completion rate, so a proven S2 isn&rsquo;t judged like a cold start.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Momentum</div><h3>Buzz level</h3><div class="reveal"><p>A friendly <b>LOW / MEDIUM / HIGH</b> buzz dial, expanded server-side into the real signals. It is <b class="amberc">stage-gated</b>: hype only counts once the title is far enough along to earn it.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Macro</div><h3>Market facts</h3><div class="reveal"><p>Production stage, IP provenance, release window &amp; month, and vernacular track count, the context that shapes real-world demand.</p></div></div>
+  </div>
+  <p class="lede" style="margin-top:1.2rem">New to a title? Hit a <b class="em">Quick Preset</b>, one click fills the whole form, drivers and all, so you can run a verdict in seconds.</p>
+</section>
+
+<!-- 6 DASHBOARD -->
+<section class="slide">
+  <div class="kicker">Station 3 &middot; the control room</div>
+  <h2>Your whole portfolio, at a glance.</h2>
+  <p class="lede">Headline numbers up top, then a sortable, searchable list of every title and its verdict. Illustrative figures from the demo slate below.</p>
+  <div class="grid g4" style="margin-top:1.4rem">
+    <div class="card"><div class="big" data-count="21">0</div><div class="stat-label">titles in pipeline</div></div>
+    <div class="card"><div class="big em" data-count="259" data-prefix="$" data-suffix="M">$0M</div><div class="stat-label">active pipeline value</div></div>
+    <div class="card"><div class="big" data-count="3.60" data-decimals="2" data-suffix="&times;">0.00&times;</div><div class="stat-label">avg LTV-to-Cost</div></div>
+    <div class="card"><div class="big"><span class="em">11</span>/<span class="amberc">3</span>/<span class="rosec">7</span></div><div class="stat-label">green / negotiate / pass</div></div>
+  </div>
+  <p class="lede" style="margin-top:1.3rem">Search by name, filter by verdict or deal stage, sort any column, and your exact view lives in the URL, so a filtered list is bookmarkable and shareable by link.</p>
+</section>
+
+<!-- 7 THE FOUR CHECKS -->
+<section class="slide">
+  <div class="kicker">Station 3 &middot; how it decides &middot; click each</div>
+  <h2>Four money checks every title must pass.</h2>
+  <div class="grid g2" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Efficiency</div><h3>Cost per Viewing Hour</h3><div class="reveal"><p>What we pay, per hour actually watched. Too high &rarr; overpaying. <b class="em">Fixable by a lower price.</b></p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Return</div><h3>LTV-to-Cost multiple</h3><div class="reveal"><p>Value created per dollar spent, must clear a 3.2&times; floor. <b class="em">Fixable by a lower price.</b></p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Stickiness</div><h3>Churn mitigation</h3><div class="reveal"><p>Does it keep subscribers from cancelling? Must clear 1.5%. <b class="rosec">Not fixable by price, a fail here forces PASS.</b></p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Speed</div><h3>Payback horizon</h3><div class="reveal"><p>Months until it pays for itself, must land within 12. <b class="em">Fixable by a lower price.</b></p></div></div>
+  </div>
+  <p class="lede" style="margin-top:1.2rem">Three are about <b class="amberc">price</b>, one is about the <b class="rosec">title itself</b>. That split is the whole logic behind the three verdicts.</p>
+</section>
+
+<!-- 8 TITLE DEEP-DIVE -->
+<section class="slide">
+  <div class="kicker">Station 3 &middot; everything about one title &middot; click each</div>
+  <h2>The full story on a single title.</h2>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#9878;</div><h3>Scorecard &amp; breakdown</h3><div class="reveal"><p>The verdict, the four checks with exact values vs thresholds, a metadata radar, and a payback chart.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128202;</div><h3>Deal-stage tracker</h3><div class="reveal"><p>Where the deal sits in the human pipeline, from sourced through signed, tracked alongside the math.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128196;</div><h3>One-page PDF</h3><div class="reveal"><p>Export a clean one-pager of the verdict and the receipts to carry into a meeting.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128336;</div><h3>Full history</h3><div class="reveal"><p>Every valuation this title has had, each stamped with the model version that produced it.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#8669;</div><h3>What-If sliders</h3><div class="reveal"><p>Test scenarios right on the page without touching the saved baseline (next slide).</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128172;</div><h3>Explain this</h3><div class="reveal"><p>Ask the Copilot to narrate why this title got its verdict, in plain English.</p></div></div>
+  </div>
+</section>
+
+<!-- 9 WHAT-IF EXPLORER -->
+<section class="slide">
+  <div class="kicker">For the negotiation room &middot; click each</div>
+  <h2>&ldquo;What would make this a yes?&rdquo;</h2>
+  <p class="lede">A read-only sandbox: set the seller&rsquo;s exact price, tweak assumptions, even relax a threshold, and watch the verdict recompute side-by-side with the saved baseline. Nothing is ever saved.</p>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><h3>&#8595; Bear &middot; &#8593; Bull</h3><div class="reveal"><p>One-click downside / upside cases that fill in real numbers you can then fine-tune.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><h3>&#9678; Target Deal</h3><div class="reveal"><p>Auto-solves the exact price that clears every fixable guardrail, your negotiation target.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><h3>&#128279; Shareable link</h3><div class="reveal"><p>The whole scenario lives in the URL. Paste it into chat, reopen it anywhere, identical every time.</p></div></div>
+  </div>
+</section>
+
+<!-- 10 BACKTEST STUDIO -->
+<section class="slide">
+  <div class="kicker">Station 4 &middot; keeps itself honest &middot; click each</div>
+  <h2>It grades its own homework.</h2>
+  <p class="lede">Enter what actually happened and it scores predicted vs reality, then tunes up when it drifts, without ever rewriting the past.</p>
+  <div class="grid g3" style="margin-top:1.3rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#8635;</div><h3>Backtest</h3><div class="reveal"><p>Record real viewing hours and churn for a title; it reports accuracy as one clear error number (MAPE) with a predicted-vs-actual chart.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#9874;</div><h3>Recalibrate</h3><div class="reveal"><p>If error crosses the line, it retunes the feature weights and forks a new <b class="em">immutable</b> model version, it never edits one in place.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="icoround">&#128230;</div><h3>Version catalog</h3><div class="reveal"><p>Every model version is listed, the active one flagged, any prior one rollback-able, so a result from last quarter stays reproducible under its own version.</p></div></div>
+  </div>
+</section>
+
+<!-- 11 GOVERNANCE -->
+<section class="slide center">
+  <div class="kicker">Station 4 &middot; built for the boardroom</div>
+  <h2>Big bets need a second signature.</h2>
+  <p class="lede">A GREENLIGHT whose cost clears the <b class="em">$25M</b> high-budget line isn&rsquo;t final until two executives sign off. Every approval, rejection, and sign-off is logged and timestamped.</p>
+  <ul class="clean" style="margin-left:auto;margin-right:auto;max-width:58ch;text-align:left">
+    <li><span class="tick">&#10003;</span><span><b>Role-aware sign-off.</b> High-budget greenlights route to the CCO and CFO before they can close.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Full audit trail.</b> Who decided, when, and under which model version, all recorded.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Nothing silent.</b> Gated decisions show exactly which approvals are still outstanding.</span></li>
+  </ul>
+</section>
+
+<!-- 12 COPILOT -->
+<section class="slide">
+  <div class="kicker">Across the whole app</div>
+  <h2>CineROI Copilot: ask it anything.</h2>
+  <p class="lede">A conversational assistant grounded in the demo&rsquo;s data. It explains verdicts and answers how-to questions, and it never invents numbers.</p>
+  <div class="grid g3" style="margin-top:1.4rem">
+    <div class="card"><div class="icoround">&#128172;</div><h3>&ldquo;Why did this PASS?&rdquo;</h3><p>Plain-English narration of the exact check that failed and by how much.</p></div>
+    <div class="card"><div class="icoround">&#128269;</div><h3>&ldquo;Show my green titles&rdquo;</h3><p>Grounded answers over the live pipeline, no hallucinated figures.</p></div>
+    <div class="card"><div class="icoround">&#10067;</div><h3>&ldquo;How do I run a slate?&rdquo;</h3><p>On-demand how-to for any feature in the portal, right where you are.</p></div>
+  </div>
+</section>
+
+<!-- 13 THE AI STACK -->
+<section class="slide">
+  <div class="kicker">Under the hood &middot; click each layer</div>
+  <h2>Decision-grade AI you can defend.</h2>
+  <div class="grid g4" style="margin-top:1.3rem">
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Perception</div><h3>Content understanding</h3><div class="reveal"><p>Embedding models turn a script into &ldquo;Narrative DNA&rdquo;: themes, tone, cast strength, scale.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Learning</div><h3>Models fit to data</h3><div class="reveal"><p>Small, transparent models learn each demand signal and show their work. Optional comps, lineage, momentum, and market drivers sharpen inputs, each off by default.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Decision</div><h3>The verdict engine</h3><div class="reveal"><p>A transparent layer that turns signals into a verdict you can trace to the exact number and reproduce on demand.</p></div></div>
+    <div class="card clickcard"><span class="chev">&#9656;</span><div class="tag">Conversational</div><h3>CineROI Copilot</h3><div class="reveal"><p>Explains any call in plain English, grounded in the data, never guessing.</p></div></div>
+  </div>
+</section>
+
+<!-- 14 TRUST -->
+<section class="slide center">
+  <div class="kicker">Why you can trust it</div>
+  <h2>Intelligence that <span class="em">shows its work.</span></h2>
+  <ul class="clean" style="margin-left:auto;margin-right:auto;max-width:60ch;text-align:left">
+    <li><span class="tick">&#10003;</span><span><b>Consistent.</b> The same deal always gets the same verdict, so decisions are defensible.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Explainable.</b> It shows which check passed, which failed, and by how much.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Auditable.</b> Every decision and sign-off is logged and stamped with its model version.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Reproducible.</b> Any past verdict can be re-derived, forever.</span></li>
+    <li><span class="tick">&#10003;</span><span><b>Honest.</b> Modeled or proxy numbers are badged as illustrative, never dressed up as measured truth.</span></li>
+  </ul>
+</section>
+
+<!-- 15 WORKS EVERYWHERE -->
+<section class="slide center">
+  <div class="kicker">Wherever the deal finds you</div>
+  <h2>Boardroom screen or phone in a cab.</h2>
+  <p class="lede">The whole portal is responsive, touch-friendly, and keyboard-navigable, so you can run a verdict, check a scorecard, or pull up a negotiation target from any device.</p>
+  <div class="grid g3" style="margin-top:1.6rem">
+    <div class="card"><div class="icoround">&#128241;</div><h3>Mobile-ready</h3><p>Every screen reflows to a single, legible column with big tap targets.</p></div>
+    <div class="card"><div class="icoround">&#9094;</div><h3>Keyboard &amp; a11y</h3><p>Navigable and labeled for assistive tech, not just the mouse.</p></div>
+    <div class="card"><div class="icoround">&#128279;</div><h3>Link-native</h3><p>Views and scenarios live in the URL, share a link, land on the exact same screen.</p></div>
+  </div>
+</section>
+
+<!-- 16 OPEN THE PORTAL -->
+<section class="slide center">
+  <div class="kicker">See it for real</div>
+  <h2>Stop reading. Go click the product.</h2>
+  <p class="lede">Open the live demo portal: dashboard, Asset Studio, title deep-dives, the What-If Explorer, Backtest Studio, and the Copilot, all running on the sample slate.</p>
+  <a class="portal-btn" id="portalLink" href="#" target="_blank" rel="noopener">
+    <span class="pdot"></span> <span class="ptext">Open the live demo portal</span> <span>&#8599;</span>
+  </a>
+  <p class="portal-url" id="portalUrl"></p>
+</section>
+
+<!-- 17 CLOSE -->
+<section class="slide center">
+  <div class="logo" style="font-size:1rem;margin-bottom:1.4rem"><span class="mark">&#9650;</span> CineROI<span class="em">&nbsp;AI</span></div>
+  <h1>One engine,<br/><span class="em">from pitch to sign-off.</span></h1>
+  <p class="lede">Ingest any way, decide with the receipts, negotiate with a target, and defend every call later. Faster decisions, honest by design.</p>
+  <div class="closetags"><span>Credit check for content deals</span><span>&middot;</span><span>Deterministic &middot; Explainable &middot; Auditable</span></div>
+</section>
+
+</div>
+<nav class="navbar" id="navbar" aria-label="Slide navigation">
+  <button class="nbtn" id="nHome" title="Back to start (Home)"><span class="ic">&#8962;</span>Home</button>
+  <span class="nsep"></span>
+  <button class="nbtn" id="nPrev" title="Previous (Left arrow)"><span class="ic">&#8249;</span></button>
+  <span class="ndots" id="nDots"></span>
+  <button class="nbtn" id="nNext" title="Next (Right arrow)"><span class="ic">&#8250;</span></button>
+  <span class="ncount" id="nCount">1 / 17</span>
+</nav>
+<script>
+  const slides=[...document.querySelectorAll(".slide")];
+  // ===== EDIT ME: where "Open the live demo portal" points =====
+  // Permanent deploy -> "https://demo.yourdomain.com"; local -> "http://localhost:3000";
+  // live ngrok -> paste the current https URL. Leave "" when sharing as a file.
+  const PORTAL_URL = "https://overlabor-stumbling-praising.ngrok-free.dev";
+  (function(){
+    const a=document.getElementById("portalLink"), u=document.getElementById("portalUrl");
+    const url=(PORTAL_URL||"").trim();
+    const temporary=/ngrok|trycloudflare|localhost|127\.0\.0\.1/i.test(url);
+    if(!url){
+      if(a){a.removeAttribute("href");a.setAttribute("aria-disabled","true");a.classList.add("disabled");
+        const t=a.querySelector(".ptext"); if(t)t.textContent="Portal opens during a live demo";}
+      if(u){u.textContent="Ask the presenter for the live link, or run the stack locally at http://localhost:3000";}
+      return;
+    }
+    if(a){a.href=url;}
+    if(u){u.innerHTML='<span class="u">'+url+'</span>'+(temporary?'<span class="disc">Live demo link. Only works while a demo is running; it may be offline later. If a browser warning appears, tap \u201cVisit Site\u201d to continue.</span>':'');}
+  })();
+
+  let i=0;
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle("active",k===i));
+    document.getElementById("progress").style.width=((i+1)/slides.length*100)+"%";
+    runCounters(slides[i]); syncNav();
+  }
+  function syncNav(){
+    document.getElementById("nCount").textContent=(i+1)+" / "+slides.length;
+    document.getElementById("nPrev").disabled=(i===0);
+    document.getElementById("nNext").disabled=(i===slides.length-1);
+    document.querySelectorAll(".ndot").forEach((d,k)=>d.classList.toggle("on",k===i));
+  }
+  document.addEventListener("keydown",e=>{
+    if(e.target.tagName==="INPUT") return;
+    if(e.key==="ArrowRight"||e.key==="PageDown"){e.preventDefault();show(i+1)}
+    else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();show(i-1)}
+    else if(e.key==="Home")show(0); else if(e.key==="End")show(slides.length-1);
+    else if(e.key.toLowerCase()==="f"){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+  });
+
+  document.querySelectorAll(".clickcard").forEach(c=>{
+    c.addEventListener("click",ev=>{ev.stopPropagation();c.classList.toggle("open");});
+  });
+
+  const IGNORE_NAV=".clickcard,input,button,a,label,.navbar,.portal-btn";
+  function navFromPoint(clientX,target){
+    if(target.closest(IGNORE_NAV)) return;
+    if(clientX>window.innerWidth*0.55) show(i+1);
+    else if(clientX<window.innerWidth*0.45) show(i-1);
+  }
+  document.addEventListener("click",e=>{ if(e.pointerType==="touch") return; navFromPoint(e.clientX,e.target); });
+  (function(){
+    let x0=null,y0=null,t0=0,moved=false;
+    document.addEventListener("touchstart",e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();moved=false;},{passive:true});
+    document.addEventListener("touchmove",e=>{if(x0===null)return;const t=e.touches[0];if(Math.abs(t.clientX-x0)>10||Math.abs(t.clientY-y0)>10)moved=true;},{passive:true});
+    document.addEventListener("touchend",e=>{
+      if(x0===null)return;
+      const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,dt=Date.now()-t0,sx=x0,target=e.target; x0=y0=null;
+      if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){ if(dx<0)show(i+1); else show(i-1); return; }
+      if(!moved&&dt<500) navFromPoint(sx,target);
+    },{passive:true});
+  })();
+
+  const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function runCounters(slide){
+    if(!slide) return;
+    slide.querySelectorAll("[data-count]").forEach(el=>{
+      if(el.dataset.done) return; el.dataset.done="1";
+      const target=parseFloat(el.dataset.count), dec=parseInt(el.dataset.decimals||"0",10);
+      const pre=el.dataset.prefix||"", suf=el.dataset.suffix||"";
+      if(reduceMotion){el.innerHTML=pre+target.toFixed(dec)+suf;return;}
+      const dur=1100,t0=performance.now();
+      function tick(now){const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);
+        el.innerHTML=pre+(target*e).toFixed(dec)+suf; if(p<1)requestAnimationFrame(tick); else el.innerHTML=pre+target.toFixed(dec)+suf;}
+      requestAnimationFrame(tick);
+    });
+  }
+
+  if(!reduceMotion){
+    const fx=document.getElementById("fx");
+    for(let k=0;k<30;k++){
+      const s=document.createElement("span"); const size=2+Math.random()*7;
+      s.style.left=(Math.random()*100)+"%"; s.style.width=s.style.height=size+"px";
+      s.style.animationDuration=(11+Math.random()*13)+"s"; s.style.animationDelay=(-Math.random()*20)+"s";
+      s.style.opacity=(0.18+Math.random()*0.4).toFixed(2);
+      if(Math.random()<0.25) s.style.background="radial-gradient(circle,var(--sky),transparent 70%)";
+      fx.appendChild(s);
+    }
+  }
+
+  (function(){
+    const dots=document.getElementById("nDots");
+    slides.forEach((_,k)=>{
+      const b=document.createElement("button");
+      b.className="ndot"; b.type="button"; b.title="Go to slide "+(k+1);
+      b.setAttribute("aria-label","Go to slide "+(k+1));
+      b.addEventListener("click",ev=>{ev.stopPropagation();show(k);});
+      dots.appendChild(b);
+    });
+    document.getElementById("nHome").addEventListener("click",ev=>{ev.stopPropagation();show(0);});
+    document.getElementById("nPrev").addEventListener("click",ev=>{ev.stopPropagation();show(i-1);});
+    document.getElementById("nNext").addEventListener("click",ev=>{ev.stopPropagation();show(i+1);});
+  })();
+
+  show(0);
+</script>
+</body>
+</html>
