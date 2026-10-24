@@ -85,7 +85,9 @@ def test_property_3_target_ceiling(cost, cpvh_breached, cpvh_correctable, ltv_br
     if cost <= 0 or not candidates:
         assert result is None
     else:
-        expected = min(candidates).quantize(Decimal("1"))
+        # Production rounds the binding ceiling HALF_UP to whole USD
+        # (negotiation._round_usd); mirror that here so the .5 boundary agrees.
+        expected = min(candidates).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         assert result == expected
         assert result <= min(candidates) + Decimal("1")
 
