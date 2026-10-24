@@ -120,6 +120,9 @@ const RELEASE_WINDOWS: ReleaseWindow[] = [
   "THEATRICAL_60D_PLUS",
 ];
 
+// Each preset fills the whole form, including the optional Advanced drivers.
+// Presets that carry a buzz_level use a late production_stage (FESTIVAL_PREVIEW
+// / ACQUISITION_READY) so momentum is active rather than STAGE_EXCLUDED.
 const PRESETS: Record<string, Partial<QuickEvaluateRequest>> = {
   "Bengaluru S1": {
     title_name: "The Bengaluru Syndicate (S1)",
@@ -130,9 +133,46 @@ const PRESETS: Record<string, Partial<QuickEvaluateRequest>> = {
     synopsis:
       "A gritty, fast-paced urban crime-noir saga delving into Bangalore's underground syndicate and the detectives who hunt it. A breakout ensemble and a festival-circuit showrunner anchor a bingeable eight-episode arc built for subscriber retention.",
     genre_tag: "Crime-Noir",
+    content_format: "Scripted Series",
+    projected_viewing_hours: 4_200_000,
+    viewing_hours_unit: "hours",
     talent_pedigree_score: 7.5,
     license_duration_months: 24,
     is_exclusive: true,
+    // Advanced drivers — a fresh original, so no lineage; macro + momentum set.
+    production_stage: "ACQUISITION_READY",
+    buzz_level: "MEDIUM",
+    source_ip_provenance: "ORIGINAL_SCREENPLAY",
+    release_window: "DIRECT_TO_STREAMING",
+    release_month: 8,
+    vernacular_track_count: 3,
+  },
+  "Bengaluru S2 (Sequel)": {
+    title_name: "The Bengaluru Syndicate (S2)",
+    asset_type: "ORIGINAL_SERIES",
+    acquisition_cost_or_budget: 2_100_000,
+    native_currency: "USD",
+    target_territories: ["IN", "SEA", "NA"],
+    synopsis:
+      "The syndicate saga returns: with the kingpin behind bars, a power vacuum ignites a bloodier turf war while the detectives chase the money. A proven returning ensemble raises the stakes for a highly anticipated second season.",
+    genre_tag: "Crime-Noir",
+    content_format: "Scripted Series",
+    projected_viewing_hours: 5_600_000,
+    viewing_hours_unit: "hours",
+    talent_pedigree_score: 8.0,
+    license_duration_months: 24,
+    is_exclusive: true,
+    // Advanced drivers — full franchise lineage + strong momentum + macro.
+    is_franchise: true,
+    franchise_order: 2,
+    parent_title_viewing_hours: 4_200_000,
+    parent_completion_rate: 0.82,
+    production_stage: "ACQUISITION_READY",
+    buzz_level: "HIGH",
+    source_ip_provenance: "ORIGINAL_SCREENPLAY",
+    release_window: "DIRECT_TO_STREAMING",
+    release_month: 10,
+    vernacular_track_count: 4,
   },
   "Apex Horizon (High-Budget)": {
     title_name: "Apex Horizon",
@@ -143,9 +183,42 @@ const PRESETS: Record<string, Partial<QuickEvaluateRequest>> = {
     synopsis:
       "A sweeping, four-quadrant sci-fi thriller: a marooned crew races a collapsing orbital station as a rival syndicate closes in. A-list leads and a tentpole director make this a global marquee event with blockbuster franchise upside.",
     genre_tag: "Sci-Fi Thriller",
+    content_format: "Original Film",
+    projected_viewing_hours: 9_000_000,
+    viewing_hours_unit: "hours",
     talent_pedigree_score: 9.0,
     license_duration_months: 36,
     is_exclusive: true,
+    // Advanced drivers — bestseller-adapted tentpole, day-and-date, peak buzz.
+    production_stage: "ACQUISITION_READY",
+    buzz_level: "HIGH",
+    source_ip_provenance: "BESTSELLER_BOOK",
+    release_window: "DAY_AND_DATE",
+    release_month: 7,
+    vernacular_track_count: 6,
+  },
+  "Mythic Realms (Festival IP)": {
+    title_name: "Mythic Realms",
+    asset_type: "CO_PRODUCTION",
+    acquisition_cost_or_budget: 8_500_000,
+    native_currency: "EUR",
+    target_territories: ["EU", "NA", "IN"],
+    synopsis:
+      "An epic fantasy co-production adapted from a bestselling webtoon: warring realms, a reluctant heir, and a festival-buzzed visual spectacle positioned for a staggered theatrical-to-streaming rollout.",
+    genre_tag: "Fantasy",
+    content_format: "Limited Series",
+    projected_viewing_hours: 6_000_000,
+    viewing_hours_unit: "hours",
+    talent_pedigree_score: 8.5,
+    license_duration_months: 30,
+    is_exclusive: true,
+    // Advanced drivers — festival-preview stage with medium buzz; webtoon IP.
+    production_stage: "FESTIVAL_PREVIEW",
+    buzz_level: "MEDIUM",
+    source_ip_provenance: "WEBTOON_MANGA",
+    release_window: "THEATRICAL_60D_PLUS",
+    release_month: 11,
+    vernacular_track_count: 5,
   },
   "Vintage Reruns (Library)": {
     title_name: "Vintage Reruns Vol. 7",
@@ -156,9 +229,18 @@ const PRESETS: Record<string, Partial<QuickEvaluateRequest>> = {
     synopsis:
       "A nostalgia-driven catalogue bundle of beloved mid-budget library titles - comfort-viewing filler that broadens the back-catalogue tail without headline spend.",
     genre_tag: "Comedy-Classic",
+    content_format: "Library / Catalog",
+    projected_viewing_hours: 2_000_000,
+    viewing_hours_unit: "hours",
     talent_pedigree_score: 4.0,
     license_duration_months: 12,
     is_exclusive: false,
+    // Advanced drivers — public-domain back catalogue; no buzz (library title).
+    production_stage: "ACQUISITION_READY",
+    source_ip_provenance: "PUBLIC_DOMAIN",
+    release_window: "DIRECT_TO_STREAMING",
+    release_month: 2,
+    vernacular_track_count: 2,
   },
 };
 
@@ -226,18 +308,30 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
     setPedigree(String(p.talent_pedigree_score ?? "5.0"));
     setDuration(String(p.license_duration_months ?? "24"));
     setExclusive(Boolean(p.is_exclusive));
-    setContentFormat("");
-    // Presets carry no driver facts; clear the Advanced-drivers section.
-    setIsFranchise(false);
-    setFranchiseOrder("");
-    setParentHours("");
-    setParentCompletion("");
-    setProductionStage("");
-    setBuzzLevel("");
-    setSourceIp("");
-    setReleaseWindow("");
-    setReleaseMonth("");
-    setVernacularTracks("");
+    setContentFormat(p.content_format ?? "");
+    setViewingHours(
+      p.projected_viewing_hours != null ? String(p.projected_viewing_hours) : "",
+    );
+    setViewingUnit(p.viewing_hours_unit ?? "hours");
+    // Advanced drivers: apply whatever the preset carries, resetting any field
+    // the preset omits back to its neutral "not supplied" state so switching
+    // presets never leaves a stale driver value behind.
+    setIsFranchise(Boolean(p.is_franchise));
+    setFranchiseOrder(p.franchise_order != null ? String(p.franchise_order) : "");
+    setParentHours(
+      p.parent_title_viewing_hours != null ? String(p.parent_title_viewing_hours) : "",
+    );
+    setParentCompletion(
+      p.parent_completion_rate != null ? String(p.parent_completion_rate) : "",
+    );
+    setProductionStage((p.production_stage as ProductionStage) ?? "");
+    setBuzzLevel((p.buzz_level as BuzzLevel) ?? "");
+    setSourceIp((p.source_ip_provenance as SourceIpProvenance) ?? "");
+    setReleaseWindow((p.release_window as ReleaseWindow) ?? "");
+    setReleaseMonth(p.release_month != null ? String(p.release_month) : "");
+    setVernacularTracks(
+      p.vernacular_track_count != null ? String(p.vernacular_track_count) : "",
+    );
     setError(null);
   }
 

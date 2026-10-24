@@ -137,4 +137,40 @@ describe("AssetForm — Advanced drivers section", () => {
     expect(screen.getByLabelText("Source IP Provenance")).toHaveValue("");
     expect(screen.getByLabelText("Release Window")).toHaveValue("");
   });
+
+  it("a Quick Preset fills the Advanced-drivers controls", () => {
+    renderForm();
+
+    // The sequel preset carries full franchise lineage + momentum + macro.
+    fireEvent.click(screen.getByRole("button", { name: /Load Bengaluru S2 \(Sequel\)/i }));
+
+    expect(screen.getByLabelText("Franchise Order")).toHaveValue(2);
+    expect(screen.getByLabelText("Parent Viewing Hours")).toHaveValue(4200000);
+    expect(screen.getByLabelText("Parent Completion (0-1)")).toHaveValue(0.82);
+    expect(stage()).toHaveValue("ACQUISITION_READY");
+    // Buzz is active at ACQUISITION_READY and carries the preset value.
+    expect(buzz()).not.toBeDisabled();
+    expect(buzz()).toHaveValue("HIGH");
+    expect(screen.getByLabelText("Source IP Provenance")).toHaveValue("ORIGINAL_SCREENPLAY");
+    expect(screen.getByLabelText("Release Window")).toHaveValue("DIRECT_TO_STREAMING");
+    expect(screen.getByLabelText("Release Month (1-12)")).toHaveValue(10);
+    expect(screen.getByLabelText("Vernacular Tracks")).toHaveValue(4);
+  });
+
+  it("switching to a non-franchise preset resets stale lineage fields", () => {
+    renderForm();
+
+    // Load the sequel (franchise on), then a standalone preset (franchise off).
+    fireEvent.click(screen.getByRole("button", { name: /Load Bengaluru S2 \(Sequel\)/i }));
+    expect(screen.getByLabelText("Franchise Order")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Load Vintage Reruns \(Library\)/i }));
+
+    // Franchise toggled off => parent fields hidden; a library preset carries
+    // no buzz, so the Buzz control falls back to unset.
+    expect(screen.queryByLabelText("Franchise Order")).not.toBeInTheDocument();
+    expect(buzz()).toHaveValue("");
+    expect(screen.getByLabelText("Source IP Provenance")).toHaveValue("PUBLIC_DOMAIN");
+    expect(screen.getByLabelText("Release Window")).toHaveValue("DIRECT_TO_STREAMING");
+  });
 });
