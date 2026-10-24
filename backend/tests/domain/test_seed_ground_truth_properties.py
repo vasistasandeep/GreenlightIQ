@@ -52,7 +52,10 @@ def _ground_truth_section(sql: str) -> str:
 # Feature: dashboard-accuracy-and-payback-audit, Property 9: regenerating the
 # seed produces byte-identical historical_ground_truth INSERTs
 # Validates: Requirements 12.2, 12.3
-@settings(max_examples=100)
+# deadline=None: render() does real vector/seed work, so per-example latency is
+# not what is under test here - byte-identical determinism is. This matches the
+# convention used by the driver determinism property tests.
+@settings(max_examples=100, deadline=None)
 @given(runs=st.integers(min_value=2, max_value=6))
 def test_property_9_ground_truth_render_is_byte_identical(runs):
     outputs = [_ground_truth_section(seed.render()) for _ in range(runs)]

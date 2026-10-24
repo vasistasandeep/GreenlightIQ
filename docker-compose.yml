@@ -1,5 +1,5 @@
 # =============================================================================
-# CineROI AI Ã¢â‚¬â€ full-stack orchestration (Requirements 18.2, 18.3, 18.4)
+# CineROI AI - full-stack orchestration (Requirements 18.2, 18.3, 18.4)
 # =============================================================================
 # Services:
 #   db        PostgreSQL 16 + pgvector            (VECTOR(1536), cosine search)
@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Redis Ã¢â‚¬â€ Celery broker (db 0) and result backend (db 1).
+  # Redis - Celery broker (db 0) and result backend (db 1).
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
@@ -133,7 +133,7 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Celery worker fleet Ã¢â‚¬â€ consumes every queue (ingest/extract/audit/telemetry).
+  # Celery worker fleet - consumes every queue (ingest/extract/audit/telemetry).
   # Shares the backend image; only the command differs.
   # ---------------------------------------------------------------------------
   worker:

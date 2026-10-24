@@ -46,14 +46,46 @@ _BACKEND = Path(__file__).resolve().parent.parent.parent / "backend"
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
+# The imports below sit after the sys.path shim above so the generator is
+# runnable as a plain script; they are sorted (ruff I001) so the block stays
+# clean. The four advanced-content-eval-drivers blocks (comps / lineage /
+# macro_modifiers / momentum) import each driver's DETERMINISTIC_FALLBACK
+# Illustrative_Coefficients so the seed emits their guardrail_params sub-objects
+# straight from the domain defaults, exactly as the churn_model / content_eval
+# blocks do; the self-check round-trips each one back through its parse_params so
+# the embedded JSON can never drift from the domain parameters (task 13, R8.5).
 from app.domain.churn import (  # noqa: E402
     DEFAULT_CHURN_MODEL_PARAMS,
     ChurnFeatures,
     calculate_churn_mitigation,
 )
+from app.domain.comps import (  # noqa: E402
+    DEFAULT_COMPS_PARAMS,
+)
+from app.domain.comps import (  # noqa: E402
+    parse_params as parse_comps_params,
+)
 from app.domain.content_eval import (  # noqa: E402
     DEFAULT_CONTENT_EVAL_PARAMS,
     parse_content_eval_params,
+)
+from app.domain.lineage import (  # noqa: E402
+    DEFAULT_LINEAGE_PARAMS,
+)
+from app.domain.lineage import (  # noqa: E402
+    parse_params as parse_lineage_params,
+)
+from app.domain.macro_modifiers import (  # noqa: E402
+    DEFAULT_MACRO_PARAMS,
+)
+from app.domain.macro_modifiers import (  # noqa: E402
+    parse_params as parse_macro_params,
+)
+from app.domain.momentum import (  # noqa: E402
+    DEFAULT_MOMENTUM_PARAMS,
+)
+from app.domain.momentum import (  # noqa: E402
+    parse_params as parse_momentum_params,
 )
 
 DIMS = 1536
@@ -197,6 +229,88 @@ def _content_eval_params_json() -> dict:
     }
 
 
+def _comps_params_json() -> dict:
+    """Serialize :data:`DEFAULT_COMPS_PARAMS` into the ``comps`` guardrail_params
+    sub-object (advanced-content-eval-drivers Driver A, R8.5).
+
+    Derived from the imported domain defaults so the embedded JSON can never
+    drift from :data:`app.domain.comps.DEFAULT_COMPS_PARAMS`. Decimals are emitted
+    as strings for exactness; ``comps.parse_params`` coerces each back.
+    """
+    p = DEFAULT_COMPS_PARAMS
+    return {
+        "k": p.k,
+        "band_low_factor": str(p.band_low_factor),
+        "band_high_factor": str(p.band_high_factor),
+    }
+
+
+def _lineage_params_json() -> dict:
+    """Serialize :data:`DEFAULT_LINEAGE_PARAMS` into the ``lineage`` guardrail_params
+    sub-object (Driver B, R8.5).
+
+    Derived from the imported domain defaults so the embedded JSON can never drift
+    from :data:`app.domain.lineage.DEFAULT_LINEAGE_PARAMS`.
+    """
+    p = DEFAULT_LINEAGE_PARAMS
+    return {
+        "alpha_base_decay": str(p.alpha_base_decay),
+        "beta_comp": str(p.beta_comp),
+        "gamma_base": str(p.gamma_base),
+        "delta_order": str(p.delta_order),
+        "loyalty_cap": p.loyalty_cap,
+    }
+
+
+def _momentum_params_json() -> dict:
+    """Serialize :data:`DEFAULT_MOMENTUM_PARAMS` into the ``momentum`` guardrail_params
+    sub-object (Driver C, R8.5).
+
+    Derived from the imported domain defaults so the embedded JSON can never drift
+    from :data:`app.domain.momentum.DEFAULT_MOMENTUM_PARAMS`.
+    """
+    p = DEFAULT_MOMENTUM_PARAMS
+    return {
+        "w_v": str(p.w_v),
+        "w_e": str(p.w_e),
+        "w_s": str(p.w_s),
+        "baseline_v": str(p.baseline_v),
+        "cap_v": str(p.cap_v),
+        "cap_e": str(p.cap_e),
+        "momentum_multiplier_max": str(p.momentum_multiplier_max),
+        "staleness_window_days": p.staleness_window_days,
+    }
+
+
+def _macro_modifiers_params_json() -> dict:
+    """Serialize :data:`DEFAULT_MACRO_PARAMS` into the ``macro_modifiers``
+    guardrail_params sub-object (Driver D, R8.5).
+
+    Derived from the imported domain defaults so the embedded JSON can never drift
+    from :data:`app.domain.macro_modifiers.DEFAULT_MACRO_PARAMS`. The four
+    documented-domain tables and the six clamp bounds are emitted with Decimal
+    multipliers as strings; ``macro_modifiers.parse_params`` coerces each back and
+    normalizes the string-table descriptor keys.
+    """
+    p = DEFAULT_MACRO_PARAMS
+    return {
+        "source_ip_table": {k: str(v) for k, v in p.source_ip_table.items()},
+        "release_window_table": {
+            k: str(v) for k, v in p.release_window_table.items()
+        },
+        # Int-keyed tables: JSON object keys are strings, which parse_params
+        # coerces back to ints.
+        "seasonality_table": {str(k): str(v) for k, v in p.seasonality_table.items()},
+        "vernacular_table": {str(k): str(v) for k, v in p.vernacular_table.items()},
+        "ip_bound_low": str(p.ip_bound_low),
+        "ip_bound_high": str(p.ip_bound_high),
+        "seasonality_bound_low": str(p.seasonality_bound_low),
+        "seasonality_bound_high": str(p.seasonality_bound_high),
+        "vernacular_bound_low": str(p.vernacular_bound_low),
+        "vernacular_bound_high": str(p.vernacular_bound_high),
+    }
+
+
 # Initial active model version — weights sum to exactly 1.00 (R12.2, R26.1).
 MODEL_VERSION = {
     "label": "model-version-initial",
@@ -219,6 +333,17 @@ MODEL_VERSION = {
         # projection, driver, churn value, or verdict (Property 12). Carried
         # forward unchanged on calibration forks; read via parse_content_eval_params.
         "content_eval": _content_eval_params_json(),
+        # Advanced_Content_Eval_Drivers (advanced-content-eval-drivers R8.5):
+        # the four drivers' DETERMINISTIC_FALLBACK Illustrative_Coefficients,
+        # carried in guardrail_params exactly like churn_model / content_eval and
+        # forked forward unchanged by calibration.py. Serialized straight from the
+        # domain defaults (with a self-check asserting no drift); INERT at seed
+        # time because all four enable_* flags default false, so they change no
+        # seeded projection or verdict.
+        "comps": _comps_params_json(),
+        "lineage": _lineage_params_json(),
+        "momentum": _momentum_params_json(),
+        "macro_modifiers": _macro_modifiers_params_json(),
     },
 }
 
@@ -647,8 +772,19 @@ def _seed_explanation(atype, cpvh, ltv, churn, payback, churn_result=None):
     return explanation
 
 
+# Memo so the (pure, module-constant) self-check runs its parse_params / equality
+# round-trips exactly once per process. ``render()`` is called repeatedly by the
+# seed regression tests (and is deadline-sensitive under Hypothesis); the checks
+# validate only module-level constants that cannot change at runtime, so running
+# them once is sufficient and keeps repeated renders fast.
+_SELF_CHECK_DONE = False
+
+
 def _self_check() -> None:
     """Guard the invariants the regenerated seed must hold.
+
+    Runs once per process (memoized via :data:`_SELF_CHECK_DONE`); all inputs are
+    module-level constants, so re-validating on every render would only add cost.
 
     * The embedded ``churn_model`` JSON parses back to the imported defaults, so
       it can never drift from the domain parameters (calculable-churn-model R9.2).
@@ -656,6 +792,10 @@ def _self_check() -> None:
       (R9.3/R9.4): Aurora/Echoes/Monsoon strictly above 1.5, Ledger in
       [1.60, 1.65], Vintage Reruns in [0.80, 0.90].
     """
+    global _SELF_CHECK_DONE
+    if _SELF_CHECK_DONE:
+        return
+
     from app.domain.churn import parse_params
 
     parsed, source = parse_params(MODEL_VERSION["guardrail_params"]["churn_model"])
@@ -702,6 +842,40 @@ def _self_check() -> None:
     assert ce.watch_time_elasticity_source == "MODEL_VERSION", "WTE fell back"
     assert ce.ad_load_receptivity_source == "MODEL_VERSION", "ALR fell back"
 
+    # The four advanced-driver blocks round-trip to their domain defaults
+    # (advanced-content-eval-drivers R8.5): each embedded guardrail_params
+    # sub-object parses back through its driver's parse_params to the imported
+    # DEFAULT_*_PARAMS and reports MODEL_VERSION, so the seed JSON can never drift
+    # from the domain coefficients. They are inert at seed time (all enable_*
+    # flags default false), so no seeded verdict can move (Property 1).
+    gp = MODEL_VERSION["guardrail_params"]
+
+    comps_params, comps_source = parse_comps_params(gp["comps"])
+    assert comps_source == "MODEL_VERSION", "embedded comps block failed to parse"
+    assert comps_params == DEFAULT_COMPS_PARAMS, (
+        "embedded comps JSON drifted from DEFAULT_COMPS_PARAMS"
+    )
+
+    lineage_params, lineage_source = parse_lineage_params(gp["lineage"])
+    assert lineage_source == "MODEL_VERSION", "embedded lineage block failed to parse"
+    assert lineage_params == DEFAULT_LINEAGE_PARAMS, (
+        "embedded lineage JSON drifted from DEFAULT_LINEAGE_PARAMS"
+    )
+
+    momentum_params, momentum_source = parse_momentum_params(gp["momentum"])
+    assert momentum_source == "MODEL_VERSION", "embedded momentum block failed to parse"
+    assert momentum_params == DEFAULT_MOMENTUM_PARAMS, (
+        "embedded momentum JSON drifted from DEFAULT_MOMENTUM_PARAMS"
+    )
+
+    macro_params, macro_source = parse_macro_params(gp["macro_modifiers"])
+    assert macro_source == "MODEL_VERSION", (
+        "embedded macro_modifiers block failed to parse"
+    )
+    assert macro_params == DEFAULT_MACRO_PARAMS, (
+        "embedded macro_modifiers JSON drifted from DEFAULT_MACRO_PARAMS"
+    )
+
     tolerances = {
         # label: (low, high) inclusive bounds the computed churn must fall in
         "title-aurora": (Decimal("2.06"), Decimal("2.15")),
@@ -718,6 +892,8 @@ def _self_check() -> None:
         assert low <= value <= high, (
             f"{label} churn {value} outside tolerance [{low}, {high}]"
         )
+
+    _SELF_CHECK_DONE = True
 
 
 def render() -> str:
@@ -817,9 +993,21 @@ def render() -> str:
     # --- titles ---------------------------------------------------------------
     w("-- Candidate titles spanning every asset_type (R17.4). deal_stage seeds")
     w("-- the acquisition pipeline across a realistic mix of lifecycle stages.")
+    w("-- The nine advanced-driver columns (advanced-content-eval-drivers R8.5,")
+    w("-- R8.6) are backfilled with their NEUTRAL defaults, matching migration")
+    w("-- 0005's neutral server defaults: non-franchise (is_franchise=false,")
+    w("-- franchise_order=1, parents NULL), CONCEPT_SCRIPT production stage,")
+    w("-- ORIGINAL_SCREENPLAY IP, DIRECT_TO_STREAMING release window, NULL release")
+    w("-- month (the explicit 1.00-seasonality sentinel), and a single vernacular")
+    w("-- track. With every column neutral and all four enable_* flags off, each")
+    w("-- driver contributes identically zero/1.00, so the five demo titles stay")
+    w("-- inert and a live recompute reproduces every seeded verdict (R9.2).")
     w("INSERT INTO titles (title_id, title_name, asset_type, "
       "acquisition_cost_or_budget, native_currency, target_territories, genre_tag, "
-      "projected_viewing_hours, is_historical, deal_stage, created_by) VALUES")
+      "projected_viewing_hours, is_historical, deal_stage, created_by, "
+      "is_franchise, franchise_order, parent_title_viewing_hours, "
+      "parent_completion_rate, production_stage, source_ip_provenance, "
+      "release_window, release_month, vernacular_track_count) VALUES")
     rows = []
     for t in TITLES:
         (label, name, atype, cost, cur, terrs, genre, vh, hist, *_rest) = t
@@ -827,7 +1015,10 @@ def render() -> str:
         rows.append(
             f"  ('{det_uuid(label)}', {q(name)}, {q(atype)}, {cost}, {q(cur)}, "
             f"{_json(terrs)}::jsonb, {q(genre)}, {vh}, "
-            f"{'TRUE' if hist else 'FALSE'}, {q(stage)}, '{det_uuid('user-buyer')}')"
+            f"{'TRUE' if hist else 'FALSE'}, {q(stage)}, '{det_uuid('user-buyer')}', "
+            # Neutral advanced-driver facts (byte-identity defaults).
+            f"FALSE, 1, NULL, NULL, 'CONCEPT_SCRIPT', 'ORIGINAL_SCREENPLAY', "
+            f"'DIRECT_TO_STREAMING', NULL, 1)"
         )
     w(",\n".join(rows))
     w("ON CONFLICT (title_id) DO NOTHING;")

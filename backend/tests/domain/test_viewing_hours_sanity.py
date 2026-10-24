@@ -120,3 +120,69 @@ def test_monotonicity_in_rating() -> None:
     high = vh.calculate_viewing_hours(_vector(normalized_rating="0.9"), vh.DEFAULT_VIEWING_HOURS_PARAMS)
     assert high.unclamped >= low.unclamped
     assert high.viewing_hours >= low.viewing_hours
+
+
+def test_base_hours_override_none_is_byte_identical() -> None:
+    """base_hours_override=None reproduces the intercept-path breakdown exactly."""
+    vector = _vector(
+        asset_type="ORIGINAL_SERIES",
+        genre="drama",
+        runtime_minutes=55,
+        is_exclusive=True,
+        production_scale=8,
+        talent_pedigree=9,
+        normalized_rating="0.82",
+        log_vote_count="7.5",
+        franchise_flag=True,
+        award_signal="0.6",
+    )
+    baseline = vh.calculate_viewing_hours(vector, vh.DEFAULT_VIEWING_HOURS_PARAMS)
+    with_none = vh.calculate_viewing_hours(
+        vector, vh.DEFAULT_VIEWING_HOURS_PARAMS, base_hours_override=None
+    )
+    assert with_none == baseline
+    # The base line is still the intercept-derived platform-hours line.
+    assert with_none.breakdown is not None
+    assert with_none.breakdown[0].key == "base_platform_hours"
+
+
+def test_base_hours_override_seeds_comps_anchor_and_conserves() -> None:
+    """A supplied override seeds H0 with the anchor; the sum still conserves."""
+    vector = _vector(normalized_rating="0.82", log_vote_count="7.5", is_exclusive=True)
+    override = Decimal("4200")  # a whole-hour comps anchor (H_comps)
+    result = vh.calculate_viewing_hours(
+        vector, vh.DEFAULT_VIEWING_HOURS_PARAMS, base_hours_override=override
+    )
+    assert result.method == "CALCULATED"
+    assert result.breakdown is not None
+
+    # The base line is now the comps anchor and strictly equals the override.
+    anchor = result.breakdown[0]
+    assert anchor.key == "comps_anchor"
+    assert anchor.hours == override
+
+    # Conservation: sum(breakdown.hours) == viewing_hours exactly; the single
+    # rounding_or_bounds_adjustment line remains the sole residual sink.
+    total = sum((c.hours for c in result.breakdown), Decimal(0))
+    assert total == result.viewing_hours
+    sinks = [c for c in result.breakdown if c.key == "rounding_or_bounds_adjustment"]
+    assert len(sinks) <= 1
+
+    # H_hat (the log-space prediction) is unchanged by the anchor: only the base
+    # allocation shifts, so the marginal lift dH = H_hat - H0 absorbs the anchor.
+    baseline = vh.calculate_viewing_hours(vector, vh.DEFAULT_VIEWING_HOURS_PARAMS)
+    assert result.unclamped == baseline.unclamped
+
+
+def test_base_hours_override_negative_floors_to_zero() -> None:
+    """A negative override floors H0 to 0 just like the intercept path does."""
+    vector = _vector(normalized_rating="0.5")
+    result = vh.calculate_viewing_hours(
+        vector, vh.DEFAULT_VIEWING_HOURS_PARAMS, base_hours_override=Decimal("-100")
+    )
+    assert result.breakdown is not None
+    anchor = result.breakdown[0]
+    assert anchor.key == "comps_anchor"
+    assert anchor.hours == Decimal(0)
+    assert result.viewing_hours >= vh.DEFAULT_VIEWING_HOURS_PARAMS.floor
+    assert sum((c.hours for c in result.breakdown), Decimal(0)) == result.viewing_hours

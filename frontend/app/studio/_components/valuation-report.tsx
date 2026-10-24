@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { GuardrailCheck, QuickEvaluateResponse } from "@/lib/types";
+import { AdvancedDriversBreakdown } from "@/app/titles/[id]/_components/advanced-drivers-breakdown";
 import { ChurnBreakdown } from "@/app/titles/[id]/_components/churn-breakdown";
 import { ContentEvalBreakdown } from "@/app/titles/[id]/_components/content-eval-breakdown";
 import { StudioPayback } from "./studio-payback";
@@ -158,6 +159,9 @@ export function ValuationReport({ result }: { result: QuickEvaluateResponse }) {
               <ChurnBreakdown churnModel={result.explanation?.churn_model} />
               <ContentEvalBreakdown
                 contentEval={result.explanation?.content_eval}
+              />
+              <AdvancedDriversBreakdown
+                advancedDrivers={result.explanation?.advanced_drivers}
               />
             </div>
           </Panel>

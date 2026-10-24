@@ -750,17 +750,301 @@ def _driver_explanation(
     return payload
 
 
+# --------------------------------------------------------------------------- #
+# Advanced_Content_Eval_Drivers provider: flag-gated, inert-by-default (R7.2) #
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class AdvancedDriversValuationInputProvider:
+    """Flag-gated wiring for the four Advanced_Content_Eval_Drivers (R7, R9).
+
+    Wraps the :class:`ContentEvalValuationInputProvider` and, for each of the
+    four drivers, resolves its pure-domain math ONLY when the driver's kill-switch
+    (:class:`~app.core.config.Settings`) is true:
+
+    * Driver A (Comps_Engine, ``enable_comps``) -- anchors ``H_comps`` / ``C_comps``
+      from the retrieved comp set; when on AND the comp set is non-empty the
+      ``base_hours_override = H_comps`` / ``base_churn_override = C_comps`` seeds
+      are surfaced on the ``advanced_drivers`` explanation (the churn seam that
+      consumes them is wired in a later task; the inputs themselves are not
+      mutated so SUPPLIED-wins and the demo path are untouched).
+    * Driver B (Lineage_Decay, ``enable_lineage``) -- Franchise_Floor +
+      ``delta_C_franchise`` from the snapshot's lineage facts.
+    * Driver C (Momentum_Telemetry, ``enable_momentum``) -- the stage-gated
+      Momentum_Multiplier.
+    * Driver D (Macro_Modifiers, ``enable_macro_modifiers``) -- the four market
+      multipliers.
+
+    CRITICAL INERTNESS INVARIANT (R7.2, R7.3, Property 1/5). While ALL FOUR flags
+    are false (the default), this provider short-circuits BEFORE resolving any
+    driver and returns the wrapped :class:`ValuationInputs` BYTE-IDENTICAL -- no
+    driver touches ``ValuationInputs``, the breakdown, the explanation, or the
+    verdict, so the five seeded demo titles and every existing test stay
+    byte-identical. Only a deliberately enabled flag threads an ``advanced_drivers``
+    block (nested under the existing ``driver_explanations`` passthrough) and
+    lets its driver react.
+
+    Each driver is an independent vertical slice behind its own flag (enabling one
+    neither requires nor enables another, R7.1). The ``SUPPLIED > FITTED >
+    DETERMINISTIC_FALLBACK`` precedence holds regardless of flag state: a driver
+    surfaces its DETERMINISTIC_FALLBACK anchor on the explanation, but a SUPPLIED
+    snapshot value still wins at the field level exactly as today (the engine's
+    churn resolution short-circuits on a SUPPLIED ``churn_reduction_pct``). The
+    guardrail thresholds, the recommendation logic, the governance gates, and the
+    churn non-correctable rule are never touched -- this is a provider-layer
+    change only.
+    """
+
+    session: AsyncSession
+
+    async def get_inputs(self, title_id: uuid.UUID) -> Any:
+        inner = ContentEvalValuationInputProvider(self.session)
+        inputs = await inner.get_inputs(title_id)
+
+        settings = get_settings()
+        any_flag = (
+            settings.enable_comps
+            or settings.enable_lineage
+            or settings.enable_momentum
+            or settings.enable_macro_modifiers
+        )
+
+        # INERTNESS SHORT-CIRCUIT (R7.2): with every flag false, no driver is
+        # resolved and the wrapped inputs are returned byte-identical. This is
+        # the seeded demo path -- the explanation, breakdown, and verdict never
+        # move until a driver is explicitly enabled.
+        if not any_flag:
+            return inputs
+
+        # Resolve the title's active source snapshot so each enabled driver can
+        # derive its features from it (the same snapshot the wrapped providers
+        # read).
+        from app.repositories.titles import TitleVersionRepository
+
+        active_version = await TitleVersionRepository(self.session).get_active(title_id)
+        snapshot: dict[str, Any] = (
+            dict(active_version.source_snapshot)
+            if active_version is not None and active_version.source_snapshot
+            else {}
+        )
+
+        advanced: dict[str, Any] = {}
+
+        if settings.enable_comps:
+            self._resolve_comps(snapshot, advanced)
+        if settings.enable_lineage:
+            self._resolve_lineage(snapshot, advanced)
+        if settings.enable_momentum:
+            self._resolve_momentum(snapshot, advanced)
+        if settings.enable_macro_modifiers:
+            self._resolve_macro_modifiers(snapshot, advanced)
+
+        # Nothing resolved (every enabled driver no-op'd) -> leave inputs untouched.
+        if not advanced:
+            return inputs
+
+        # Thread the advanced-driver provenance under the existing
+        # ``driver_explanations`` passthrough, nested so the content-eval block is
+        # preserved. The engine attaches ``driver_explanations`` to the persisted
+        # explanation; task 14 formalizes the ``advanced_drivers`` schema shape.
+        from dataclasses import replace
+
+        merged: dict[str, Any] = dict(inputs.driver_explanations or {})
+        merged["advanced_drivers"] = advanced
+        return replace(inputs, driver_explanations=merged)
+
+    # -- per-driver flag-gated resolution ---------------------------------- #
+
+    @staticmethod
+    def _resolve_comps(
+        snapshot: dict[str, Any], advanced: dict[str, Any]
+    ) -> None:
+        """Driver A: anchor ``H_comps`` / ``C_comps`` from the retrieved comp set.
+
+        The pgvector retrieval seam (task 12) is not yet wired, so the comp set is
+        sourced from any comps pre-resolved onto the snapshot (``comps`` sub-object
+        carrying ``viewing_hours`` / ``churn_pct`` / ``title_ids`` lists). An empty
+        / absent comp set yields the intercept-fallback signal and the driver does
+        NOT surface a ``base_hours_override`` / ``base_churn_override`` (so Driver
+        A is a no-op, honoring the <k zero-comp fallback). When non-empty the
+        anchors seed ``base_hours_override = H_comps`` / ``base_churn_override =
+        C_comps`` on the explanation.
+        """
+        from app.domain import comps as compsmod
+
+        raw = snapshot.get("comps")
+        raw_map = raw if isinstance(raw, dict) else {}
+        hours_list = raw_map.get("viewing_hours") or []
+        churn_list = raw_map.get("churn_pct") or []
+        title_ids = raw_map.get("title_ids") or []
+
+        result = compsmod.calculate_comps(
+            list(hours_list),
+            list(churn_list),
+            title_ids=[int(t) for t in title_ids] if title_ids else None,
+        )
+
+        block: dict[str, Any] = {
+            "source_tier": result.source_tier,
+            "realized_k": result.realized_k,
+            "use_intercept_fallback": result.use_intercept_fallback,
+            "comp_title_ids": list(result.comp_title_ids),
+        }
+        if result.h_comps is not None:
+            # H_comps anchors the viewing-hours base (base_hours_override) and
+            # C_comps anchors the churn base (base_churn_override) -- surfaced so
+            # a later seam can seed them; inputs are not mutated here.
+            block["h_comps"] = _jsonable_decimal(result.h_comps)
+            block["base_hours_override"] = _jsonable_decimal(result.h_comps)
+        if result.c_comps is not None:
+            block["c_comps"] = _jsonable_decimal(result.c_comps)
+            block["base_churn_override"] = _jsonable_decimal(result.c_comps)
+        if result.dispersion_iqr is not None:
+            block["dispersion_iqr"] = _jsonable_decimal(result.dispersion_iqr)
+
+        advanced["comps"] = block
+
+    @staticmethod
+    def _resolve_lineage(
+        snapshot: dict[str, Any], advanced: dict[str, Any]
+    ) -> None:
+        """Driver B: Franchise_Floor + ``delta_C_franchise`` from the snapshot."""
+        from app.domain import lineage as linmod
+
+        is_franchise = bool(snapshot.get("is_franchise", False))
+        order_raw = linmod.coerce_decimal(snapshot.get("franchise_order"))
+        franchise_order = int(order_raw) if order_raw is not None else 1
+
+        features = linmod.LineageFeatures(
+            is_franchise=is_franchise,
+            franchise_order=franchise_order,
+            parent_title_viewing_hours=linmod.coerce_decimal(
+                snapshot.get("parent_title_viewing_hours")
+            ),
+            parent_completion_rate=linmod.coerce_decimal(
+                snapshot.get("parent_completion_rate")
+            ),
+            genre_baseline_viewing_hours=linmod.coerce_decimal(
+                snapshot.get("genre_baseline_viewing_hours")
+            ),
+        )
+        result = linmod.calculate_lineage(features, linmod.DEFAULT_LINEAGE_PARAMS)
+
+        advanced["lineage"] = {
+            "source_tier": result.source_tier,
+            "is_active": result.is_active,
+            "franchise_floor": _jsonable_decimal(result.franchise_floor),
+            "delta_c_franchise": _jsonable_decimal(result.delta_c_franchise),
+            "assumed_features": list(result.assumed_features),
+        }
+
+    @staticmethod
+    def _resolve_momentum(
+        snapshot: dict[str, Any], advanced: dict[str, Any]
+    ) -> None:
+        """Driver C: the stage-gated Momentum_Multiplier from the snapshot."""
+        from datetime import datetime
+
+        from app.domain import momentum as mommod
+
+        def _dt(value: Any) -> datetime | None:
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                return value
+            try:
+                return datetime.fromisoformat(str(value))
+            except ValueError:
+                return None
+
+        source_available = snapshot.get("telemetry_source_available")
+        features = mommod.MomentumFeatures(
+            production_stage=mommod.coerce_stage(snapshot.get("production_stage")),
+            v_trailer=mommod.coerce_decimal(snapshot.get("v_trailer")),
+            e_ratio=mommod.coerce_decimal(snapshot.get("e_ratio")),
+            s_velocity=mommod.coerce_decimal(snapshot.get("s_velocity")),
+            last_updated_at=_dt(snapshot.get("telemetry_last_updated_at")),
+            source_available=(
+                bool(source_available) if source_available is not None else True
+            ),
+            now=_dt(snapshot.get("telemetry_now")),
+        )
+        result = mommod.calculate_momentum(features, mommod.DEFAULT_MOMENTUM_PARAMS)
+
+        advanced["momentum"] = {
+            "source_tier": result.source_tier,
+            "value": _jsonable_decimal(result.multiplier),
+            "bounds": (
+                f"[1.00,{mommod.DEFAULT_MOMENTUM_PARAMS.momentum_multiplier_max}]"
+            ),
+            "production_stage": result.production_stage.value,
+            "stage_excluded": result.stage_excluded,
+            "reason": result.reason,
+            "reading_age_days": result.reading_age_days,
+        }
+
+    @staticmethod
+    def _resolve_macro_modifiers(
+        snapshot: dict[str, Any], advanced: dict[str, Any]
+    ) -> None:
+        """Driver D: the four market multipliers from the snapshot."""
+        from app.domain import macro_modifiers as macmod
+
+        month_raw = macmod.coerce_decimal(snapshot.get("release_month"))
+        count_raw = macmod.coerce_decimal(snapshot.get("vernacular_track_count"))
+
+        features = macmod.MacroFeatures(
+            source_ip_provenance=(
+                str(snapshot["source_ip_provenance"])
+                if snapshot.get("source_ip_provenance") is not None
+                else None
+            ),
+            release_window=(
+                str(snapshot["release_window"])
+                if snapshot.get("release_window") is not None
+                else None
+            ),
+            release_month=int(month_raw) if month_raw is not None else None,
+            vernacular_track_count=int(count_raw) if count_raw is not None else None,
+        )
+        result = macmod.calculate_macro_modifiers(
+            features, macmod.DEFAULT_MACRO_PARAMS
+        )
+
+        advanced["macro_modifiers"] = {
+            "source_tier": result.source_tier,
+            "source_ip_multiplier": _jsonable_decimal(result.source_ip_multiplier),
+            "release_window_multiplier": _jsonable_decimal(
+                result.release_window_multiplier
+            ),
+            "calendar_seasonality_multiplier": _jsonable_decimal(
+                result.calendar_seasonality_multiplier
+            ),
+            "vernacular_tam_multiplier": _jsonable_decimal(
+                result.vernacular_tam_multiplier
+            ),
+            "product": _jsonable_decimal(result.product),
+            "assumed_features": list(result.assumed_features),
+        }
+
+
 def get_input_provider(session: SessionDep) -> Any:
     """Return the request-scoped :class:`ValuationInputProvider` (R9).
 
-    Returns the :class:`ContentEvalValuationInputProvider`, which wraps the
-    :class:`SnapshotValuationInputProvider` and applies the Content_Eval_System
-    precedence (``SUPPLIED > FITTED > FALLBACK``) and the opt-in churn<->LTV link
-    (design Component 8). With no fitted ``content_eval`` version active and
-    ``link_churn_to_ltv`` off (the seeded default) it returns inputs byte-
-    identical to the snapshot provider, so the demo path is inert (Property 12).
+    Returns the :class:`AdvancedDriversValuationInputProvider`, which wraps the
+    :class:`ContentEvalValuationInputProvider` (which in turn wraps the
+    :class:`SnapshotValuationInputProvider`). The content-eval layer applies the
+    Content_Eval_System precedence (``SUPPLIED > FITTED > FALLBACK``) and the
+    opt-in churn<->LTV link; the advanced-drivers layer resolves the four
+    Advanced_Content_Eval_Drivers behind their per-driver kill-switches.
+
+    With every advanced-driver flag false AND no fitted ``content_eval`` version
+    active / ``link_churn_to_ltv`` off (the seeded default) it returns inputs
+    byte-identical to the snapshot provider, so the demo path is fully inert
+    (R7.2, Property 12).
     """
-    return ContentEvalValuationInputProvider(session)
+    return AdvancedDriversValuationInputProvider(session)
 
 
 InputProviderDep = Annotated[Any, Depends(get_input_provider)]

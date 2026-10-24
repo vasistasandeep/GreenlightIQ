@@ -18,6 +18,7 @@ Two endpoints make up the valuation surface:
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
@@ -29,11 +30,19 @@ from app.api.deps import (
     SessionDep,
     require_operation,
 )
+from app.core.config import get_settings
 from app.core.errors import TitleNotFoundError
 from app.domain import cohort, negotiation
+from app.domain import comps as comps_mod
+from app.domain.currency import (
+    BASE_CURRENCY,
+    ExchangeRate as DomainExchangeRate,
+    normalize_to_usd,
+)
 from app.engines.guardrails import churn_model_json
 from app.engines.rbac import Operation
 from app.models.metadata_vector import NARRATIVE_DNA_DIMENSIONS
+from app.repositories.exchange_rates import ExchangeRateRepository
 from app.repositories.financial_projections import FinancialProjectionRepository
 from app.repositories.metadata_vectors import MetadataVectorRepository
 from app.repositories.titles import TitleRepository
@@ -249,7 +258,132 @@ async def get_comparable_titles(
         )
         for n in neighbours
     ]
+
+    # Comps_Engine anchor (Driver A): gated on enable_comps. Off (the default)
+    # leaves the Top-3 surface byte-identical to pre-feature behavior — the
+    # anchor fields stay absent. On, we run the budget-band retrieval (task 12)
+    # through the pure comps set-math (task 1) and surface H_comps / C_comps /
+    # the IQR / realized k / comp ids, both on the response and on each listed
+    # comp. An empty / no-comp result leaves the fields absent (R6.2, R10.1).
+    anchor = await _resolve_comps_anchor(session, title, vector)
+    if anchor is not None:
+        for comp in comps:
+            comp.h_comps = anchor["h_comps"]
+            comp.c_comps = anchor["c_comps"]
+            comp.dispersion_iqr = anchor["dispersion_iqr"]
+            comp.realized_k = anchor["realized_k"]
+            comp.comp_title_ids = anchor["comp_title_ids"]
+        return ComparableTitlesResponse(
+            title_id=title_id,
+            found=True,
+            comps=comps,
+            h_comps=anchor["h_comps"],
+            c_comps=anchor["c_comps"],
+            dispersion_iqr=anchor["dispersion_iqr"],
+            realized_k=anchor["realized_k"],
+            comp_title_ids=anchor["comp_title_ids"],
+        )
+
     return ComparableTitlesResponse(title_id=title_id, found=True, comps=comps)
+
+
+async def _resolve_comps_anchor(
+    session: SessionDep,
+    title: object,
+    vector: object,
+) -> dict | None:
+    """Resolve the Comps_Engine (Driver A) anchor for the comps endpoint (R6.2, R10.1).
+
+    Returns ``None`` when the ``enable_comps`` kill-switch is off (the default),
+    so the endpoint stays byte-identical to its pre-feature behavior and the
+    anchor fields are absent. When on, resolves the query title's normalized-USD
+    Budget_Band (``[0.65 * cost, 1.35 * cost]``) through the FX seam, runs the
+    pgvector budget-band retrieval (``rank_comps_within_band``), feeds the
+    retrieved comps' metrics into the pure ``comps.calculate_comps`` set-math, and
+    returns the resolved anchor fields.
+
+    Returns ``None`` (fields stay absent) when no eligible comp survives (the
+    pure module's zero-comp intercept-fallback signal) or when the query title
+    carries no normalizable cost, so the surface is empty-safe and
+    backward-compatible.
+    """
+    settings = get_settings()
+    if not settings.enable_comps:
+        return None
+
+    asset_type = getattr(title, "asset_type", None)
+    native_cost = getattr(title, "acquisition_cost_or_budget", None)
+    native_currency = getattr(title, "native_currency", None)
+    narrative = getattr(vector, "narrative_dna", None)
+    if asset_type is None or native_cost is None or narrative is None:
+        return None
+
+    rates = ExchangeRateRepository(session)
+
+    async def normalize_cost(
+        cost: Decimal, currency: str | None
+    ) -> Decimal | None:
+        """Convert a native ``(cost, currency)`` to normalized USD, else ``None``.
+
+        A USD-native cost needs no conversion; otherwise the dated rate (falling
+        back to the latest known rate) is applied. FX-unavailable yields ``None``
+        so the retrieval seam skips that candidate non-fatally.
+        """
+        if cost is None:
+            return None
+        if currency is None or currency == BASE_CURRENCY:
+            return normalize_to_usd(
+                cost, Decimal("1"), rate_date=date.today(), from_currency=currency
+            ).amount_usd
+        row = await rates.get_rate(currency, BASE_CURRENCY, date.today())
+        if row is None:
+            row = await rates.get_latest_rate(currency, BASE_CURRENCY)
+        if row is None:
+            return None
+        return normalize_to_usd(
+            cost,
+            DomainExchangeRate(
+                rate=row.rate,
+                rate_date=row.rate_date,
+                from_currency=currency,
+                to_currency=BASE_CURRENCY,
+                exchange_rate_id=str(row.exchange_rate_id),
+            ),
+        ).amount_usd
+
+    # The query title's own normalized-USD cost anchors the Budget_Band.
+    query_cost_usd = await normalize_cost(native_cost, native_currency)
+    if query_cost_usd is None:
+        return None
+    cost_usd_low = (comps_mod.DEFAULT_COMPS_PARAMS.band_low_factor * query_cost_usd)
+    cost_usd_high = (comps_mod.DEFAULT_COMPS_PARAMS.band_high_factor * query_cost_usd)
+
+    candidates = await MetadataVectorRepository(session).rank_comps_within_band(
+        query_vector=narrative,
+        query_title_id=title.title_id,
+        query_asset_type=str(asset_type),
+        cost_usd_low=cost_usd_low,
+        cost_usd_high=cost_usd_high,
+        normalize_cost=normalize_cost,
+    )
+
+    result = comps_mod.calculate_comps(
+        [c.comp_viewing_hours for c in candidates],
+        [c.comp_churn_pct for c in candidates],
+        title_ids=None,
+    )
+    # Zero eligible comps -> intercept fallback: leave the anchor fields absent.
+    if result.use_intercept_fallback or result.realized_k == 0:
+        return None
+
+    comp_ids = [str(c.title_id) for c in candidates]
+    return {
+        "h_comps": result.h_comps,
+        "c_comps": result.c_comps,
+        "dispersion_iqr": result.dispersion_iqr,
+        "realized_k": result.realized_k,
+        "comp_title_ids": comp_ids,
+    }
 
 
 class TitleDecisionResponse(BaseModel):

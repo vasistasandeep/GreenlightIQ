@@ -148,6 +148,97 @@ export interface ContentEvalDriver {
 export type ContentEvalExplanation = Record<string, ContentEvalDriver>;
 
 /**
+ * The strict provenance precedence a resolved Advanced_Content_Eval_Driver
+ * value carries (R6.1). Every driver ships DETERMINISTIC_FALLBACK illustrative
+ * coefficients; SUPPLIED / FITTED are reserved for the shared precedence contract.
+ */
+export type DriverSourceTier = "SUPPLIED" | "FITTED" | "DETERMINISTIC_FALLBACK";
+
+/**
+ * Driver A (Comps_Engine) provenance under `explanation.advanced_drivers.comps`
+ * (R6.1, R6.2). Carries the Comps anchor statistics and the realized Comp_Set so
+ * the UI can show comps confidence (`realized_k` and `dispersion_iqr`).
+ * `h_comps` / `c_comps` / `dispersion_iqr` are absent when zero eligible comps
+ * exist (`use_intercept_fallback` is then true). Decimals arrive as JSON strings.
+ */
+export interface CompsProvenance {
+  source_tier: DriverSourceTier;
+  realized_k: number;
+  use_intercept_fallback: boolean;
+  comp_title_ids?: string[];
+  h_comps?: number | string | null;
+  c_comps?: number | string | null;
+  dispersion_iqr?: number | string | null;
+  base_hours_override?: number | string | null;
+  base_churn_override?: number | string | null;
+}
+
+/**
+ * Driver B (Lineage_Decay) provenance under `advanced_drivers.lineage` (R6.1).
+ *
+ * `franchise_floor` is the one-sided hour-space Stage 7 `max` lift and
+ * `delta_c_franchise` the additive churn loyalty credit (percentage points).
+ * `is_active` is false for a non-franchise title (zero floor / zero credit).
+ * Decimals arrive as JSON strings.
+ */
+export interface LineageProvenance {
+  source_tier: DriverSourceTier;
+  is_active: boolean;
+  franchise_floor: number | string | null;
+  delta_c_franchise: number | string | null;
+  assumed_features?: string[];
+}
+
+/**
+ * Driver C (Momentum_Telemetry) provenance under `advanced_drivers.momentum`
+ * (R6.1). `value` is the resolved Momentum_Multiplier and `bounds` serializes as
+ * a string such as "[1.00,1.50]". `stage_excluded` is true for a CONCEPT_SCRIPT /
+ * IN_PRODUCTION title; `reason` records a STALE / UNAVAILABLE degradation.
+ * Decimals arrive as JSON strings.
+ */
+export interface MomentumProvenance {
+  source_tier: DriverSourceTier;
+  value: number | string | null;
+  bounds: string;
+  production_stage?: string | null;
+  stage_excluded?: boolean | null;
+  reason?: string | null;
+  reading_age_days?: number | null;
+}
+
+/**
+ * Driver D (Macro_Modifiers) provenance under `advanced_drivers.macro_modifiers`
+ * (R6.1). The four market multipliers and their `product`. An absent/unrecognized
+ * descriptor resolves to the neutral 1.00 and is recorded in `assumed_features`.
+ * Decimals arrive as JSON strings.
+ */
+export interface MacroModifiersProvenance {
+  source_tier: DriverSourceTier;
+  source_ip_multiplier: number | string | null;
+  release_window_multiplier: number | string | null;
+  calendar_seasonality_multiplier: number | string | null;
+  vernacular_tam_multiplier: number | string | null;
+  product: number | string | null;
+  assumed_features?: string[];
+}
+
+/**
+ * The additive `advanced_drivers` block nested in the explanation (R6.1, R6.5).
+ *
+ * Keyed by driver, each entry carries its provenance plus the driver's resolved
+ * value, bounds, and inputs used. The block is additive and backward-compatible:
+ * a pre-feature stored explanation carries no `advanced_drivers` key, and with
+ * every Driver_Flag off no driver resolves, so the whole block is absent. An
+ * entry present here means its driver reacted.
+ */
+export interface AdvancedDriversExplanation {
+  comps?: CompsProvenance | null;
+  lineage?: LineageProvenance | null;
+  momentum?: MomentumProvenance | null;
+  macro_modifiers?: MacroModifiersProvenance | null;
+}
+
+/**
  * Structured explainability payload for a recommendation (R30).
  *
  * Mirrors the backend `Explanation`: every guardrail check with its pass/breach
@@ -176,6 +267,13 @@ export interface Explanation {
    * the demo default so the scorecard is unchanged. `null` is tolerated.
    */
   content_eval?: ContentEvalExplanation | null;
+  /**
+   * Advanced_Content_Eval_Drivers provenance (R6.1, R6.5). Present ONLY when at
+   * least one per-driver kill-switch is on and that driver resolved; ABSENT on a
+   * pre-feature stored explanation and when every flag is off, so the scorecard
+   * is unchanged. `null` is tolerated.
+   */
+  advanced_drivers?: AdvancedDriversExplanation | null;
 }
 
 /**
@@ -431,16 +529,37 @@ export interface TitleComp {
   genre_tag: string | null;
   recommendation_status: string | null;
   cosine_similarity: number;
+  /**
+   * Comps_Engine (Driver A) anchor fields, present only when `enable_comps` is
+   * on and a non-empty Budget_Band comp set is found; absent otherwise, keeping
+   * the surface backward-compatible (R6.2, R10.1). Decimals arrive as JSON strings.
+   */
+  h_comps?: number | string | null;
+  c_comps?: number | string | null;
+  dispersion_iqr?: number | string | null;
+  realized_k?: number | null;
+  comp_title_ids?: string[] | null;
 }
 
 /**
  * GET /valuation/{titleId}/comps payload (R2.6). `found` is false when the
  * query title has no stored embedding, in which case `comps` is empty.
+ *
+ * The top-level `h_comps` / `c_comps` / `dispersion_iqr` / `realized_k` /
+ * `comp_title_ids` surface the Comps_Engine (Driver A) empirical anchor over the
+ * retrieved Budget_Band comp set. Present only when `enable_comps` is on and a
+ * non-empty comp set is found; absent otherwise (additive, backward-compatible
+ * — R6.2, R10.1). Decimals arrive as JSON strings.
  */
 export interface ComparableTitles {
   title_id: string;
   found: boolean;
   comps: TitleComp[];
+  h_comps?: number | string | null;
+  c_comps?: number | string | null;
+  dispersion_iqr?: number | string | null;
+  realized_k?: number | null;
+  comp_title_ids?: string[] | null;
 }
 
 /**

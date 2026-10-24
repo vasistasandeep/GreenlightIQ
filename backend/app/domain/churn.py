@@ -460,6 +460,8 @@ def calculate_churn_mitigation(
     features: ChurnFeatures,
     params: ChurnModelParams,
     params_source: str = _SOURCE_DEFAULTS,
+    base_churn_override: Decimal | None = None,
+    franchise_loyalty_credit: Decimal | None = None,
 ) -> ChurnResult:
     """Compute the additive churn-reduction percentage from ``features`` (R1, R2, R14, R15).
 
@@ -474,13 +476,36 @@ def calculate_churn_mitigation(
     half-up. The result is clamped to the parameter bounds and rounded; a
     ``bounds_adjustment`` entry (only when nonzero) absorbs the clamp delta and
     quantization residual so the breakdown sums exactly to the final value (R1.8).
+
+    When ``base_churn_override`` is supplied (the Comps_Engine anchor ``C_comps``,
+    Driver A) the base line becomes a ``comps_anchor`` contribution whose points
+    strictly equal the override (it never carries any residual, the churn
+    analogue of the hour-space ``comps_anchor == H_comps``) in place of the
+    ``base_platform_rate`` intercept line. When ``None`` the existing intercept
+    line is used unchanged, keeping the flag-off path byte-identical (R2.4, R5.2,
+    R5.3). When ``franchise_loyalty_credit`` is supplied (Driver B's
+    ``delta_C_franchise``), it is summed on top as its own additive
+    ``franchise_loyalty_credit`` contribution into the **unclamped** total
+    **before** the ``[min_churn, max_churn] = [0.10, 5.00]`` clamp and the 1.5
+    hurdle / borderline classification, so the loyalty credit can legitimately
+    lift a title across the hurdle and the clamp still bounds the final value.
+    The additive terms commute; the single ``bounds_adjustment`` entry remains
+    the sole residual sink. Thresholds and the non-correctable rule are untouched.
     """
     missing: list[str] = []
     assumed: list[str] = []
+    use_override = base_churn_override is not None
 
-    # Base platform rate (intercept).
-    base_full = params.intercept
+    # Base platform rate (intercept), or the comps anchor when Driver A supplies
+    # an override. The anchor line strictly equals C_comps and never carries any
+    # residual (exactly as the hour-space comps_anchor equals H_comps).
+    if use_override:
+        base_full = base_churn_override  # type: ignore[assignment]
+    else:
+        base_full = params.intercept
     base_points = _quantize(base_full)
+    base_key = "comps_anchor" if use_override else "base_platform_rate"
+    base_label = "Comps Anchor" if use_override else "Base Platform Rate"
 
     # Asset cadence (asset-type offset).
     asset_type = features.asset_type
@@ -559,6 +584,18 @@ def calculate_churn_mitigation(
             assumed.append("content_format")
     format_points = _quantize(format_full)
 
+    # Driver B franchise loyalty credit (delta_C_franchise): an additive
+    # retention credit summed into the UNCLAMPED total BEFORE the clamp and the
+    # 1.5 hurdle classification so it can lift a title across the hurdle while
+    # the clamp still bounds the final value. A None / zero credit is a no-op.
+    credit = franchise_loyalty_credit
+    has_credit = credit is not None and credit != 0
+    if credit is None:
+        credit_full = Decimal("0")
+    else:
+        credit_full = credit
+    credit_points = _quantize(credit_full)
+
     unclamped = (
         base_full
         + offset_full
@@ -568,6 +605,7 @@ def calculate_churn_mitigation(
         + heat_full
         + genre_full
         + format_full
+        + credit_full
     )
     clamped = _clamp(unclamped, params.min_churn, params.max_churn)
     final = _quantize(clamped)
@@ -582,12 +620,14 @@ def calculate_churn_mitigation(
         + genre_points
         + format_points
     )
+    if has_credit:
+        feature_points_sum += credit_points
     bounds_adjustment = final - feature_points_sum
 
     contributions = [
         ChurnContribution(
-            key="base_platform_rate",
-            label="Base Platform Rate",
+            key=base_key,
+            label=base_label,
             input=None,
             coefficient=None,
             points=base_points,
@@ -643,6 +683,17 @@ def calculate_churn_mitigation(
         ),
     ]
 
+    if has_credit:
+        contributions.append(
+            ChurnContribution(
+                key="franchise_loyalty_credit",
+                label="Franchise Loyalty Credit",
+                input=None,
+                coefficient=None,
+                points=credit_points,
+            )
+        )
+
     if bounds_adjustment != 0:
         contributions.append(
             ChurnContribution(
@@ -671,14 +722,20 @@ def resolve_churn(
     features: ChurnFeatures,
     params: ChurnModelParams,
     params_source: str,
+    base_churn_override: Decimal | None = None,
+    franchise_loyalty_credit: Decimal | None = None,
 ) -> ChurnResult:
     """Resolve the churn-reduction percentage, supplied value winning (R4).
 
     When ``supplied`` coerces to a finite numeric (including 0), it is returned
     exactly with method SUPPLIED, no clamp, no re-round, no breakdown, and the
-    borderline flag computed on the supplied value. Otherwise the model is
-    computed via :func:`calculate_churn_mitigation` with ``params_source``
-    attached.
+    borderline flag computed on the supplied value -- a SUPPLIED value wins over
+    any enabled driver, so ``base_churn_override`` / ``franchise_loyalty_credit``
+    are ignored on that path (SUPPLIED > FITTED > DETERMINISTIC_FALLBACK).
+    Otherwise the model is computed via :func:`calculate_churn_mitigation` with
+    ``params_source`` attached and the optional Driver A anchor override / Driver
+    B loyalty credit threaded through (both ``None`` by default, so the flag-off
+    call is byte-identical to today).
     """
     value = coerce_supplied(supplied)
     if value is not None:
@@ -692,4 +749,10 @@ def resolve_churn(
             unclamped=None,
             assumed_features=(),
         )
-    return calculate_churn_mitigation(features, params, params_source)
+    return calculate_churn_mitigation(
+        features,
+        params,
+        params_source,
+        base_churn_override=base_churn_override,
+        franchise_loyalty_credit=franchise_loyalty_credit,
+    )

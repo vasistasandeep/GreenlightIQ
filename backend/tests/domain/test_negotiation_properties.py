@@ -6,7 +6,7 @@ Feature: deal-decision-support. Covers Properties 1-6 and 10 over
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 from hypothesis import given, settings
@@ -85,7 +85,9 @@ def test_property_3_target_ceiling(cost, cpvh_breached, cpvh_correctable, ltv_br
     if cost <= 0 or not candidates:
         assert result is None
     else:
-        expected = min(candidates).quantize(Decimal("1"))
+        # Production rounds the binding ceiling HALF_UP to whole USD
+        # (negotiation._round_usd); mirror that here so the .5 boundary agrees.
+        expected = min(candidates).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         assert result == expected
         assert result <= min(candidates) + Decimal("1")
 
@@ -106,7 +108,7 @@ def test_property_4_implied_discount(ask, ceiling):
     elif ceiling >= ask:
         assert result == Decimal("0.0")
     else:
-        expected = ((ask - ceiling) / ask * Decimal("100")).quantize(Decimal("0.1"))
+        expected = ((ask - ceiling) / ask * Decimal("100")).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
         assert result == expected
         assert result >= 0
 

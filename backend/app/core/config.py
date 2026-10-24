@@ -132,6 +132,18 @@ class Settings(BaseSettings):
     #: Per-request timeout (seconds) for an Ollama completion.
     chat_ollama_timeout_seconds: float = Field(default=120.0)
 
+    # --- Advanced content-eval drivers (per-driver kill-switches, R7.1) ---
+    #: Per-driver kill-switches for the Advanced_Content_Eval_Drivers feature.
+    #: Each defaults to false so a driver is fully inert (it does not touch
+    #: ValuationInputs, the breakdown, the explanation, or the verdict) until it
+    #: is explicitly enabled. The flags are independent: enabling one neither
+    #: requires nor enables another. Overridable via the CINEROI_ env prefix,
+    #: e.g. CINEROI_ENABLE_COMPS=true.
+    enable_comps: bool = Field(default=False)
+    enable_lineage: bool = Field(default=False)
+    enable_momentum: bool = Field(default=False)
+    enable_macro_modifiers: bool = Field(default=False)
+
     # --- Logging ---
     log_level: str = Field(default="INFO")
     log_json: bool = Field(default=False)
