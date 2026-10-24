@@ -38,8 +38,9 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.api.deps import GuardrailsEngineDep, SessionDep, require_operation
 from app.core.errors import UnsupportedFormatError
-from app.domain import negotiation
+from app.domain import drivers, negotiation
 from app.domain.metadata import derive_production_scale
+from app.domain.momentum import Production_Stage
 from app.domain.pitch_parse import parse_pitch_text
 from app.engines.guardrails import churn_model_json
 from app.engines.rbac import Operation
@@ -90,6 +91,27 @@ class QuickEvaluateRequest(BaseModel):
     # ...). Drives the additive content-format churn lift; unknown -> neutral.
     content_format: str | None = Field(default=None, max_length=64)
 
+    # --- Advanced_Content_Eval_Drivers capture (driver-input-capture) --------
+    # All optional; a submission supplying none behaves exactly as today (R8.5).
+    # Lineage facts (R1.1). Parent fields apply only when is_franchise (R1.6).
+    is_franchise: bool | None = Field(default=None)
+    franchise_order: int | None = Field(default=None, ge=1)
+    parent_title_viewing_hours: Decimal | None = Field(default=None, ge=Decimal("0"))
+    parent_completion_rate: Decimal | None = Field(
+        default=None, ge=Decimal("0"), le=Decimal("1")
+    )
+    # Momentum via friendly controls (R2.1, R2.2). The raw v_trailer / e_ratio /
+    # s_velocity signals are deliberately NOT exposed on this model; the Asset
+    # Studio form supplies only a production stage and a buzz level, and the
+    # buzz level expands into the raw signals server-side (R2.3).
+    production_stage: str | None = Field(default=None)
+    buzz_level: Literal["LOW", "MEDIUM", "HIGH"] | None = Field(default=None)
+    # Macro facts (R1.1, R1.3, R1.4).
+    source_ip_provenance: str | None = Field(default=None)
+    release_window: str | None = Field(default=None)
+    release_month: int | None = Field(default=None, ge=1, le=12)
+    vernacular_track_count: int | None = Field(default=None, ge=1)
+
     @field_validator("asset_type")
     @classmethod
     def _valid_asset_type(cls, v: str) -> str:
@@ -111,6 +133,47 @@ class QuickEvaluateRequest(BaseModel):
         if not (Decimal("0.01") <= v <= Decimal("999999999.99")):
             raise ValueError("acquisition_cost_or_budget must be 0.01..999999999.99")
         return v
+
+    @field_validator("production_stage")
+    @classmethod
+    def _valid_production_stage(cls, v: str | None) -> str | None:
+        # Reject an out-of-set production_stage at the request boundary (R5.1),
+        # producing a 422 naming the field. An absent value stays absent.
+        if v is None:
+            return v
+        up = v.strip().upper()
+        if up not in Production_Stage.__members__:
+            raise ValueError(
+                "production_stage must be one of "
+                f"{sorted(Production_Stage.__members__)}"
+            )
+        return up
+
+    @field_validator("source_ip_provenance")
+    @classmethod
+    def _valid_source_ip_provenance(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        up = v.strip().upper()
+        if up not in drivers.SOURCE_IP_PROVENANCE_SET:
+            raise ValueError(
+                "source_ip_provenance must be one of "
+                f"{sorted(drivers.SOURCE_IP_PROVENANCE_SET)}"
+            )
+        return up
+
+    @field_validator("release_window")
+    @classmethod
+    def _valid_release_window(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        up = v.strip().upper()
+        if up not in drivers.RELEASE_WINDOW_SET:
+            raise ValueError(
+                "release_window must be one of "
+                f"{sorted(drivers.RELEASE_WINDOW_SET)}"
+            )
+        return up
 
 
 class GuardrailCheckOut(BaseModel):
@@ -252,6 +315,50 @@ def _modeled_inputs(body: QuickEvaluateRequest, rate_date: str | None = None) ->
     # the engine resolves CALCULATED from the carried feature facts.
     if body.churn_reduction_pct is not None:
         snapshot["churn_reduction_pct"] = str(body.churn_reduction_pct)
+
+    # driver-input-capture: assemble the candidate driver facts, validate /
+    # serialize them via the shared domain module, and merge them into the
+    # snapshot under the exact keys the flag-gated provider reads (R2.3, R5.*,
+    # R6.1). The request-boundary validators already rejected out-of-domain
+    # values, so build_driver_facts returns no errors here; absent facts are
+    # omitted rather than written as neutral literals (R1.5, R2.5).
+    raw: dict[str, Any] = {}
+    # Lineage parents are considered only for a franchise entry (R1.6).
+    if body.is_franchise:
+        raw["is_franchise"] = True
+        if body.franchise_order is not None:
+            raw["franchise_order"] = body.franchise_order
+        if body.parent_title_viewing_hours is not None:
+            raw["parent_title_viewing_hours"] = body.parent_title_viewing_hours
+        if body.parent_completion_rate is not None:
+            raw["parent_completion_rate"] = body.parent_completion_rate
+    if body.production_stage is not None:
+        raw["production_stage"] = body.production_stage
+    # Expand the friendly Buzz_Level into the raw momentum signals (R2.3). When
+    # the buzz level is unset, no signal is written and momentum resolves its
+    # neutral path (R2.5).
+    if body.buzz_level is not None:
+        signals = drivers.BUZZ_LEVEL_SIGNALS[body.buzz_level]
+        raw["v_trailer"] = signals.v_trailer
+        raw["e_ratio"] = signals.e_ratio
+        raw["s_velocity"] = signals.s_velocity
+    if body.source_ip_provenance is not None:
+        raw["source_ip_provenance"] = body.source_ip_provenance
+    if body.release_window is not None:
+        raw["release_window"] = body.release_window
+    if body.release_month is not None:
+        raw["release_month"] = body.release_month
+    if body.vernacular_track_count is not None:
+        raw["vernacular_track_count"] = body.vernacular_track_count
+
+    facts, _errors = drivers.build_driver_facts(raw)
+    snapshot.update(facts)
+    # Honest framing (R10.2): record that the raw momentum signals came from a
+    # friendly Buzz_Level selection rather than measured telemetry. Telemetry
+    # staleness fields are intentionally left unwritten so the provider defaults
+    # them to fresh/available (R2.6).
+    if body.buzz_level is not None:
+        snapshot["momentum_input_source"] = {"buzz_level": body.buzz_level}
     return snapshot
 
 
@@ -479,6 +586,13 @@ class ParsedPitchResponse(BaseModel):
     native_currency: str | None = None
     is_exclusive: bool | None = None
     source_text_preview: str | None = None
+    # Advanced driver pre-fill facts (recognized from the deck; never persisted
+    # by parse-pitch - the user reviews and edits them in the form).
+    is_franchise: bool | None = None
+    franchise_order: int | None = None
+    release_window: str | None = None
+    source_ip_provenance: str | None = None
+    production_stage: str | None = None
 
 
 @router.post(
@@ -517,6 +631,11 @@ async def parse_pitch(request: Request) -> ParsedPitchResponse:
         native_currency=parsed.get("native_currency"),
         is_exclusive=parsed.get("is_exclusive"),
         source_text_preview=preview,
+        is_franchise=parsed.get("is_franchise"),
+        franchise_order=parsed.get("franchise_order"),
+        release_window=parsed.get("release_window"),
+        source_ip_provenance=parsed.get("source_ip_provenance"),
+        production_stage=parsed.get("production_stage"),
     )
 
 

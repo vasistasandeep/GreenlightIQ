@@ -5,7 +5,14 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { parseShorthandAmount } from "./helpers";
 import { api, ApiError } from "@/lib/api-client";
-import type { AssetType, QuickEvaluateRequest } from "@/lib/types";
+import type {
+  AssetType,
+  BuzzLevel,
+  ProductionStage,
+  QuickEvaluateRequest,
+  ReleaseWindow,
+  SourceIpProvenance,
+} from "@/lib/types";
 
 const ASSET_TYPES: { value: AssetType; label: string }[] = [
   { value: "ORIGINAL_SERIES", label: "ORIGINAL_SERIES" },
@@ -74,6 +81,43 @@ const TERRITORIES = [
   { code: "EU", label: "Europe" },
   { code: "SEA", label: "SE Asia" },
   { code: "GLOBAL", label: "Global" },
+];
+
+// --------------------------------------------------------------------------- //
+// Advanced_Content_Eval_Drivers controls (driver-input-capture). All optional:
+// a submission that sets none behaves exactly as today (R8.5).
+// --------------------------------------------------------------------------- //
+
+// Production_Stage members (R2.1). Momentum is stage-excluded for the first two.
+const PRODUCTION_STAGES: { value: ProductionStage; label: string }[] = [
+  { value: "CONCEPT_SCRIPT", label: "CONCEPT_SCRIPT" },
+  { value: "IN_PRODUCTION", label: "IN_PRODUCTION" },
+  { value: "FESTIVAL_PREVIEW", label: "FESTIVAL_PREVIEW" },
+  { value: "ACQUISITION_READY", label: "ACQUISITION_READY" },
+];
+
+// Stages for which momentum is forced to a flat 1.00 (STAGE_EXCLUDED) by the
+// backend, so a buzz level has no effect and the control is disabled (R2 #4).
+const BUZZ_EXCLUDED_STAGES: ProductionStage[] = ["CONCEPT_SCRIPT", "IN_PRODUCTION"];
+
+// Buzz_Level control values (R2.2). No raw v_trailer/e_ratio/s_velocity inputs.
+const BUZZ_LEVELS: BuzzLevel[] = ["LOW", "MEDIUM", "HIGH"];
+
+// Source_IP_Provenance_Set — the only selectable source-IP values (R1.3).
+const SOURCE_IP_PROVENANCES: SourceIpProvenance[] = [
+  "ORIGINAL_SCREENPLAY",
+  "BESTSELLER_BOOK",
+  "TRUE_CRIME_IP",
+  "WEBTOON_MANGA",
+  "PUBLIC_DOMAIN",
+];
+
+// Release_Window_Set — the only selectable release-window values (R1.4).
+const RELEASE_WINDOWS: ReleaseWindow[] = [
+  "DIRECT_TO_STREAMING",
+  "DAY_AND_DATE",
+  "THEATRICAL_30D",
+  "THEATRICAL_60D_PLUS",
 ];
 
 const PRESETS: Record<string, Partial<QuickEvaluateRequest>> = {
@@ -146,6 +190,23 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
   const [parsing, setParsing] = useState(false);
   const [parseNote, setParseNote] = useState<string | null>(null);
 
+  // --- Advanced drivers (optional). Empty string / false = "not supplied". --- //
+  const [isFranchise, setIsFranchise] = useState(false);
+  const [franchiseOrder, setFranchiseOrder] = useState("");
+  const [parentHours, setParentHours] = useState("");
+  const [parentCompletion, setParentCompletion] = useState("");
+  const [productionStage, setProductionStage] = useState<ProductionStage | "">("");
+  const [buzzLevel, setBuzzLevel] = useState<BuzzLevel | "">("");
+  const [sourceIp, setSourceIp] = useState<SourceIpProvenance | "">("");
+  const [releaseWindow, setReleaseWindow] = useState<ReleaseWindow | "">("");
+  const [releaseMonth, setReleaseMonth] = useState("");
+  const [vernacularTracks, setVernacularTracks] = useState("");
+
+  // Buzz is inert (STAGE_EXCLUDED, flat 1.00) in early stages, so disable it and
+  // mirror the backend behavior for the user (R2 clarification #4).
+  const buzzDisabled =
+    productionStage !== "" && BUZZ_EXCLUDED_STAGES.includes(productionStage);
+
   function toggleTerritory(code: string) {
     setTerritories((prev) =>
       prev.includes(code) ? prev.filter((t) => t !== code) : [...prev, code],
@@ -166,6 +227,17 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
     setDuration(String(p.license_duration_months ?? "24"));
     setExclusive(Boolean(p.is_exclusive));
     setContentFormat("");
+    // Presets carry no driver facts; clear the Advanced-drivers section.
+    setIsFranchise(false);
+    setFranchiseOrder("");
+    setParentHours("");
+    setParentCompletion("");
+    setProductionStage("");
+    setBuzzLevel("");
+    setSourceIp("");
+    setReleaseWindow("");
+    setReleaseMonth("");
+    setVernacularTracks("");
     setError(null);
   }
 
@@ -185,15 +257,41 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
       }
       if (p.native_currency) setCurrency(p.native_currency);
       if (typeof p.is_exclusive === "boolean") setExclusive(p.is_exclusive);
+
+      // Advanced-driver facts the parser recognized (R4.1-R4.4). Each is
+      // rendered as a user-editable control the user reviews before submitting
+      // (R4.6); an unrecognized fact is absent and leaves its control empty (R4.5).
+      const driverFacts: string[] = [];
+      if (typeof p.is_franchise === "boolean" && p.is_franchise) {
+        setIsFranchise(true);
+        driverFacts.push("franchise");
+        if (typeof p.franchise_order === "number") {
+          setFranchiseOrder(String(p.franchise_order));
+        }
+      }
+      if (p.production_stage) {
+        setProductionStage(p.production_stage as ProductionStage);
+        driverFacts.push("production stage");
+      }
+      if (p.source_ip_provenance) {
+        setSourceIp(p.source_ip_provenance as SourceIpProvenance);
+        driverFacts.push("source IP");
+      }
+      if (p.release_window) {
+        setReleaseWindow(p.release_window as ReleaseWindow);
+        driverFacts.push("release window");
+      }
+
       const filled = [
         p.title_name && "title",
         p.synopsis && "synopsis",
         p.genre_tag && "genre",
         typeof p.acquisition_cost_or_budget === "number" && "budget",
-      ].filter(Boolean);
+      ].filter(Boolean) as string[];
+      const allFilled = [...filled, ...driverFacts];
       setParseNote(
-        filled.length > 0
-          ? `Pre-filled ${filled.join(", ")} from the pitch. Review and edit before running.`
+        allFilled.length > 0
+          ? `Pre-filled ${allFilled.join(", ")} from the pitch. Review and edit before running.`
           : "Could not recognize fields in that PDF. Enter them manually.",
       );
     } catch (err) {
@@ -233,6 +331,28 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
       license_duration_months: duration ? Number(duration) : null,
       is_exclusive: exclusive,
     };
+
+    // Advanced drivers: include each fact only when set; omit otherwise so an
+    // unsupplied fact stays absent from the snapshot (R1.5, R2.5). Lineage
+    // parent fields are sent only for a franchise entry (R1.6).
+    if (isFranchise) {
+      payload.is_franchise = true;
+      if (franchiseOrder.trim() !== "") payload.franchise_order = Number(franchiseOrder);
+      if (parentHours.trim() !== "") payload.parent_title_viewing_hours = Number(parentHours);
+      if (parentCompletion.trim() !== "") {
+        payload.parent_completion_rate = Number(parentCompletion);
+      }
+    }
+    if (productionStage !== "") payload.production_stage = productionStage;
+    // A buzz level is sent only while the control is active (not stage-excluded).
+    if (buzzLevel !== "" && !buzzDisabled) payload.buzz_level = buzzLevel;
+    if (sourceIp !== "") payload.source_ip_provenance = sourceIp;
+    if (releaseWindow !== "") payload.release_window = releaseWindow;
+    if (releaseMonth.trim() !== "") payload.release_month = Number(releaseMonth);
+    if (vernacularTracks.trim() !== "") {
+      payload.vernacular_track_count = Number(vernacularTracks);
+    }
+
     void onSubmit(payload);
   }
 
@@ -372,6 +492,103 @@ export function AssetForm({ onSubmit, submitting }: AssetFormProps) {
           onChange={(e) => setExclusive(e.target.checked)} className="accent-emerald-500" />
         Exclusive SVOD
       </label>
+
+      <fieldset className="flex flex-col gap-4 rounded-lg border border-slate-800 bg-slate-900/30 p-4">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
+          Advanced drivers (optional)
+        </legend>
+
+        {/* Lineage — franchise toggle reveals the parent fields (R1.6). */}
+        <label className="flex items-center gap-2 text-sm text-slate-300">
+          <input type="checkbox" checked={isFranchise}
+            onChange={(e) => setIsFranchise(e.target.checked)} className="accent-emerald-500" />
+          Franchise entry (sequel / later season)
+        </label>
+
+        {isFranchise ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label htmlFor="f-forder" className={labelCls}>Franchise Order</label>
+              <input id="f-forder" className={fieldCls} inputMode="numeric" min={1}
+                type="number" value={franchiseOrder}
+                onChange={(e) => setFranchiseOrder(e.target.value)} placeholder="2" />
+            </div>
+            <div>
+              <label htmlFor="f-phours" className={labelCls}>Parent Viewing Hours</label>
+              <input id="f-phours" className={fieldCls} inputMode="decimal" type="number"
+                min={0} value={parentHours}
+                onChange={(e) => setParentHours(e.target.value)} placeholder="6000" />
+            </div>
+            <div>
+              <label htmlFor="f-pcomp" className={labelCls}>Parent Completion (0-1)</label>
+              <input id="f-pcomp" className={fieldCls} inputMode="decimal" type="number"
+                min={0} max={1} step={0.01} value={parentCompletion}
+                onChange={(e) => setParentCompletion(e.target.value)} placeholder="0.80" />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Momentum — production stage + friendly buzz level (no raw signals, R2.2). */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="f-stage" className={labelCls}>Production Stage</label>
+            <select id="f-stage" className={fieldCls} value={productionStage}
+              onChange={(e) => setProductionStage(e.target.value as ProductionStage | "")}>
+              <option value="">(not set)</option>
+              {PRODUCTION_STAGES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="f-buzz" className={labelCls}>Buzz Level</label>
+            <select id="f-buzz" className={fieldCls} value={buzzLevel} disabled={buzzDisabled}
+              aria-describedby={buzzDisabled ? "f-buzz-help" : undefined}
+              onChange={(e) => setBuzzLevel(e.target.value as BuzzLevel | "")}>
+              <option value="">(not set)</option>
+              {BUZZ_LEVELS.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+        </div>
+        {buzzDisabled ? (
+          <p id="f-buzz-help" className="text-xs text-amber-500">
+            Inactive in early stage (STAGE_EXCLUDED) — buzz does not affect an
+            unproduced title&apos;s verdict.
+          </p>
+        ) : null}
+
+        {/* Macro — provenance, window, month, vernacular tracks. */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="f-sip" className={labelCls}>Source IP Provenance</label>
+            <select id="f-sip" className={fieldCls} value={sourceIp}
+              onChange={(e) => setSourceIp(e.target.value as SourceIpProvenance | "")}>
+              <option value="">(not set)</option>
+              {SOURCE_IP_PROVENANCES.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="f-rwin" className={labelCls}>Release Window</label>
+            <select id="f-rwin" className={fieldCls} value={releaseWindow}
+              onChange={(e) => setReleaseWindow(e.target.value as ReleaseWindow | "")}>
+              <option value="">(not set)</option>
+              {RELEASE_WINDOWS.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="f-rmonth" className={labelCls}>Release Month (1-12)</label>
+            <input id="f-rmonth" className={fieldCls} inputMode="numeric" type="number"
+              min={1} max={12} value={releaseMonth}
+              onChange={(e) => setReleaseMonth(e.target.value)} placeholder="optional" />
+          </div>
+          <div>
+            <label htmlFor="f-vtracks" className={labelCls}>Vernacular Tracks</label>
+            <input id="f-vtracks" className={fieldCls} inputMode="numeric" type="number"
+              min={1} value={vernacularTracks}
+              onChange={(e) => setVernacularTracks(e.target.value)} placeholder="1" />
+          </div>
+        </div>
+      </fieldset>
 
       <div>
         <span className={labelCls}>Quick Presets</span>

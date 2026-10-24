@@ -13,6 +13,35 @@ export type AssetType =
 
 export type RecommendationStatus = "GREENLIGHT" | "NEGOTIATE_HARD" | "PASS";
 
+/**
+ * The four Production_Stage members the Advanced_Content_Eval_Drivers momentum
+ * driver is gated on (driver-input-capture R2.1). Distinct from DealStage.
+ * Momentum is stage-excluded (flat 1.00) for CONCEPT_SCRIPT / IN_PRODUCTION.
+ */
+export type ProductionStage =
+  | "CONCEPT_SCRIPT"
+  | "IN_PRODUCTION"
+  | "FESTIVAL_PREVIEW"
+  | "ACQUISITION_READY";
+
+/** Friendly pre-release buzz control; maps server-side to raw momentum signals (R2.2, R2.3). */
+export type BuzzLevel = "LOW" | "MEDIUM" | "HIGH";
+
+/** Source_IP_Provenance_Set — the only selectable source-IP values (R1.3). */
+export type SourceIpProvenance =
+  | "ORIGINAL_SCREENPLAY"
+  | "BESTSELLER_BOOK"
+  | "TRUE_CRIME_IP"
+  | "WEBTOON_MANGA"
+  | "PUBLIC_DOMAIN";
+
+/** Release_Window_Set — the only selectable release-window values (R1.4). */
+export type ReleaseWindow =
+  | "DIRECT_TO_STREAMING"
+  | "DAY_AND_DATE"
+  | "THEATRICAL_30D"
+  | "THEATRICAL_60D_PLUS";
+
 export type JobStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
 
 /** Standard backend error envelope: { error_code, message, details }. */
@@ -606,6 +635,16 @@ export interface ParsedPitch {
   native_currency: string | null;
   is_exclusive: boolean | null;
   source_text_preview: string | null;
+  /**
+   * Advanced driver facts recognized from the deck (driver-input-capture R4.1-R4.5).
+   * Each is present only when recognized and is rendered as a user-editable
+   * control the user reviews before submitting (R4.6); never persisted by parse.
+   */
+  is_franchise?: boolean | null;
+  franchise_order?: number | null;
+  release_window?: ReleaseWindow | string | null;
+  source_ip_provenance?: SourceIpProvenance | string | null;
+  production_stage?: ProductionStage | string | null;
 }
 
 /** 202 response from POST /titles/ingest - a dispatched batch job (R1, R23.2). */
@@ -712,6 +751,29 @@ export interface QuickEvaluateRequest {
   talent_pedigree_score?: number | null;
   license_duration_months?: number | null;
   is_exclusive: boolean;
+  // --- Advanced_Content_Eval_Drivers capture (driver-input-capture) -------- //
+  // All optional; a submission supplying none behaves exactly as today (R8.5).
+  // Each is sent only when set and omitted otherwise (R1.5, R2.5).
+  /** Lineage: franchise entry toggle (R1.1). Parent fields apply only when true (R1.6). */
+  is_franchise?: boolean | null;
+  /** Lineage: franchise entry number, integer >= 1 (R5.2). */
+  franchise_order?: number | null;
+  /** Lineage: parent title's projected viewing hours, finite >= 0 (R5.6). */
+  parent_title_viewing_hours?: number | null;
+  /** Lineage: parent title's completion rate, in [0, 1] (R5.3). */
+  parent_completion_rate?: number | null;
+  /** Momentum: production stage; the four Production_Stage members (R2.1). */
+  production_stage?: ProductionStage | null;
+  /** Momentum: friendly buzz level expanded to raw signals server-side (R2.2, R2.3). */
+  buzz_level?: BuzzLevel | null;
+  /** Macro: source-IP provenance; one of Source_IP_Provenance_Set (R1.3). */
+  source_ip_provenance?: SourceIpProvenance | null;
+  /** Macro: release window; one of Release_Window_Set (R1.4). */
+  release_window?: ReleaseWindow | null;
+  /** Macro: release month, integer in 1..12 (R5.5). */
+  release_month?: number | null;
+  /** Macro: vernacular track count, integer >= 1 (R5.4). */
+  vernacular_track_count?: number | null;
 }
 
 /** The real Approval_Workflow gate for a decision (R20.3). */
