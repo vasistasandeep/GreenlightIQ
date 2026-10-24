@@ -362,7 +362,9 @@ flowchart TD
         D["cpvh / ltv / churn / windowing (payback) /
         currency / recommendation / negotiation /
         attribution / cohort / sensitivity / mape /
-        weights / metadata / deal_stage"]
+        weights / metadata / deal_stage / accuracy /
+        comps / lineage / momentum / macro_modifiers /
+        driver_assembly (advanced drivers, default-off)"]
     end
     subgraph DATA["Repositories + ORM models"]
         M["titles / title_versions / financial_projections /
@@ -578,6 +580,39 @@ driver, projection, and verdict is byte-identical to before this layer existed. 
 version that regresses on the held-out split is surfaced, never auto-activated. Every modeled
 or proxy-trained value shown in the UI carries a **PROXY / illustrative** badge - the reported
 accuracy is proxy accuracy, never real-world accuracy.
+
+﻿---
+
+## 7e. Advanced Content-Eval Drivers (optional, flag-gated, default-off)
+
+A further-optional layer sits on top of 7d: four independent drivers that each refine one of
+the engine''s inputs when explicitly switched on. They are wired through the **same provider
+boundary** as the content-eval models, so the Guardrails Engine, the thresholds, and the
+verdict rule remain unchanged.
+
+- **Driver A - Comps_Engine:** retrieves budget-band comparable historical titles (same
+  asset type, Narrative_DNA cosine nearest-neighbours within a normalized-USD band of +/-35%
+  of the query cost, never widened) and anchors the base viewing hours and base churn to the
+  comp-set medians (`H_comps` / `C_comps`) instead of the model intercept.
+- **Driver B - Lineage_Decay:** a one-sided franchise-floor on hours plus an additive churn
+  loyalty credit for sequels, derived from the parent title''s performance.
+- **Driver C - Momentum_Telemetry:** a stage-gated trailer / social / search buzz multiplier
+  (bounded 1.00-1.50) that degrades to a neutral 1.00 on an unproduced stage, a stale reading
+  (older than 14 days), or an unavailable source.
+- **Driver D - Macro_Modifiers:** four market multipliers (source-IP provenance, release-window
+  halo, calendar seasonality, vernacular TAM) multiplied into the hour prediction, each
+  clamped to a documented band.
+
+**The inertness guarantee.** Each driver has its own kill-switch
+(`CINEROI_ENABLE_COMPS / _LINEAGE / _MOMENTUM / _MACRO_MODIFIERS`), all **false by default**.
+With every flag off - the shipped state - the flag-gated provider short-circuits before any
+driver runs and returns the inputs untouched, so inputs, per-driver breakdown, explanation,
+and verdict are **byte-identical** to 7d (a demo-invariance guard test pins this across the
+five seeded titles). A log-space assembler (`driver_assembly.py`) composes the enabled drivers
+into a conserving, signed per-driver breakdown, and each driver''s illustrative coefficients
+ride in `model_versions.guardrail_params` alongside the churn / content-eval blocks. Migration
+`0005` adds the nine neutral-default driver columns to `titles`; the coefficients are
+**illustrative, not fitted to real data**.
 
 ---
 

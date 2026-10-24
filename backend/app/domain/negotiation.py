@@ -12,8 +12,9 @@ ceilings are algebraic rearrangements of the existing CPVH and LTV checks.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Literal, Optional, Sequence, TypedDict
+from typing import TypedDict
 
 from app.domain.recommendation import GuardrailCheck, GuardrailName
 
@@ -96,7 +97,7 @@ def _round_usd(value: Decimal) -> Decimal:
 def target_purchase_ceiling(
     normalized_cost_usd: Decimal | int | str | None,
     checks: Sequence[GuardrailCheck],
-) -> Optional[Decimal]:
+) -> Decimal | None:
     """Binding (smallest) per-guardrail ceiling over breached, cost-correctable
     CPVH/LTV checks, rounded to whole USD (R1.3, R1.6).
 
@@ -135,7 +136,7 @@ def target_purchase_ceiling(
 def implied_discount_pct(
     current_ask_usd: Decimal | int | str | None,
     ceiling_usd: Decimal | int | str | None,
-) -> Optional[Decimal]:
+) -> Decimal | None:
     """Implied discount from the ask to the ceiling, rounded to 1 dp (R2.1, R2.4).
 
     Returns 0 when the ceiling is at or above the ask (R2.2, never negative);

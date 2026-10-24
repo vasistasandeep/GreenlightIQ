@@ -125,7 +125,9 @@ def actual_verdict(
         "threshold": ceiling,
         "passed": not cpvh_breached,
         "breached": cpvh_breached,
-        "shortfall_magnitude": _normalized_shortfall(cpvh - ceiling, ceiling) if cpvh_breached else None,
+        "shortfall_magnitude": (
+            _normalized_shortfall(cpvh - ceiling, ceiling) if cpvh_breached else None
+        ),
         "correctable": True if cpvh_breached else None,
     }
 
@@ -137,7 +139,11 @@ def actual_verdict(
         "threshold": LTV_TO_COST_THRESHOLD,
         "passed": not ltv_breached,
         "breached": ltv_breached,
-        "shortfall_magnitude": _normalized_shortfall(LTV_TO_COST_THRESHOLD - ltv, LTV_TO_COST_THRESHOLD) if ltv_breached else None,
+        "shortfall_magnitude": (
+            _normalized_shortfall(LTV_TO_COST_THRESHOLD - ltv, LTV_TO_COST_THRESHOLD)
+            if ltv_breached
+            else None
+        ),
         "correctable": True if ltv_breached else None,
     }
 
@@ -149,7 +155,13 @@ def actual_verdict(
         "threshold": CHURN_MITIGATION_THRESHOLD,
         "passed": not churn_breached,
         "breached": churn_breached,
-        "shortfall_magnitude": _normalized_shortfall(CHURN_MITIGATION_THRESHOLD - churn, CHURN_MITIGATION_THRESHOLD) if churn_breached else None,
+        "shortfall_magnitude": (
+            _normalized_shortfall(
+                CHURN_MITIGATION_THRESHOLD - churn, CHURN_MITIGATION_THRESHOLD
+            )
+            if churn_breached
+            else None
+        ),
         "correctable": False if churn_breached else None,
     }
 
@@ -162,7 +174,11 @@ def actual_verdict(
         "threshold": payback_max,
         "passed": not payback_breached,
         "breached": payback_breached,
-        "shortfall_magnitude": _normalized_shortfall(payback - payback_max, payback_max) if payback_breached else None,
+        "shortfall_magnitude": (
+            _normalized_shortfall(payback - payback_max, payback_max)
+            if payback_breached
+            else None
+        ),
         "correctable": True if payback_breached else None,
     }
 

@@ -49,7 +49,8 @@ def _ground_truth_section(sql: str) -> str:
     return sql[start:end]
 
 
-# Feature: dashboard-accuracy-and-payback-audit, Property 9: regenerating the seed produces byte-identical historical_ground_truth INSERTs
+# Feature: dashboard-accuracy-and-payback-audit, Property 9: regenerating the
+# seed produces byte-identical historical_ground_truth INSERTs
 # Validates: Requirements 12.2, 12.3
 @settings(max_examples=100)
 @given(runs=st.integers(min_value=2, max_value=6))

@@ -190,6 +190,40 @@ or NEGOTIATE HARD.
 - **Absolute Churn Cohort** - alongside the churn percentage, an approximate count of
   retained subscribers, labeled as a modeled/derived figure.
 
+﻿---
+
+### 3.8 Advanced Content-Eval Drivers (optional, default-off)
+
+Four optional drivers can refine the engine''s inputs when switched on. Each has its own
+on/off switch and **all four are off by default** - in the shipped demo they change nothing,
+and the scorecard, breakdown, and verdict are identical to what the earlier sections describe.
+Their numbers are **illustrative** (tuned so the demo stays coherent), not fitted to real
+subscriber data, and they never touch the four guardrails, the thresholds, or the verdict
+rule - they only shape the *inputs* those checks read.
+
+- **Comps_Engine** - anchors a title''s base viewing hours and base churn to the median of its
+  *budget-band comparable* historical titles (same asset type, most similar by Narrative DNA,
+  within +/-35% of its cost) rather than a flat model baseline. If no comparable exists it
+  quietly falls back to the baseline.
+- **Lineage_Decay** - for a franchise sequel, adds a floor on expected viewing hours drawn
+  from the parent title''s performance and a small churn-retention credit that grows with each
+  franchise entry (saturating by the seventh).
+- **Momentum_Telemetry** - a trailer / social / search "buzz" multiplier (never more than
+  +50%) that only applies once a title is far enough along (festival-preview or
+  acquisition-ready) and automatically falls back to neutral when the signal is stale (older
+  than two weeks) or unavailable, so an unproduced pitch is never rewarded for buzz it cannot
+  have.
+- **Macro_Modifiers** - four market factors (source-IP provenance, theatrical release window,
+  calendar seasonality, number of vernacular/dubbed tracks) that nudge the hours prediction
+  within documented bounds.
+
+When a driver is on, its contribution shows up as its own signed line in the title''s
+breakdown, so nothing is a black box. Technically, the drivers are pure functions gated by
+four environment flags (`CINEROI_ENABLE_COMPS / _LINEAGE / _MOMENTUM / _MACRO_MODIFIERS`); a
+database migration adds the neutral-default columns they read, and their coefficients travel
+inside the model version like the other modeling parameters. For the exact formulas, defaults,
+and bounds see **CineROI_AI_Calculations_Reference.md** Section 16.
+
 ---
 
 ## 4. Worked Examples With Real Numbers (The Seeded Demo Titles)

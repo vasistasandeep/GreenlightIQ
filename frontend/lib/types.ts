@@ -219,7 +219,8 @@ export interface ValuationScorecard {
   implied_discount_pct?: number | string | null;
   counter_proposal_levers?: CounterProposalLever[];
   ltv_attribution?: LtvAttribution | null;
-  churn_cohort?: ChurnCohort | null;}
+  churn_cohort?: ChurnCohort | null;
+}
 
 
 /**

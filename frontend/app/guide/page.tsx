@@ -834,6 +834,14 @@ function CalculationsTab() {
         worked={<>$10M premium original, pedigree 8: target CPVH 0.18 x 0.90 = 0.162; hours = 10,000,000 / 0.162 approx 61.7M.</>}
       />
 
+﻿      <SectionHead note="Optional refinements, switched off by default - the demo verdicts are unchanged.">
+        Advanced drivers (optional, off by default)
+      </SectionHead>
+      <CalcBlock
+        title="Four optional content-eval drivers"
+        formula="verdict with all drivers off == verdict before the drivers existed"
+        rule={<>Four independent, switched-off-by-default drivers can refine the engine&apos;s inputs when enabled: <strong>Comps</strong> (anchor hours/churn to look-alike titles within +/-35% of cost), <strong>Lineage</strong> (a franchise floor + a loyalty churn credit for sequels), <strong>Momentum</strong> (a stage-gated trailer/social buzz multiplier, max +50%, neutral when stale &gt; 14 days), and <strong>Macro</strong> (source-IP, release-window, seasonality, and vernacular-reach multipliers). Each has its own on/off switch and all default off, so the shipped demo is byte-identical with them off; their coefficients are illustrative, not fitted. See Calculations Reference Section 16.</>}
+      />
       <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-xs text-slate-500">
         Every figure uses exact decimal arithmetic (no floating-point drift). CPVH rounds to
         4 decimals, money to 2, the discount to 1, and MAPE to 2. For the full technical
@@ -1548,7 +1556,7 @@ export default function GuidePage() {
         <div
           role="tablist"
           aria-label="Guide sections"
-          className="mb-8 flex gap-2 overflow-x-auto scroll-smooth rounded-lg border border-slate-800 bg-slate-900/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x sm:gap-1"
+          className="mb-8 flex gap-2 overflow-x-auto scroll-smooth rounded-lg border border-slate-800 bg-slate-900/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x sm:flex-wrap sm:gap-1 sm:overflow-visible"
         >
           {TABS.map((t, i) => (
             <button
