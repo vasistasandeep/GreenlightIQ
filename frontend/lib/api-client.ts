@@ -92,7 +92,7 @@ export class ApiError extends Error {
     return this.envelope?.error_code;
   }
 
-  /** True for authentication failures (missing / expired / revoked credential Ã¢â‚¬â€ R19.3, R19.6). */
+  /** True for authentication failures (missing / expired / revoked credential — R19.3, R19.6). */
   get isAuthError(): boolean {
     return this.status === 401;
   }
@@ -166,7 +166,7 @@ export async function apiFetch<T>(
 
 /** Typed endpoint helpers. Expanded as routers land in task 16. */
 export const api = {
-  /** POST /api/v1/auth/login Ã¢â‚¬â€ exchange SSO assertion for a session (R19.1, R19.2). */
+  /** POST /api/v1/auth/login — exchange SSO assertion for a session (R19.1, R19.2). */
   login(assertion: unknown, options?: RequestOptions) {
     return apiFetch<SessionInfo>("/auth/login", {
       method: "POST",
@@ -176,17 +176,17 @@ export const api = {
     });
   },
 
-  /** POST /api/v1/auth/logout Ã¢â‚¬â€ end the current session (R19). */
+  /** POST /api/v1/auth/logout — end the current session (R19). */
   logout(options?: RequestOptions) {
     return apiFetch<void>("/auth/logout", { method: "POST", ...options });
   },
 
-  /** GET /api/v1/auth/session Ã¢â‚¬â€ current session context, or 401 if invalid (R19.3). */
+  /** GET /api/v1/auth/session — current session context, or 401 if invalid (R19.3). */
   getSession(options?: RequestOptions) {
     return apiFetch<SessionInfo>("/auth/session", { method: "GET", ...options });
   },
 
-  /** GET /api/v1/valuation/{titleId} Ã¢â‚¬â€ full financial scorecard (R10). */
+  /** GET /api/v1/valuation/{titleId} — full financial scorecard (R10). */
   getValuation(titleId: string, options?: RequestOptions) {
     return apiFetch<ValuationScorecard>(`/valuation/${titleId}`, {
       method: "GET",
@@ -375,7 +375,7 @@ export const api = {
   },
 
   /**
-   * GET /api/v1/dashboard/summary Ã¢â‚¬â€ the Executive Command Dashboard payload:
+   * GET /api/v1/dashboard/summary — the Executive Command Dashboard payload:
    * KPI header figures and the master asset grid rows (R14.1, R14.2).
    */
   getDashboardSummary(options?: RequestOptions) {
@@ -399,7 +399,7 @@ export const api = {
   },
 
   /**
-   * POST /api/v1/backtest/audit Ã¢â‚¬â€ persist ground truth and return the audit
+   * POST /api/v1/backtest/audit — persist ground truth and return the audit
    * scorecard comparing predicted vs actual with the computed MAPE (R11.1, R11.6).
    */
   backtestAudit(request: BacktestAuditRequest, options?: RequestOptions) {
@@ -411,7 +411,7 @@ export const api = {
   },
 
   /**
-   * POST /api/v1/calibration/apply Ã¢â‚¬â€ request auto-tuning offsets from a
+   * POST /api/v1/calibration/apply — request auto-tuning offsets from a
    * historical title's MAPE; forks a new model version when MAPE is too high and
    * reports the applied weight offsets (R12.3, R16.3, R16.4).
    */
@@ -424,7 +424,7 @@ export const api = {
   },
 
   /**
-   * GET /api/v1/decisions/{decisionId}/finalization Ã¢â‚¬â€ the finalization gate and
+   * GET /api/v1/decisions/{decisionId}/finalization — the finalization gate and
    * outstanding required approvals for a high-budget decision (R20.5).
    */
   getFinalization(decisionId: string, options?: RequestOptions) {

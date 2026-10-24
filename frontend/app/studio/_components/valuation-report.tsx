@@ -71,7 +71,7 @@ function CheckRow({ check }: { check: GuardrailCheck }) {
       case "CHURN_MITIGATION":
         return `${pct(check.computed_value)} (Threshold: ${pct(check.threshold)})`;
       case "PAYBACK_HORIZON":
-        return `${num(check.computed_value) ?? "â€”"} Months (Target: 9-12)`;
+        return `${num(check.computed_value) ?? "—" } Months (Target: 9-12)`;
       default:
         return "";
     }
