@@ -126,13 +126,19 @@ flowchart LR
 
 - **One title (Asset Studio):** the buyer types the deal (name, asset type, cost and
   currency, synopsis, genre, content format, territories, pedigree, exclusivity, optional
-  viewing hours with a unit). It is created and valued in a single synchronous call.
+  viewing hours with a unit) and, in an optional **Advanced drivers** section, any
+  sequel/franchise, momentum (a stage-gated **Buzz level**), and macro facts
+  (production stage, IP provenance, release window/month, vernacular tracks) that feed the
+  advanced content-eval drivers. Leaving the advanced section blank reproduces the prior
+  neutral behavior exactly. It is created and valued in a single synchronous call.
 - **A whole slate:** a CSV/JSON catalog is accepted immediately (HTTP 202 with a job id)
   and processed row-by-row in the background; the response later carries an accepted/
   rejected summary with a reason per rejected row. Replays with the same idempotency key
   return the original result - no duplicates.
 - **A pitch PDF:** dropped on the form, parsed best-effort to pre-fill title/synopsis/
-  genre/budget for review. Nothing is auto-submitted.
+  genre/budget - and any recognizable advanced driver facts (franchise/sequel cues, buzz
+  level, production stage, IP provenance, release window) - into the form for review.
+  Nothing is auto-submitted and every pre-filled value stays editable.
 
 Every intake path captures the acquisition cost, native currency, territories, and the
 business facts the decision needs. The raw submission is stored as an encrypted-at-rest
@@ -581,7 +587,7 @@ version that regresses on the held-out split is surfaced, never auto-activated. 
 or proxy-trained value shown in the UI carries a **PROXY / illustrative** badge - the reported
 accuracy is proxy accuracy, never real-world accuracy.
 
-﻿---
+ï»¿---
 
 ## 7e. Advanced Content-Eval Drivers (optional, flag-gated, default-off)
 

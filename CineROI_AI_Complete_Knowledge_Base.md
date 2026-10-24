@@ -190,7 +190,7 @@ or NEGOTIATE HARD.
 - **Absolute Churn Cohort** - alongside the churn percentage, an approximate count of
   retained subscribers, labeled as a modeled/derived figure.
 
-﻿---
+Ã¯Â»Â¿---
 
 ### 3.8 Advanced Content-Eval Drivers (optional, default-off)
 
@@ -325,18 +325,38 @@ Where titles enter the pipeline and get an instant verdict.
   Reality/Competition, Scripted Series, Film, Library, ...). Live/appointment formats add
   extra churn credit the asset type cannot express, so a live match is not scored like a
   one-and-done library title. Optional; unlisted/blank adds no extra churn.
+- **Advanced drivers (optional)** - a collapsible "Advanced drivers" section lets the
+  buyer supply the signals the advanced content-eval drivers read, all optional and
+  neutral-by-default (leaving them blank reproduces the prior behavior exactly): sequel /
+  franchise lineage (`is_franchise` and, when set, `franchise_order` plus the parent
+  title's viewing hours and completion rate), momentum via a friendly **Buzz level**
+  (LOW / MEDIUM / HIGH, which the server expands into the raw trailer / engagement /
+  velocity signals), and macro facts (`production_stage`, `source_ip_provenance`,
+  `release_window`, `release_month`, `vernacular_track_count`). The **Buzz level**
+  control is **stage-gated**: it is only offered once `production_stage` reaches a stage
+  where momentum is meaningful, so you cannot attach hype to a title that is still a
+  concept. Out-of-set values are rejected at the API boundary with a 422 that names the
+  field.
 - **Shorthand budgets** - the cost field accepts analyst shorthand like `12 Cr`,
   `3 Lakh`, `1.5M`, `500k`, with a live preview of the expanded number.
 - **Quick Presets** - one-click sample titles that fill the form so you can run a
   valuation immediately.
 - **Pitch PDF auto-fill (drop zone)** - drop a pitch/script PDF and the system reads the
-  title, synopsis, genre, and budget into the form for review (best-effort; nothing is
-  auto-submitted).
+  title, synopsis, genre, and budget into the form for review, and now also pre-fills any
+  advanced driver facts it can recognize (franchise / sequel cues, a buzz level, production
+  stage, IP provenance, release window) into the Advanced drivers section (best-effort;
+  nothing is auto-submitted and every pre-filled value stays editable).
 - **Batch Slate tab** - upload or paste a CSV/JSON catalog of titles in one go; it is
   processed asynchronously and returns an accepted/rejected summary with a reason per
   rejected row. A **Download CSV template** button provides a ready-made
   `cineroi-slate-template.csv` (header row + allowed-value comment hints + three example
-  titles) so first-time users can start from the correct shape.
+  titles) so first-time users can start from the correct shape. The same advanced driver
+  facts the single-asset form captures can be supplied per row as optional columns
+  (`is_franchise`, `franchise_order`, `parent_title_viewing_hours`,
+  `parent_completion_rate`, `production_stage`, `source_ip_provenance`,
+  `release_window`, `release_month`, `vernacular_track_count` and the raw momentum
+  signals); omitted or blank cells stay neutral, and an out-of-set value rejects just that
+  row with a reason while the rest of the slate proceeds.
 - **Instant scorecard** - the right pane renders the recommendation, the four checks, a
   metadata radar, and a payback chart, with a link to the full deep-dive.
 
