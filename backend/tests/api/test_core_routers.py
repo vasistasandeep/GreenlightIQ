@@ -770,6 +770,208 @@ def test_get_comps_missing_title_maps_to_404(client: TestClient) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# GET /valuation/{title_id}/comps - Comps_Engine anchor (Driver A, task 15)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class _AnchorTitle:
+    """A USD-native historical title with the fields the anchor seam reads."""
+
+    title_id: uuid.UUID
+    asset_type: str = "ORIGINAL_FILM"
+    acquisition_cost_or_budget: Decimal = Decimal("1000000.00")
+    native_currency: str = "USD"
+
+
+def _install_comps_fakes(
+    title_id: uuid.UUID,
+    neighbour_id: uuid.UUID,
+    *,
+    candidates: list[Any] | None,
+):
+    """Patch the valuation router's repositories for an anchor test.
+
+    ``candidates`` is the list ``rank_comps_within_band`` returns; ``None`` means
+    the method is never expected to be called (enable_comps off). Returns the
+    (restore) teardown callable.
+    """
+    import app.api.valuation as val_mod
+    import app.repositories.metadata_vectors as mv
+
+    @dataclass
+    class FakeVector:
+        narrative_dna: list = field(default_factory=lambda: [0.1] * 1536)
+        created_at: datetime = field(
+            default_factory=lambda: datetime.now(timezone.utc)
+        )
+
+    class _Titles:
+        def __init__(self, session: Any) -> None: ...
+
+        async def get(self, tid: uuid.UUID) -> Any:
+            return _AnchorTitle(title_id=title_id) if tid == title_id else None
+
+    class _Vectors:
+        def __init__(self, session: Any) -> None: ...
+
+        async def list_for_title(self, tid: uuid.UUID) -> list[Any]:
+            return [FakeVector()]
+
+        async def rank_similar_titles(
+            self, title_vector: list, exclude_title_id: uuid.UUID, limit: int = 3
+        ) -> list[Any]:
+            return [
+                mv.SimilarTitle(
+                    title_id=neighbour_id,
+                    title_name="Neighbour A",
+                    genre_tag="DRAMA",
+                    recommendation_status="GREENLIGHT",
+                    cosine_similarity=0.9123,
+                )
+            ]
+
+        async def rank_comps_within_band(self, **kwargs: Any) -> list[Any]:
+            assert candidates is not None, (
+                "rank_comps_within_band must not be called when enable_comps is off"
+            )
+            return candidates
+
+    orig_titles = val_mod.TitleRepository
+    orig_vectors = val_mod.MetadataVectorRepository
+    val_mod.TitleRepository = _Titles  # type: ignore[assignment]
+    val_mod.MetadataVectorRepository = _Vectors  # type: ignore[assignment]
+
+    def _restore() -> None:
+        val_mod.TitleRepository = orig_titles
+        val_mod.MetadataVectorRepository = orig_vectors
+
+    return _restore
+
+
+def test_get_comps_anchor_present_when_enabled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """enable_comps on + a non-empty comp set surfaces the Comps anchor fields."""
+    import app.api.valuation as val_mod
+    import app.repositories.metadata_vectors as mv
+    from app.core.config import Settings
+
+    title_id = uuid.uuid4()
+    neighbour_id = uuid.uuid4()
+    comp_a = uuid.uuid4()
+    comp_b = uuid.uuid4()
+    comp_c = uuid.uuid4()
+
+    # Three in-band comps -> median hours = 3100, median churn = 1.90.
+    candidates = [
+        mv.CompCandidate(
+            title_id=comp_a,
+            title_name="Comp A",
+            genre_tag="DRAMA",
+            cosine_distance=0.10,
+            comp_viewing_hours=Decimal("2800"),
+            comp_churn_pct=Decimal("1.80"),
+        ),
+        mv.CompCandidate(
+            title_id=comp_b,
+            title_name="Comp B",
+            genre_tag="DRAMA",
+            cosine_distance=0.20,
+            comp_viewing_hours=Decimal("3100"),
+            comp_churn_pct=Decimal("1.90"),
+        ),
+        mv.CompCandidate(
+            title_id=comp_c,
+            title_name="Comp C",
+            genre_tag="DRAMA",
+            cosine_distance=0.30,
+            comp_viewing_hours=Decimal("3400"),
+            comp_churn_pct=Decimal("2.00"),
+        ),
+    ]
+
+    monkeypatch.setattr(
+        val_mod, "get_settings", lambda: Settings(enable_comps=True)
+    )
+    restore = _install_comps_fakes(title_id, neighbour_id, candidates=candidates)
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}/comps")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["found"] is True
+        # Decimals serialize as JSON strings.
+        assert Decimal(body["h_comps"]) == Decimal("3100")
+        assert Decimal(body["c_comps"]) == Decimal("1.90")
+        assert Decimal(body["dispersion_iqr"]) == Decimal("600")
+        assert body["realized_k"] == 3
+        assert body["comp_title_ids"] == [str(comp_a), str(comp_b), str(comp_c)]
+        # Each listed comp also carries the anchor.
+        first = body["comps"][0]
+        assert Decimal(first["h_comps"]) == Decimal("3100")
+        assert first["realized_k"] == 3
+    finally:
+        restore()
+
+
+def test_get_comps_anchor_absent_when_disabled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """enable_comps off keeps the surface backward-compatible: anchor absent."""
+    import app.api.valuation as val_mod
+    from app.core.config import Settings
+
+    title_id = uuid.uuid4()
+    neighbour_id = uuid.uuid4()
+
+    monkeypatch.setattr(
+        val_mod, "get_settings", lambda: Settings(enable_comps=False)
+    )
+    # candidates=None asserts rank_comps_within_band is never called off-flag.
+    restore = _install_comps_fakes(title_id, neighbour_id, candidates=None)
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}/comps")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["found"] is True
+        assert body["h_comps"] is None
+        assert body["c_comps"] is None
+        assert body["dispersion_iqr"] is None
+        assert body["realized_k"] is None
+        assert body["comp_title_ids"] is None
+        # Existing Top-3 surface unchanged; comp carries no anchor.
+        assert body["comps"][0]["h_comps"] is None
+    finally:
+        restore()
+
+
+def test_get_comps_anchor_absent_when_no_eligible_comps(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """enable_comps on but zero eligible comps -> intercept fallback, anchor absent."""
+    import app.api.valuation as val_mod
+    from app.core.config import Settings
+
+    title_id = uuid.uuid4()
+    neighbour_id = uuid.uuid4()
+
+    monkeypatch.setattr(
+        val_mod, "get_settings", lambda: Settings(enable_comps=True)
+    )
+    restore = _install_comps_fakes(title_id, neighbour_id, candidates=[])
+    try:
+        resp = client.get(f"/api/v1/valuation/{title_id}/comps")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["found"] is True
+        assert body["h_comps"] is None
+        assert body["realized_k"] is None
+        assert body["comps"][0]["h_comps"] is None
+    finally:
+        restore()
+
+
+# --------------------------------------------------------------------------- #
 # Deal-stage lifecycle: GET/PATCH /titles/{id}/deal-stage
 # --------------------------------------------------------------------------- #
 

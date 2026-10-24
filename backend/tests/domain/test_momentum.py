@@ -43,7 +43,10 @@ class TestStageEnum:
 
     def test_coerce_known_and_unknown(self) -> None:
         assert mom.coerce_stage("ACQUISITION_READY") is mom.Production_Stage.ACQUISITION_READY
-        assert mom.coerce_stage(mom.Production_Stage.IN_PRODUCTION) is mom.Production_Stage.IN_PRODUCTION
+        assert (
+            mom.coerce_stage(mom.Production_Stage.IN_PRODUCTION)
+            is mom.Production_Stage.IN_PRODUCTION
+        )
         # Unknown / None -> the initial (gated) stage, never raises.
         assert mom.coerce_stage(None) is mom.INITIAL_STAGE
         assert mom.coerce_stage("NONSENSE") is mom.INITIAL_STAGE

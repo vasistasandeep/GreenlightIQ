@@ -6,7 +6,7 @@ Feature: deal-decision-support. Covers Properties 1-6 and 10 over
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 from hypothesis import given, settings
@@ -106,7 +106,7 @@ def test_property_4_implied_discount(ask, ceiling):
     elif ceiling >= ask:
         assert result == Decimal("0.0")
     else:
-        expected = ((ask - ceiling) / ask * Decimal("100")).quantize(Decimal("0.1"))
+        expected = ((ask - ceiling) / ask * Decimal("100")).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
         assert result == expected
         assert result >= 0
 

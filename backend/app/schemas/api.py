@@ -96,6 +96,118 @@ class ValuationSummaryResponse(BaseModel):
     explanation: dict[str, Any]
 
 
+#: The strict provenance precedence a resolved driver value carries (R6.1). Every
+#: Advanced_Content_Eval_Driver ships DETERMINISTIC_FALLBACK Illustrative_Coefficients;
+#: SUPPLIED / FITTED are reserved for the precedence contract shared with the
+#: Content_Eval_System drivers.
+SourceTier = Literal["SUPPLIED", "FITTED", "DETERMINISTIC_FALLBACK"]
+
+
+class CompsProvenance(BaseModel):
+    """Driver A (Comps_Engine) provenance surfaced under ``advanced_drivers.comps`` (R6.1, R6.2).
+
+    Carries the Comps anchor statistics and the realized Comp_Set so the UI can
+    show comps confidence (``realized_k`` and ``dispersion_iqr``). ``h_comps`` /
+    ``c_comps`` / ``dispersion_iqr`` are absent when zero eligible comps exist
+    (``use_intercept_fallback`` is then ``True`` and the viewing-hours constant
+    intercept is used). ``base_hours_override`` (= ``h_comps``) and
+    ``base_churn_override`` (= ``c_comps``) are the seeds threaded to the
+    viewing-hours / churn seams. Decimals serialize as JSON strings.
+    """
+
+    model_config = {"extra": "allow"}
+
+    source_tier: SourceTier
+    realized_k: int
+    use_intercept_fallback: bool
+    comp_title_ids: list[int] = Field(default_factory=list)
+    h_comps: Decimal | None = None
+    c_comps: Decimal | None = None
+    dispersion_iqr: Decimal | None = None
+    base_hours_override: Decimal | None = None
+    base_churn_override: Decimal | None = None
+
+
+class LineageProvenance(BaseModel):
+    """Driver B (Lineage_Decay) provenance under ``advanced_drivers.lineage`` (R6.1).
+
+    ``franchise_floor`` is the one-sided hour-space Stage 7 ``max`` lift and
+    ``delta_c_franchise`` the additive churn loyalty credit (percentage points).
+    ``is_active`` is ``False`` for a non-franchise title (zero floor / zero
+    credit). ``assumed_features`` records the sequel-with-missing-parent 0.70
+    retention fallback. Decimals serialize as JSON strings.
+    """
+
+    model_config = {"extra": "allow"}
+
+    source_tier: SourceTier
+    is_active: bool
+    franchise_floor: Decimal
+    delta_c_franchise: Decimal
+    assumed_features: list[str] = Field(default_factory=list)
+
+
+class MomentumProvenance(BaseModel):
+    """Driver C (Momentum_Telemetry) provenance under ``advanced_drivers.momentum`` (R6.1).
+
+    ``value`` is the resolved Momentum_Multiplier and ``bounds`` serializes as a
+    string such as ``"[1.00,1.50]"`` (the ``momentum_multiplier_max`` clamp).
+    ``stage_excluded`` is ``True`` for a CONCEPT_SCRIPT / IN_PRODUCTION title
+    (multiplier forced to 1.00); ``reason`` records a STALE / UNAVAILABLE
+    degradation. Decimals serialize as JSON strings.
+    """
+
+    model_config = {"extra": "allow"}
+
+    source_tier: SourceTier
+    value: Decimal
+    bounds: str
+    production_stage: str | None = None
+    stage_excluded: bool | None = None
+    reason: str | None = None
+    reading_age_days: int | None = None
+
+
+class MacroModifiersProvenance(BaseModel):
+    """Driver D (Macro_Modifiers) provenance under ``advanced_drivers.macro_modifiers`` (R6.1).
+
+    The four market multipliers and their ``product``. An absent/unrecognized
+    descriptor resolves to the neutral 1.00 and is recorded in
+    ``assumed_features``. Decimals serialize as JSON strings.
+    """
+
+    model_config = {"extra": "allow"}
+
+    source_tier: SourceTier
+    source_ip_multiplier: Decimal
+    release_window_multiplier: Decimal
+    calendar_seasonality_multiplier: Decimal
+    vernacular_tam_multiplier: Decimal
+    product: Decimal
+    assumed_features: list[str] = Field(default_factory=list)
+
+
+class AdvancedDriversExplanation(BaseModel):
+    """The additive ``advanced_drivers`` block nested in the explanation (R6.1, R6.5).
+
+    Keyed by driver, each entry carries its ``source_tier`` provenance plus the
+    driver's resolved value, bounds, and the inputs it used. The block is
+    additive and backward-compatible: a pre-feature stored explanation carries no
+    ``advanced_drivers`` key, and with every Driver_Flag off no driver resolves,
+    so the whole block is absent (every field here is optional). The provider
+    (``app.api.deps``) only threads a driver's entry when its kill-switch is on
+    and the driver actually resolved, so an entry present here means its driver
+    reacted. Decimals serialize as JSON strings throughout.
+    """
+
+    model_config = {"extra": "allow"}
+
+    comps: CompsProvenance | None = None
+    lineage: LineageProvenance | None = None
+    momentum: MomentumProvenance | None = None
+    macro_modifiers: MacroModifiersProvenance | None = None
+
+
 class MetadataBreakdown(BaseModel):
     """The extracted metadata profile surfaced in the full scorecard (R10, R15.1).
 
@@ -322,6 +434,13 @@ class TitleCompOut(BaseModel):
     lookup over ``metadata_vectors``. ``cosine_similarity`` is in ``[-1.0, 1.0]``
     (1.0 == identical direction); ``recommendation_status`` is ``null`` when the
     neighbour has no computed valuation yet.
+
+    The optional ``h_comps`` / ``c_comps`` / ``dispersion_iqr`` / ``realized_k`` /
+    ``comp_title_ids`` anchor fields extend the existing surface with the
+    Comps_Engine (Driver A) empirical anchor. They are populated only when the
+    ``enable_comps`` kill-switch is on and a non-empty Budget_Band comp set is
+    found; otherwise they are absent (``None`` / empty), keeping the surface
+    backward-compatible (R6.2, R10.1). Decimals serialize as JSON strings.
     """
 
     title_id: uuid.UUID
@@ -329,6 +448,12 @@ class TitleCompOut(BaseModel):
     genre_tag: str | None = None
     recommendation_status: str | None = None
     cosine_similarity: float
+    # Comps_Engine anchor (Driver A); absent when enable_comps is off or no comps.
+    h_comps: Decimal | None = None
+    c_comps: Decimal | None = None
+    dispersion_iqr: Decimal | None = None
+    realized_k: int | None = None
+    comp_title_ids: list[str] | None = None
 
 
 class DealStageResponse(BaseModel):
@@ -355,11 +480,25 @@ class ComparableTitlesResponse(BaseModel):
     ``found`` is false when the query title has no stored embedding (comps cannot
     be computed); ``comps`` is then empty. An empty ``comps`` with ``found`` true
     means the title has an embedding but no other title does yet.
+
+    The top-level ``h_comps`` / ``c_comps`` / ``dispersion_iqr`` / ``realized_k`` /
+    ``comp_title_ids`` surface the Comps_Engine (Driver A) empirical anchor over
+    the retrieved Budget_Band comp set. They are present only when the
+    ``enable_comps`` kill-switch is on and a non-empty comp set is found;
+    otherwise they are absent (``None`` / empty), so a caller that predates the
+    anchor is unaffected (additive, backward-compatible — R6.2, R10.1). Decimals
+    serialize as JSON strings.
     """
 
     title_id: uuid.UUID
     found: bool
     comps: list[TitleCompOut] = Field(default_factory=list)
+    # Comps_Engine anchor (Driver A); absent when enable_comps is off or no comps.
+    h_comps: Decimal | None = None
+    c_comps: Decimal | None = None
+    dispersion_iqr: Decimal | None = None
+    realized_k: int | None = None
+    comp_title_ids: list[str] | None = None
 
 
 # --------------------------------------------------------------------------- #

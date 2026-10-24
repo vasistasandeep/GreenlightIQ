@@ -224,7 +224,15 @@ async def test_link_on_does_not_override_supplied_value(monkeypatch):
     assert result.churn_reduction_value == baseline.churn_reduction_value
 
 
-async def test_get_input_provider_returns_content_eval_wrapper():
-    """The DI factory wires the Content_Eval provider as the active one."""
+async def test_get_input_provider_returns_advanced_drivers_wrapper():
+    """The DI factory wires the Advanced_Content_Eval_Drivers provider on top.
+
+    As of task 10 the composition root returns the flag-gated
+    :class:`AdvancedDriversValuationInputProvider`, which wraps the Content_Eval
+    provider (which in turn wraps the snapshot provider). With every advanced
+    flag false (the default) it delegates to the content-eval precedence
+    byte-identically, so the content-eval wiring this test originally asserted is
+    preserved underneath the new, inert-by-default outer layer.
+    """
     provider = deps.get_input_provider(session=object())
-    assert isinstance(provider, deps.ContentEvalValuationInputProvider)
+    assert isinstance(provider, deps.AdvancedDriversValuationInputProvider)

@@ -18,16 +18,24 @@ import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api-client";
 import type { TitleComp } from "@/lib/types";
+import { toNumber } from "./format";
 import {
   RecommendationBadge,
 } from "@/components/recommendation-badge";
 import type { RecommendationStatus } from "@/lib/types";
 
+/** The optional Comps_Engine (Driver A) anchor surfaced on the comps response. */
+interface CompsAnchor {
+  realized_k: number | null;
+  h_comps: number | string | null | undefined;
+  dispersion_iqr: number | string | null | undefined;
+}
+
 type LoadState =
   | { status: "loading" }
   | { status: "error" }
   | { status: "empty"; reason: "no-embedding" | "no-neighbours" }
-  | { status: "ready"; comps: TitleComp[] };
+  | { status: "ready"; comps: TitleComp[]; anchor: CompsAnchor | null };
 
 export interface ComparableTitlesPanelProps {
   titleId: string;
@@ -57,7 +65,17 @@ export function ComparableTitlesPanel({ titleId }: ComparableTitlesPanelProps) {
           setState({ status: "empty", reason: "no-neighbours" });
           return;
         }
-        setState({ status: "ready", comps: result.comps });
+        // The Comps_Engine (Driver A) anchor is present only when enable_comps
+        // is on and a non-empty Budget_Band comp set was found (R6.2, R10.1).
+        const anchor =
+          result.realized_k != null
+            ? {
+                realized_k: result.realized_k,
+                h_comps: result.h_comps,
+                dispersion_iqr: result.dispersion_iqr,
+              }
+            : null;
+        setState({ status: "ready", comps: result.comps, anchor });
       } catch {
         if (active) setState({ status: "error" });
       }
@@ -105,6 +123,37 @@ export function ComparableTitlesPanel({ titleId }: ComparableTitlesPanelProps) {
               ? "This title has no Narrative_DNA embedding yet, so comps cannot be computed."
               : "No other title has a Narrative_DNA embedding to compare against yet."}
           </p>
+        ) : null}
+
+        {state.status === "ready" && state.anchor ? (
+          <dl className="mb-3 grid grid-cols-3 gap-x-4 rounded-md border border-slate-800 bg-muted/20 p-3 text-xs">
+            <div>
+              <dt className="text-muted-foreground">Comps confidence (k)</dt>
+              <dd className="font-medium tabular-nums">
+                {state.anchor.realized_k ?? "--"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">H_comps anchor</dt>
+              <dd className="font-medium tabular-nums">
+                {toNumber(state.anchor.h_comps) === null
+                  ? "--"
+                  : new Intl.NumberFormat("en-US", {
+                      maximumFractionDigits: 1,
+                    }).format(toNumber(state.anchor.h_comps)!)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Dispersion (IQR)</dt>
+              <dd className="font-medium tabular-nums">
+                {toNumber(state.anchor.dispersion_iqr) === null
+                  ? "--"
+                  : new Intl.NumberFormat("en-US", {
+                      maximumFractionDigits: 1,
+                    }).format(toNumber(state.anchor.dispersion_iqr)!)}
+              </dd>
+            </div>
+          </dl>
         ) : null}
 
         {state.status === "ready" ? (

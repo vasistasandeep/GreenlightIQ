@@ -333,29 +333,46 @@ def calculate_viewing_hours(
     features: featmod.FeatureVector,
     params: ViewingHoursParams,
     params_source: str = _SOURCE_DEFAULTS,
+    base_hours_override: Decimal | None = None,
 ) -> ViewingHoursResult:
     """Compute projected viewing hours in log space with Option-B hour conservation.
 
     Predicts ``H_hat = exp(intercept + L) - 1`` where ``L = sum_i(beta_i * x_i)``
     over the numeric predictive features. The hour-space breakdown is base hours
-    ``H0 = exp(intercept) - 1`` plus the marginal lift ``dH = H_hat - H0``
-    allocated across features by their log-lift share ``beta_i * x_i / L`` (every
-    ``hours_i == 0`` when ``L == 0``). The output is clamped to ``params.floor``
-    (keeping CPVH out of its null/zero path); the single
-    ``rounding_or_bounds_adjustment`` entry absorbs the floor-clamp delta and the
-    whole-hour quantization residual so ``sum(breakdown.hours) == viewing_hours``
-    exactly. All transcendental math runs under the fixed Decimal context for
-    determinism.
+    ``H0`` plus the marginal lift ``dH = H_hat - H0`` allocated across features by
+    their log-lift share ``beta_i * x_i / L`` (every ``hours_i == 0`` when
+    ``L == 0``). The output is clamped to ``params.floor`` (keeping CPVH out of
+    its null/zero path); the single ``rounding_or_bounds_adjustment`` entry
+    absorbs the floor-clamp delta and the whole-hour quantization residual so
+    ``sum(breakdown.hours) == viewing_hours`` exactly. All transcendental math
+    runs under the fixed Decimal context for determinism.
+
+    The base hours default to the log-space intercept ``H0 = exp(intercept) - 1``.
+    When ``base_hours_override`` is supplied (the Comps_Engine anchor ``H_comps``,
+    Driver A), ``H0`` is seeded from that override instead -- the base breakdown
+    line becomes a ``comps_anchor`` entry whose hours strictly equal the override,
+    and the Option-B additive-lift allocation (``dH = H_hat - H0``) and the single
+    ``rounding_or_bounds_adjustment`` residual sink are structurally unchanged.
+    When ``None`` the result is byte-identical to the intercept-only behavior.
+    The override is a one-sided anchor: a negative override floors to 0 base
+    hours exactly as the intercept path does. The kill-switch / comp-set gating
+    lives at the integration layer; this pure function only accepts the override.
     """
     missing: list[str] = []
     assumed: list[str] = []
+    use_override = base_hours_override is not None
 
     with localcontext(_CTX):
         intercept = +params.intercept  # normalize to the fixed context
 
-        # Base platform hours: H0 = exp(intercept) - 1, floored at 0 (hours can
-        # never be negative; the intercept lives ENTIRELY here, never over L).
-        h0_raw = intercept.exp() - Decimal(1)
+        # Base platform hours. Default: H0 = exp(intercept) - 1. When the comps
+        # anchor override is supplied, H0 = base_hours_override (= H_comps). Both
+        # are floored at 0 (hours can never be negative; the intercept lives
+        # ENTIRELY in H0, never spread over L).
+        if use_override:
+            h0_raw = +base_hours_override  # normalize to the fixed context
+        else:
+            h0_raw = intercept.exp() - Decimal(1)
         h0 = h0_raw if h0_raw > 0 else Decimal(0)
 
         # Per-feature log lift terms beta_i * x_i, accumulated into L.
@@ -399,10 +416,12 @@ def calculate_viewing_hours(
     # Quantize the base and per-feature hours; the adjustment entry carries the
     # floor-clamp delta plus every quantization residual so the sum is exact.
     base_hours = _quantize(h0)
+    base_key = "comps_anchor" if use_override else "base_platform_hours"
+    base_label = "Comps Anchor Hours" if use_override else "Base Platform Hours"
     contributions: list[ViewingHoursContribution] = [
         ViewingHoursContribution(
-            key="base_platform_hours",
-            label="Base Platform Hours",
+            key=base_key,
+            label=base_label,
             input=None,
             coefficient=None,
             hours=base_hours,

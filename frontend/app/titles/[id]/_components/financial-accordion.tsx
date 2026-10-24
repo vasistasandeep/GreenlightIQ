@@ -24,6 +24,7 @@ import {
 } from "recharts";
 
 import type { Explanation, ValuationScorecard } from "@/lib/types";
+import { AdvancedDriversBreakdown } from "./advanced-drivers-breakdown";
 import { ChurnBreakdown } from "./churn-breakdown";
 import { ContentEvalBreakdown } from "./content-eval-breakdown";
 import { PaybackTimeline } from "./payback-timeline";
@@ -261,6 +262,9 @@ export function FinancialAccordion({ scorecard }: FinancialAccordionProps) {
           <ChurnBreakdown churnModel={scorecard.explanation?.churn_model} />
           <ContentEvalBreakdown
             contentEval={scorecard.explanation?.content_eval}
+          />
+          <AdvancedDriversBreakdown
+            advancedDrivers={scorecard.explanation?.advanced_drivers}
           />
         </AccordionSection>
 
