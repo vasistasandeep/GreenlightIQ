@@ -18,8 +18,8 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
 
 ## Tasks
 
-- [ ] 1. Create the pure scaling domain module `app/domain/sensitivity.py`
-  - [ ] 1.1 Implement `scale_inputs` and the `ScaledInputs` dataclass
+- [x] 1. Create the pure scaling domain module `app/domain/sensitivity.py`
+  - [x] 1.1 Implement `scale_inputs` and the `ScaledInputs` dataclass
     - Create `backend/app/domain/sensitivity.py` as a new pure module (no I/O),
       mirroring the `app/domain/*` layout (`cpvh.py`, `ltv.py`, `cohort.py`).
     - Define inclusive bounds `MULTIPLIER_MIN = Decimal("0.5")` and
@@ -39,7 +39,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       consistent with how the design references it.
     - _Requirements: 5.2, 5.3, 5.4, 5.5, 4.4_
 
-  - [ ]* 1.2 Write property test for field scaling (Property 2)
+  - [x]* 1.2 Write property test for field scaling (Property 2)
     - Generate base `ValuationInputs`, a base viewing-hours value (including
       `None`), and in-bounds multipliers; assert `scaled.churn_reduction_pct ==
       base.churn_reduction_pct * churn_multiplier`, `scaled.ad_impressions ==
@@ -50,7 +50,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
     - **Property 2: Scaling applies each multiplier to its target field exactly**
     - **Validates: Requirements 5.2, 5.3, 5.4**
 
-  - [ ]* 1.3 Write property test for base immutability (Property 3)
+  - [x]* 1.3 Write property test for base immutability (Property 3)
     - Deep-copy the base `ValuationInputs` before calling `scale_inputs`; assert
       every field of the original base is field-wise unchanged after the call.
     - Use Hypothesis, minimum 100 iterations.
@@ -58,8 +58,8 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
     - **Property 3: Scaling never mutates the base inputs**
     - **Validates: Requirements 5.5**
 
-- [ ] 2. Refactor the Guardrails_Engine to extract `_compute` and add the scenario path
-  - [ ] 2.1 Add a `viewing_hours_override` parameter to `_cpvh_check`
+- [x] 2. Refactor the Guardrails_Engine to extract `_compute` and add the scenario path
+  - [x] 2.1 Add a `viewing_hours_override` parameter to `_cpvh_check`
     - In `backend/app/engines/guardrails.py`, add an optional
       `viewing_hours_override: Decimal | None = None` parameter to `_cpvh_check`.
       When `None` (the `evaluate` path), read `title.projected_viewing_hours`
@@ -68,7 +68,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       mutate the title object.
     - _Requirements: 5.2, 3.3_
 
-  - [ ] 2.2 Extract the pure compute core into `_compute`
+  - [x] 2.2 Extract the pure compute core into `_compute`
     - Introduce `_compute(self, title, inputs, normalized, exchange_rate_id,
       stamp, weighting, *, cpvh_hours_override=None) -> ValuationResult` that
       performs NO I/O: move the four guardrail checks, `determine_recommendation`,
@@ -81,7 +81,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       green.
     - _Requirements: 3.3, 3.4_
 
-  - [ ]* 2.3 Write property test for identity scenario (Property 1)
+  - [x]* 2.3 Write property test for identity scenario (Property 1)
     - Generate a title + `ValuationInputs` with in-memory fakes for
       repositories/audit; assert `evaluate_scenario(1.0, 1.0, 1.0)` yields the
       same recommendation status and the same four metrics (CPVH, LTV-to-cost
@@ -92,7 +92,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
     - **Property 1: Identity scenario reproduces the persisted scorecard**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4**
 
-  - [ ] 2.4 Implement `evaluate_scenario` (no persist, no audit)
+  - [x] 2.4 Implement `evaluate_scenario` (no persist, no audit)
     - Add `async def evaluate_scenario(self, title_id, *, cost_multiplier,
       viewership_multiplier, churn_multiplier) -> ValuationResult`:
       `load title (TitleNotFoundError if missing, R1.3) -> get_inputs ->
@@ -107,7 +107,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       `_persist` or `self._audit.record` on this path.
     - _Requirements: 1.1, 1.3, 2.3, 2.4, 5.1_
 
-  - [ ]* 2.5 Write property test for cost monotonicity (Property 4)
+  - [x]* 2.5 Write property test for cost monotonicity (Property 4)
     - Generate inputs + two cost multipliers `m1 <= m2` in bounds (viewership and
       churn fixed); assert the recomputed CPVH is non-decreasing in the cost
       multiplier and the recomputed LTV-to-cost multiple is non-increasing.
@@ -116,7 +116,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
     - **Property 4: Cost multiplier moves CPVH and the LTV multiple in the modeled direction**
     - **Validates: Requirements 5.1**
 
-  - [ ]* 2.6 Write property test for viewership monotonicity (Property 5)
+  - [x]* 2.6 Write property test for viewership monotonicity (Property 5)
     - Generate inputs + two viewership multipliers `m1 <= m2` in bounds (cost and
       churn fixed); assert the recomputed CPVH is non-increasing in the
       viewership multiplier and the recomputed LTV-to-cost multiple is
@@ -126,17 +126,17 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
     - **Property 5: Viewership multiplier moves CPVH down and the LTV multiple up**
     - **Validates: Requirements 5.2, 5.3**
 
-  - [ ]* 2.7 Write engine-level no-persist / no-audit spy test
+  - [x]* 2.7 Write engine-level no-persist / no-audit spy test
     - With a spy audit service and a projection-repo spy, assert
       `evaluate_scenario` triggers zero persist calls and zero audit calls while
       still returning a complete `ValuationResult`.
     - _Requirements: 2.4_
 
-- [ ] 3. Checkpoint - domain and engine tests pass
+- [x] 3. Checkpoint - domain and engine tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Add the stateless `POST /{title_id}/what-if` endpoint
-  - [ ] 4.1 Implement `WhatIfRequest` and the `/what-if` route
+- [x] 4. Add the stateless `POST /{title_id}/what-if` endpoint
+  - [x] 4.1 Implement `WhatIfRequest` and the `/what-if` route
     - In `backend/app/api/valuation.py`, add `class WhatIfRequest(BaseModel)`
       with `cost_multiplier` and `viewership_multiplier` required and
       `churn_multiplier` defaulting to `Decimal("1.0")`; each field uses
@@ -156,7 +156,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       `404 TITLE_NOT_FOUND` (R1.3) and Pydantic validation to `422` (R4.1, R4.2).
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 4.1, 4.2, 4.3, 4.4, 5.1_
 
-  - [ ]* 4.2 Write API example tests for the happy path and contract fields
+  - [x]* 4.2 Write API example tests for the happy path and contract fields
     - Known title + valid multipliers -> `200` with recommendation status and all
       four metrics plus deal-support fields populated (R1.1, R1.2).
     - Assert a Decimal field (e.g. `ltv_to_cost_multiple`) serializes as a JSON
@@ -165,7 +165,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       `churn_multiplier = 1.0` (R1.5).
     - _Requirements: 1.1, 1.2, 1.4, 1.5_
 
-  - [ ]* 4.3 Write API example tests for not-found and the no-persistence invariant
+  - [x]* 4.3 Write API example tests for not-found and the no-persistence invariant
     - Unknown title id -> `404 TITLE_NOT_FOUND`, no scorecard (R1.3).
     - Capture the stored projection (values + `row_version`) before, POST
       what-if, assert the row is unchanged (R2.1) and `model_version_id` is
@@ -174,7 +174,7 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       (R2.2).
     - _Requirements: 1.3, 2.1, 2.2, 2.3_
 
-  - [ ]* 4.4 Write API tests for bounds (Property 6) and RBAC parity
+  - [x]* 4.4 Write API tests for bounds (Property 6) and RBAC parity
     - `0` and negative multipliers -> `422`; exact bounds `0.5`, `1.0`, `2.0`
       accepted; `0.49` and `2.01` rejected -> `422` (the `WhatIfRequest`
       validation bounds test).
@@ -185,8 +185,8 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
     - **Property 6: Multipliers are accepted exactly within their bounds**
     - **Validates: Requirements 4.1, 4.2, 4.3, 4.4**
 
-- [ ] 5. Add the frontend types and API client method
-  - [ ] 5.1 Add `WhatIfRequest`, `MULTIPLIER_BOUNDS`, and `api.whatIf`
+- [x] 5. Add the frontend types and API client method
+  - [x] 5.1 Add `WhatIfRequest`, `MULTIPLIER_BOUNDS`, and `api.whatIf`
     - In `frontend/lib/types.ts`, add `export interface WhatIfRequest {
       cost_multiplier: number; viewership_multiplier: number; churn_multiplier?:
       number; }` and `export const MULTIPLIER_BOUNDS = { min: 0.5, max: 2.0 } as
@@ -197,8 +197,8 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       `WhatIfRequest` into the client's type imports.
     - _Requirements: 1.5, 4.4, 6.3, 7.2_
 
-- [ ] 6. Build the Sensitivity panel and wire it into the title view
-  - [ ] 6.1 Implement `sensitivity-panel.tsx`
+- [x] 6. Build the Sensitivity panel and wire it into the title view
+  - [x] 6.1 Implement `sensitivity-panel.tsx`
     - Create
       `frontend/app/titles/[id]/_components/sensitivity-panel.tsx` as a
       `"use client"` component `SensitivityPanel({ titleId })`.
@@ -219,13 +219,13 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       existing `no-print` class.
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 8.1, 8.2, 9.1, 9.2_
 
-  - [ ] 6.2 Wire `SensitivityPanel` into `title-evaluation-view.tsx`
+  - [x] 6.2 Wire `SensitivityPanel` into `title-evaluation-view.tsx`
     - Render `<SensitivityPanel titleId={titleId} />` inside the
       `state.status === "ready"` grid as a full-width `lg:col-span-2` block so it
       appears only once a persisted scorecard has loaded.
     - _Requirements: 6.1_
 
-  - [ ]* 6.3 Write interaction tests for the Sensitivity panel
+  - [x]* 6.3 Write interaction tests for the Sensitivity panel
     - Three sliders render with accessible labels; `min`/`max` equal
       `MULTIPLIER_BOUNDS` (0.5 / 2.0); initial values are `1.0` (R6.1, R6.3,
       R6.4).
@@ -243,16 +243,16 @@ frontend uses TypeScript (vitest + Testing Library), matching the design.
       Memo print.
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 8.1, 8.2, 9.1, 9.2_
 
-- [ ] 7. Checkpoint - frontend tests pass
+- [x] 7. Checkpoint - frontend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Final cross-stack verification
-  - [ ] 8.1 Run the backend test suite
+- [x] 8. Final cross-stack verification
+  - [x] 8.1 Run the backend test suite
     - Run `python -m pytest -q -p no:cacheprovider` from `backend/`; confirm the
       183-test baseline plus the new property and example tests are green.
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 8.2 Run the frontend checks
+  - [x] 8.2 Run the frontend checks
     - Run `npm run typecheck && npm run lint && npm run build && npx vitest run`
       from `frontend/`; confirm all are green.
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 8.1, 8.2, 9.1, 9.2_

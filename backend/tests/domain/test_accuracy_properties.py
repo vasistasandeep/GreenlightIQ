@@ -27,7 +27,8 @@ _verdict_or_none = st.sampled_from([*_VERDICTS, None])
 _pair = st.tuples(_verdict_or_none, _verdict_or_none)
 
 
-# Feature: dashboard-accuracy-and-payback-audit, Property 1: Model_Accuracy_Rate is null or a float in [0, 1], and null iff the eligible subset is empty
+# Feature: dashboard-accuracy-and-payback-audit, Property 1: Model_Accuracy_Rate is
+# null or a float in [0, 1], and null iff the eligible subset is empty
 # Validates: Requirements 2.4, 2.5, 2.6
 @settings(max_examples=200)
 @given(pairs=st.lists(_pair, max_size=40))
@@ -41,7 +42,8 @@ def test_property_1_fraction_or_null(pairs):
         assert 0.0 <= rate <= 1.0
 
 
-# Feature: dashboard-accuracy-and-payback-audit, Property 2: a title with no/partial ground truth (an unclassifiable or absent verdict) is counted neither as a match nor a miss
+# Feature: dashboard-accuracy-and-payback-audit, Property 2: a title with no/partial
+# ground truth (an unclassifiable or absent verdict) is counted neither as a match nor a miss
 # Validates: Requirements 2.1, 2.2, 2.3
 @settings(max_examples=200)
 @given(pairs=st.lists(_pair, max_size=40), pred=_verdict_or_none)
@@ -53,7 +55,8 @@ def test_property_2_eligibility_excludes_insufficient(pairs, pred):
     assert base == with_partial
 
 
-# Feature: dashboard-accuracy-and-payback-audit, Property 3: for a non-empty eligible subset, the rate equals round(matches / eligible_count, 4)
+# Feature: dashboard-accuracy-and-payback-audit, Property 3: for a non-empty eligible
+# subset, the rate equals round(matches / eligible_count, 4)
 # Validates: Requirements 1.1, 1.3, 2.5, 3.3
 @settings(max_examples=200)
 @given(pairs=st.lists(_pair, min_size=1, max_size=40))
@@ -67,7 +70,8 @@ def test_property_3_rate_equals_matches_over_eligible(pairs):
         assert rate is None
 
 
-# Feature: dashboard-accuracy-and-payback-audit, Property 4: computing the rate twice over the same inputs yields the identical value (determinism)
+# Feature: dashboard-accuracy-and-payback-audit, Property 4: computing the rate twice
+# over the same inputs yields the identical value (determinism)
 # Validates: Requirements 3.1, 3.2
 @settings(max_examples=200)
 @given(pairs=st.lists(_pair, max_size=40))
@@ -81,7 +85,8 @@ _metric_value = st.decimals(
 )
 
 
-# Feature: dashboard-accuracy-and-payback-audit, Property 5: actual_verdict reuses the live rule (churn non-correctable; all-pass -> GREENLIGHT; a churn-only breach -> PASS)
+# Feature: dashboard-accuracy-and-payback-audit, Property 5: actual_verdict reuses the
+# live rule (churn non-correctable; all-pass -> GREENLIGHT; a churn-only breach -> PASS)
 # Validates: Requirements 1.2, 5.3
 @settings(max_examples=200)
 @given(asset=st.sampled_from(_PREMIUM_ASSETS))

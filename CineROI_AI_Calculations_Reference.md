@@ -592,9 +592,109 @@ not real-world accuracy**, and the candidate was measured only - activation is a
 explicit governance decision (this layer never auto-activates). Source: the committed
 `database/kpi_dataset/fit_report.md`.
 
+﻿---
+
+## 16. Advanced Content-Eval Drivers (optional, default-off)
+
+> **Default-off, inert when off.** These four drivers are each gated behind their own
+> kill-switch (`CINEROI_ENABLE_COMPS`, `CINEROI_ENABLE_LINEAGE`, `CINEROI_ENABLE_MOMENTUM`,
+> `CINEROI_ENABLE_MACRO_MODIFIERS`), all **false by default**. With every flag off (the
+> shipped state) the drivers touch nothing - inputs, breakdowns, explanations, and verdicts
+> are byte-identical to the behavior described in Sections 1-15 (proven by a demo-invariance
+> guard). Each flag is independent. All coefficients below are DETERMINISTIC_FALLBACK
+> **Illustrative_Coefficients** tuned for demo coherence, **not fitted to real data** - the
+> same honesty framing as Section 15. The math lives in pure stdlib Decimal modules
+> (`backend/app/domain/comps.py`, `lineage.py`, `momentum.py`, `macro_modifiers.py`,
+> `driver_assembly.py`) and is property-tested.
+
+### 16.1 Driver A - Comps_Engine (empirical anchor)
+
+Anchors a title''s base viewing hours and base churn to the median of its budget-band
+comparable historical titles, instead of the model''s constant intercept.
+
+- **Retrieval:** nearest-neighbour historical titles of the same `asset_type`, ranked by
+  Narrative_DNA pgvector cosine distance ascending, restricted to a normalized-USD
+  **Budget_Band = `[0.65 x query_cost, 1.35 x query_cost]`** (factors `0.65` / `1.35`; the band
+  is **never widened**), deterministic tie-break `(cosine_distance asc, title_id asc)`, target
+  comp-set size **k = 5**.
+- **Anchors:** `H_comps = median(projected_viewing_hours of the comp set)`;
+  `C_comps = median(churn_pct of the comp set)`; `dispersion = IQR` of the hours.
+- **Seeding:** a non-empty comp set seeds `base_hours_override = H_comps` into the viewing-hours
+  model (replacing `H0 = exp(intercept) - 1`, Section 15.1) and `base_churn_override = C_comps`
+  into the churn model''s base line (Section 6). Zero eligible comps ->
+  `use_intercept_fallback` (the constant intercept is used, a no-op). A `SUPPLIED` field still
+  wins over the anchor.
+
+### 16.2 Driver B - Lineage_Decay (franchise floor + loyalty credit)
+
+- **Franchise_Floor (hours):**
+  `Franchise_Floor = parent_title_viewing_hours x (alpha_base_decay + beta_comp x parent_completion_rate)`
+  with defaults `alpha_base_decay = 0.55`, `beta_comp = 0.35`; `parent_completion_rate` clamped
+  `[0, 1]`. Applied as a **one-sided max** at the final assembly stage
+  (`H7 = max(H6, Franchise_Floor)`) - it can only raise, never lower, the prediction. A sequel
+  with missing parent data uses an assumed `parent_completion_rate = 0.70` (recorded as an
+  assumed feature). Non-franchise (`is_franchise` false or `franchise_order <= 1`) -> floor 0.
+- **delta_C_franchise (churn pct points):**
+  `delta_C_franchise = clamp(gamma_base + delta_order x min(franchise_order - 1, 6), 0.15, 0.45)`
+  with defaults `gamma_base = 0.15`, `delta_order = 0.05`, loyalty cap `6`. Non-decreasing in
+  franchise order (2nd entry **+0.20**, saturating at **+0.45** by the 7th), added to the churn
+  total **before** the `[0.10, 5.00]` clamp and the 1.5% hurdle, so it can legitimately lift a
+  title across the hurdle while the clamp still bounds the result. Non-franchise -> credit 0.00.
+
+### 16.3 Driver C - Momentum_Telemetry (stage-gated buzz multiplier)
+
+Introduces a **Production_Stage** enum - `CONCEPT_SCRIPT`, `IN_PRODUCTION`, `FESTIVAL_PREVIEW`,
+`ACQUISITION_READY` - distinct from the deal-stage pipeline.
+
+- **Stage gating:** `CONCEPT_SCRIPT` / `IN_PRODUCTION` -> multiplier forced to the neutral
+  **1.00** (`STAGE_EXCLUDED`; an unproduced pitch is never moved by buzz it cannot have yet).
+  `FESTIVAL_PREVIEW` / `ACQUISITION_READY` -> compute below.
+- **Composition:**
+  `raw = 1 + w_v x norm(V_trailer) + w_e x E_norm + w_s x (S_velocity - 1)`, then
+  `Momentum_Multiplier = clamp(raw, 1.00, momentum_multiplier_max)` where
+  `norm(V_trailer) = clamp(V_trailer / baseline_v, 0, cap_v)`,
+  `E_norm = clamp(E_ratio, 0, cap_e)`, `S_velocity` clamped `[0.50, 2.00]`. Defaults
+  `w_v = 0.15`, `w_e = 0.20`, `w_s = 0.25`, `baseline_v = 1.0`, `cap_v = 2.00`, `cap_e = 1.00`,
+  `momentum_multiplier_max = 1.50`.
+- **Staleness / availability:** a governing telemetry reading older than the **14-day**
+  staleness window -> `1.00` (`STALE`); source unavailable -> `1.00` (`UNAVAILABLE`).
+
+### 16.4 Driver D - Macro_Modifiers (four market multipliers)
+
+Four documented-domain lookups, each clamped, then multiplied into a single `product`. An
+absent / unrecognized descriptor resolves to the neutral **1.00** (recorded as assumed). The
+"premium modifiers never reduce the pre-modifier value" guarantee applies to `>= 1.00`
+multipliers only; `PUBLIC_DOMAIN = 0.95` is the one intentional sub-neutral value.
+
+- **Source_IP_Provenance** (clamp `[0.95, 1.25]`): `ORIGINAL_SCREENPLAY 1.00`,
+  `BESTSELLER_BOOK 1.20`, `TRUE_CRIME_IP 1.25`, `WEBTOON_MANGA 1.15`, `PUBLIC_DOMAIN 0.95`.
+- **Release_Window_Halo** (a new concept; does not touch `windowing.WindowType`):
+  `DIRECT_TO_STREAMING 1.00`, `DAY_AND_DATE 1.10`, `THEATRICAL_30D 1.25`,
+  `THEATRICAL_60D_PLUS 1.40`.
+- **Calendar_Seasonality** (clamp `[0.80, 1.35]`): a per-release-month factor (e.g. Dec `1.30`,
+  Nov `1.25`, Jan/Feb `0.90`); a NULL / out-of-range month -> neutral `1.00`.
+- **Vernacular_TAM_Factor** (clamp `[1.00, 2.20]`): by vernacular track count - 1 track `1.00`,
+  2 -> `1.40`, 3 -> `1.80`, 4+ saturates at `2.20`.
+
+### 16.5 Assembly, schema, and provenance
+
+- **Log-space assembler (`driver_assembly.py`):** composes the drivers in a seven-stage
+  Attribution_Order, emitting one signed hour / churn-point line per driver so every delta is
+  attributable; a single trailing adjustment line carries only the whole-unit quantization
+  residual (same conserving contract as Sections 6 and 15.1).
+- **Schema:** Alembic migration `0005` adds nine neutral-default columns to `titles`
+  (`is_franchise`, `franchise_order`, `parent_title_viewing_hours`, `parent_completion_rate`,
+  `production_stage`, `source_ip_provenance`, `release_window`, `release_month`,
+  `vernacular_track_count`); the seed backfills them to neutral defaults so existing rows stay
+  inert.
+- **Versioning:** each driver''s illustrative coefficients ride in
+  `model_versions.guardrail_params` under `comps` / `lineage` / `momentum` / `macro_modifiers`
+  (exactly like the `churn_model` / `content_eval` blocks), carried forward unchanged on a
+  calibration fork.
+
 ---
 
-## 16. Quick Reference - Thresholds and Rounding
+## 17. Quick Reference - Thresholds and Rounding
 
 | Quantity | Formula / rule | Threshold | Rounding |
 |---|---|---|---|
@@ -613,6 +713,11 @@ explicit governance decision (this layer never auto-activates). Source: the comm
 | Churn -> LTV link (opt-in, off) | churn_val = Base_Retained_Cohort_Value x pct/100 | default off | exact |
 | WAPE (viewing hours) | sum\|act-pred\| / sum\|act\| | lower is better | exact |
 | FGR / FPR (verdict error) | false greenlights / false passes over the split | lower is better | exact |
+| Comps anchor (driver, off) | median H / C over budget-band comps | band [0.65x, 1.35x], k=5 | medians; default off |
+| Franchise floor (driver, off) | parent_hours x (0.55 + 0.35 x completion) | one-sided max | default off |
+| Franchise credit (driver, off) | clamp(0.15 + 0.05 x min(order-1, 6), 0.15, 0.45) | added pre-hurdle | 2 dp; default off |
+| Momentum mult (driver, off) | clamp(1 + 0.15 normV + 0.20 E + 0.25 (S-1), 1.00, 1.50) | stage-gated; 14-day stale -> 1.00 | default off |
+| Macro modifiers (driver, off) | product of IP x window x season x vernacular | IP [0.95,1.25], season [0.80,1.35], vern [1.00,2.20] | default off |
 
 All arithmetic uses Decimal; monetary and percentage values serialize as JSON strings over
 the wire and are coerced defensively on the frontend.

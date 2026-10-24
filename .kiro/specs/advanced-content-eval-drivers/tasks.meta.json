@@ -1,21 +1,277 @@
 {
   "pbtResults": {},
   "executionHistory": {
-    "1. Create the Comps_Engine pure math module (Driver A)": [],
-    "2. Create the Lineage_Decay pure math module (Driver B)": [],
-    "3. Create the Momentum_Telemetry pure math module (Driver C)": [],
-    "4. Create the Macro_Modifiers pure math module (Driver D)": [],
-    "5. Create the combined log-space assembler (`driver_assembly.py`)": [],
-    "6. Property-test the drivers and the assembler (gating suite)": [],
-    "7. Add the four per-driver kill-switches to settings": [],
-    "8. Extend viewing_hours.py with the comps base-hours override (Driver A anchor)": [],
-    "9. Extend churn.py with the comps churn override and the franchise loyalty credit (Drivers A + B)": [],
-    "10. Wire the flag-gated provider and prove inertness (`deps.py`)": [],
-    "11. Add Alembic migration 0005 with explicit neutral server defaults": [],
-    "12. Add the budget-band comps retrieval method (pgvector, I/O)": [],
-    "13. Backfill the seed with neutral defaults and add the demo-invariance guard": [],
-    "14. Extend the explanation schema with per-driver provenance (`schemas/api.py`)": [],
-    "15. Extend the comps endpoint with the anchor fields": [],
-    "16. Render the per-driver breakdown and signed diffs in the frontend": []
+    "1. Create the Comps_Engine pure math module (Driver A)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777629329
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777650594
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777896620
+      }
+    ],
+    "2. Create the Lineage_Decay pure math module (Driver B)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777629893
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777912195
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792778201884
+      }
+    ],
+    "3. Create the Momentum_Telemetry pure math module (Driver C)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630338
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792778222539
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779330635
+      }
+    ],
+    "4. Create the Macro_Modifiers pure math module (Driver D)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630659
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779350687
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780100555
+      }
+    ],
+    "5. Create the combined log-space assembler (`driver_assembly.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630992
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780118445
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780474739
+      }
+    ],
+    "6. Property-test the drivers and the assembler (gating suite)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631218
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780493832
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781299099
+      }
+    ],
+    "7. Add the four per-driver kill-switches to settings": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631452
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781314635
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781456969
+      }
+    ],
+    "8. Extend viewing_hours.py with the comps base-hours override (Driver A anchor)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631714
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781473250
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781662657
+      }
+    ],
+    "9. Extend churn.py with the comps churn override and the franchise loyalty credit (Drivers A + B)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631902
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781681251
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781966790
+      }
+    ],
+    "10. Wire the flag-gated provider and prove inertness (`deps.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632111
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781982950
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784223329
+      }
+    ],
+    "11. Add Alembic migration 0005 with explicit neutral server defaults": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632325
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784236909
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785722780
+      }
+    ],
+    "12. Add the budget-band comps retrieval method (pgvector, I/O)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632566
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785759474
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801399416
+      }
+    ],
+    "13. Backfill the seed with neutral defaults and add the demo-invariance guard": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632790
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801415005
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792803972138
+      }
+    ],
+    "14. Extend the explanation schema with per-driver provenance (`schemas/api.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633048
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792803984538
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792804400076
+      }
+    ],
+    "15. Extend the comps endpoint with the anchor fields": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633257
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792804405427
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792812492596
+      }
+    ],
+    "16. Render the per-driver breakdown and signed diffs in the frontend": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633442
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792812497393
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792813001372
+      }
+    ]
   }
 }

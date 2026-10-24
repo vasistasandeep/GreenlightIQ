@@ -1,0 +1,321 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Implement `scale_inputs` and the `ScaledInputs` dataclass": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630460
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777646074
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777895520
+      }
+    ],
+    "2.1 Add a `viewing_hours_override` parameter to `_cpvh_check`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630809
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792778223691
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779332687
+      }
+    ],
+    "2.2 Extract the pure compute core into `_compute`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631134
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779351639
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780103847
+      }
+    ],
+    "2.4 Implement `evaluate_scenario` (no persist, no audit)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631367
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780119830
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780475684
+      }
+    ],
+    "3. Checkpoint - domain and engine tests pass": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631625
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780494811
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781297283
+      }
+    ],
+    "4.1 Implement `WhatIfRequest` and the `/what-if` route": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631857
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781315812
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781457760
+      }
+    ],
+    "5.1 Add `WhatIfRequest`, `MULTIPLIER_BOUNDS`, and `api.whatIf`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632050
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781474412
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781664030
+      }
+    ],
+    "6.1 Implement `sensitivity-panel.tsx`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632263
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781683140
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781965606
+      }
+    ],
+    "6.2 Wire `SensitivityPanel` into `title-evaluation-view.tsx`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632467
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781983684
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784222272
+      }
+    ],
+    "7. Checkpoint - frontend tests pass": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632699
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784237600
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784314247
+      }
+    ],
+    "8.1 Run the backend test suite": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632944
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784320804
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785720685
+      }
+    ],
+    "8.2 Run the frontend checks": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633171
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784321633
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785721614
+      }
+    ],
+    "1. Create the pure scaling domain module `app/domain/sensitivity.py`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777895661
+      }
+    ],
+    "2. Refactor the Guardrails_Engine to extract `_compute` and add the scenario path": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780475935
+      }
+    ],
+    "4. Add the stateless `POST /{title_id}/what-if` endpoint": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781457979
+      }
+    ],
+    "5. Add the frontend types and API client method": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781664234
+      }
+    ],
+    "6. Build the Sensitivity panel and wire it into the title view": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792784222373
+      }
+    ],
+    "8. Final cross-stack verification": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785721683
+      }
+    ],
+    "1.2 Write property test for field scaling (Property 2)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785748448
+      }
+    ],
+    "1.3 Write property test for base immutability (Property 3)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785749399
+      }
+    ],
+    "2.3 Write property test for identity scenario (Property 1)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785750792
+      }
+    ],
+    "2.5 Write property test for cost monotonicity (Property 4)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785751748
+      }
+    ],
+    "2.6 Write property test for viewership monotonicity (Property 5)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785752725
+      }
+    ],
+    "2.7 Write engine-level no-persist / no-audit spy test": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785754083
+      }
+    ],
+    "4.2 Write API example tests for the happy path and contract fields": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785755051
+      }
+    ],
+    "4.3 Write API example tests for not-found and the no-persistence invariant": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785756426
+      }
+    ],
+    "4.4 Write API tests for bounds (Property 6) and RBAC parity": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785757393
+      }
+    ],
+    "6.3 Write interaction tests for the Sensitivity panel": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792785758347
+      }
+    ]
+  }
+}

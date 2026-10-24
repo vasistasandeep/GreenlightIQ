@@ -22,7 +22,6 @@ these tests pin the router behavior itself without external infrastructure.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -418,7 +417,7 @@ def _mk_dashboard_doubles():
     """Return (Title, Projection, GroundTruth) dataclasses + a GT-row factory."""
     import uuid as _uuid
     from dataclasses import dataclass, field
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
     from decimal import Decimal
 
     @dataclass
@@ -442,7 +441,7 @@ def _mk_dashboard_doubles():
         metric_name: str
         actual_value: Decimal
         recorded_at: datetime = field(
-            default_factory=lambda: datetime(2024, 1, 1, tzinfo=timezone.utc)
+            default_factory=lambda: datetime(2024, 1, 1, tzinfo=UTC)
         )
 
     def all_pass_gt():
@@ -529,4 +528,53 @@ def test_dashboard_accuracy_excludes_insufficient_ground_truth(app, monkeypatch)
         ground_truth={t1.title_id: all_pass_gt(), t2.title_id: partial_gt},
     )
     # Only t1 is eligible; it matches -> 1.0. The partial title neither helped nor hurt.
+    assert kpis["model_accuracy_rate"] == 1.0
+
+
+def test_dashboard_accuracy_demo_seed_yields_non_null_matching_rate(app, monkeypatch):
+    """R12.7 / Property 10: the demo seed produces a real, matching rate.
+
+    Feature: dashboard-accuracy-and-payback-audit, Property 10: every seeded
+    actual passes its guardrail, so the recomputed Actual_Verdict is GREENLIGHT,
+    equals the seeded Predicted_Verdict, and yields a non-null Model_Accuracy_Rate.
+
+    Loads the seeded historical title "Echoes of 2019" (title-echoes) as the
+    dashboard sees it: a GREENLIGHT prediction (cpvh 0.1667, ltv 3.50, churn 2.00,
+    payback 10) plus the four seeded ground-truth actuals from
+    ``database/seed/generate_seed_sql.py`` / ``02_seed_data.sql`` (cpvh 0.1710,
+    ltv_to_cost 3.42, churn_reduction 1.90, payback_horizon 11). Every actual
+    clears its guardrail, so the recomputed Actual_Verdict is GREENLIGHT -- a
+    match -- and the one Eligible_Audited_Title yields a non-null rate of 1.0.
+
+    Validates: Requirements 12.1, 12.4, 12.7; Property 10
+    """
+    import uuid as _uuid
+    from decimal import Decimal
+
+    _Title, _Projection, _GTRow, _ap, _cf = _mk_dashboard_doubles()
+    echoes = _Title(
+        _uuid.uuid4(), "Echoes of 2019", "ORIGINAL_SERIES",
+        Decimal("30000000"), "USD",
+    )
+    # Seeded ground-truth actuals for title-echoes (the four demo rows). These
+    # mirror the exact literals emitted into historical_ground_truth.
+    seeded_ground_truth = [
+        _GTRow("cpvh", Decimal("0.1710")),
+        _GTRow("ltv_to_cost", Decimal("3.42")),
+        _GTRow("churn_reduction", Decimal("1.90")),
+        _GTRow("payback_horizon", Decimal("11")),
+    ]
+    kpis = _run_dashboard(
+        app, monkeypatch,
+        titles=[echoes],
+        projections={
+            echoes.title_id: _Projection(
+                Decimal("0.1667"), Decimal("3.50"), "GREENLIGHT",
+                Decimal("30000000"), 10,
+            ),
+        },
+        ground_truth={echoes.title_id: seeded_ground_truth},
+    )
+    # One Eligible_Audited_Title, recomputed GREENLIGHT == predicted GREENLIGHT.
+    assert kpis["model_accuracy_rate"] is not None
     assert kpis["model_accuracy_rate"] == 1.0

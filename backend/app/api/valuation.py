@@ -52,14 +52,14 @@ from app.schemas.api import (
     ComparableTitlesResponse,
     CounterProposalLeverOut,
     LtvAttributionOut,
+    MetadataBreakdown,
     ScenarioInputOverrides,
     ScenarioThresholdOverrides,
-    WhatIfResponse,
-    MetadataBreakdown,
     TitleCompOut,
     ValuationCalculateRequest,
     ValuationScorecardResponse,
     ValuationSummaryResponse,
+    WhatIfResponse,
 )
 
 router = APIRouter(prefix="/valuation", tags=["valuation"])
@@ -164,7 +164,9 @@ async def get_valuation(
     ceiling = negotiation.target_purchase_ceiling(cost, checks)
     discount = negotiation.implied_discount_pct(cost, ceiling)
     levers = [
-        CounterProposalLeverOut(name=lv["name"], correctable=lv["correctable"], message=lv["message"])
+        CounterProposalLeverOut(
+            name=lv["name"], correctable=lv["correctable"], message=lv["message"]
+        )
         for lv in negotiation.counter_proposal_levers(checks)
     ]
     ltv_attr = None
@@ -514,7 +516,10 @@ class WhatIfRequest(BaseModel):
     "/{title_id}/what-if",
     response_model=WhatIfResponse,
     dependencies=[Depends(require_operation(Operation.VALUATION))],
-    summary="Recompute a scorecard over scenario overrides + multipliers without persisting (R1-R4).",
+    summary=(
+        "Recompute a scorecard over scenario overrides + multipliers "
+        "without persisting (R1-R4)."
+    ),
 )
 async def what_if_valuation(
     title_id: uuid.UUID,
@@ -587,7 +592,9 @@ async def what_if_valuation(
     ceiling = negotiation.target_purchase_ceiling(cost, checks)
     discount = negotiation.implied_discount_pct(cost, ceiling)
     levers = [
-        CounterProposalLeverOut(name=lv["name"], correctable=lv["correctable"], message=lv["message"])
+        CounterProposalLeverOut(
+            name=lv["name"], correctable=lv["correctable"], message=lv["message"]
+        )
         for lv in negotiation.counter_proposal_levers(checks)
     ]
     ltv_attr = None

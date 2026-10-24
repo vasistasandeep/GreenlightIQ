@@ -10,7 +10,6 @@ always flagged as derived where they surface. Decimal-only, pure, PBT target.
 from __future__ import annotations
 
 from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
-from typing import Optional
 
 __all__ = ["retained_subscribers", "derive_modeled_cohort_size"]
 
@@ -35,7 +34,7 @@ def _as_decimal(value: Decimal | int | str) -> Decimal:
 def retained_subscribers(
     modeled_cohort_size: Decimal | int | str | None,
     churn_reduction_pct: Decimal | int | str | None,
-) -> Optional[Decimal]:
+) -> Decimal | None:
     """Absolute retained subscribers = ``size * (pct / 100)``, whole number
     (R7.1, R7.2).
 
@@ -58,7 +57,7 @@ def retained_subscribers(
 
 def derive_modeled_cohort_size(
     normalized_cost_usd: Decimal | int | str | None,
-) -> Optional[Decimal]:
+) -> Decimal | None:
     """Documented, deterministic fallback cohort size (R8.1), a Derived_Figure.
 
     One modeled addressable subscriber per whole USD of normalized acquisition

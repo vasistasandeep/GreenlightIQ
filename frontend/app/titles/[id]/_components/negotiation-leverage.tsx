@@ -17,7 +17,7 @@ import type {
   Explanation,
   ValuationScorecard,
 } from "@/lib/types";
-import { formatPercent, formatUsd, guardrailLabel, toNumber } from "./format";
+import { formatNumber, formatUsd, guardrailLabel, toNumber } from "./format";
 
 /** Fallback safeguard text per guardrail when the server sends no levers. */
 const SAFEGUARD_BY_CHECK: Record<string, string> = {
@@ -65,6 +65,7 @@ export function NegotiationLeverage({ scorecard }: NegotiationLeverageProps) {
   const isGreenlight = scorecard.recommendation_status === "GREENLIGHT";
   const ceiling = toNumber(scorecard.target_purchase_ceiling_usd);
   const showCeiling = !isGreenlight && ceiling !== null;
+  const discount = toNumber(scorecard.implied_discount_pct);
 
   return (
     <section
@@ -86,7 +87,7 @@ export function NegotiationLeverage({ scorecard }: NegotiationLeverageProps) {
           <p className="mt-1 text-sm text-slate-400">
             Implied discount vs. current ask:{" "}
             <span className="font-medium text-slate-200">
-              {formatPercent(scorecard.implied_discount_pct)}
+              {discount === null ? "—" : `${formatNumber(discount, 1)}%`}
             </span>
           </p>
         </div>

@@ -1,0 +1,396 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create `backend/app/domain/negotiation.py` with the pure negotiation helpers": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777629818
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777647559
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777893040
+      }
+    ],
+    "2.1 Create `backend/app/domain/attribution.py` with `ltv_attribution`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630072
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777648418
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777894479
+      }
+    ],
+    "3.1 Create `backend/app/domain/cohort.py` with cohort helpers": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630605
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777649803
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777892157
+      }
+    ],
+    "4. Checkpoint - Ensure all domain tests pass": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777630849
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792778224503
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779331630
+      }
+    ],
+    "5.1 Extend `ValuationResult` and `ValuationInputs` and compute the new values in `evaluate`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631148
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777911244
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792778202637
+      }
+    ],
+    "6.1 Add Pydantic sub-models and extend `ValuationScorecardResponse`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631374
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779352657
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780103122
+      }
+    ],
+    "6.2 Extend `QuickEvaluateResponse` (`backend/app/api/quick_evaluate.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631662
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792779353781
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780101690
+      }
+    ],
+    "7.1 Wire `quick_evaluate.py` to the negotiation helper and engine fields": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777631898
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780120786
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780477114
+      }
+    ],
+    "7.2 Wire `valuation.py` to reconstruct the three objects from the persisted projection": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632098
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780121784
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780478466
+      }
+    ],
+    "8. Checkpoint - Ensure all backend tests pass": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632331
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780495776
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781298235
+      }
+    ],
+    "9.1 Add decision-support interfaces and extend response types": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632569
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781316766
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781455630
+      }
+    ],
+    "10.1 Extend `negotiation-leverage.tsx`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777632791
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781475383
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781665427
+      }
+    ],
+    "10.2 Extend `financial-accordion.tsx`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633049
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781476773
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781666372
+      }
+    ],
+    "11.1 Add `subscribers()` formatter to `frontend/app/studio/_components/helpers.ts`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633273
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781477614
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781667220
+      }
+    ],
+    "11.2 Extend `valuation-report.tsx`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633443
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781682221
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781967503
+      }
+    ],
+    "12.1 Run the full backend and frontend suites and resolve any failures": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777633625
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801414108
+      },
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792803970767
+      }
+    ],
+    "3. Cohort domain module (`backend/app/domain/cohort.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777892372
+      }
+    ],
+    "1. Negotiation domain module (`backend/app/domain/negotiation.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777893251
+      }
+    ],
+    "2. Attribution domain module (`backend/app/domain/attribution.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792777894668
+      }
+    ],
+    "5. Extend the Guardrails_Engine (`backend/app/engines/guardrails.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792778202778
+      }
+    ],
+    "6. Response schema sub-models (`backend/app/schemas/api.py`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780103256
+      }
+    ],
+    "7. Router wiring": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792780478711
+      }
+    ],
+    "9. Frontend types (`frontend/lib/types.ts`)": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781455798
+      }
+    ],
+    "10. Title Evaluation view rendering": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781666559
+      }
+    ],
+    "11. Asset Studio view rendering": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792781967701
+      }
+    ],
+    "1.2 Write property tests `backend/tests/domain/test_negotiation_properties.py`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801400459
+      }
+    ],
+    "2.2 Write property tests `backend/tests/domain/test_attribution_properties.py`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801401739
+      }
+    ],
+    "3.2 Write property tests `backend/tests/domain/test_cohort_properties.py`": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801402722
+      }
+    ],
+    "5.2 Write engine example tests": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801403685
+      }
+    ],
+    "7.3 Write API-level example tests for both routers": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801405062
+      }
+    ],
+    "10.3 Write interaction tests for the title view components": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801406013
+      }
+    ],
+    "11.3 Write interaction tests for the studio view": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792801406884
+      }
+    ],
+    "12. Final verification": [
+      {
+        "executionId": "7da8d32a-9820-40cc-ba0d-dd7cfab54239",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792803971058
+      }
+    ]
+  }
+}

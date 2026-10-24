@@ -1,0 +1,299 @@
+{
+  "pbtResults": {
+    "1.2 Write property tests for the driver domain module `backend/tests/domain/test_drivers_properties.py`": {
+      "status": "passed",
+      "lastRunTimestamp": 1792822898779
+    }
+  },
+  "executionHistory": {
+    "1.1 Create the shared driver domain module `backend/app/domain/drivers.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822614307
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822627739
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822933268
+      }
+    ],
+    "2. Wave 1 checkpoint": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822614525
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822935055
+      }
+    ],
+    "3.1 Extend the Asset Studio quick-evaluate path in `backend/app/api/quick_evaluate.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822614671
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822943202
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823863824
+      }
+    ],
+    "3.2 Extend batch validation and persistence in `backend/app/engines/ingestion.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822614809
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822945197
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823864695
+      }
+    ],
+    "3.3 Add pitch recognition heuristics in `backend/app/domain/pitch_parse.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822614930
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822946061
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823866065
+      }
+    ],
+    "4. Wave 2 checkpoint": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615080
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823875329
+      }
+    ],
+    "5.1 Write provider round-trip and non-neutral impact tests in `backend/tests/api/test_driver_input_capture.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615218
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823884076
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824194937
+      }
+    ],
+    "5.2 Enable the four driver flags in the demo configuration `docker-compose.yml`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615335
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823884954
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824196401
+      }
+    ],
+    "5.3 Write the seed-invariance regression guard in `backend/tests/api/test_driver_input_capture.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615444
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824198698
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824589870
+      }
+    ],
+    "6. Wave 3 checkpoint": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615567
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824592154
+      }
+    ],
+    "7.1 Add the \"Advanced drivers (optional)\" section to `frontend/app/studio/_components/asset-form.tsx`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615676
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824207084
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824593413
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824750545
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792825163201
+      }
+    ],
+    "7.2 Wire pitch-deck prefill auto-population into the Asset Studio form": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615787
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824601809
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792825164156
+      }
+    ],
+    "8. Final checkpoint — full suite in the worktree": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822615927
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792825181325
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792825792295
+      }
+    ],
+    "1. Wave 1 — Domain core and validation module": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822933583
+      }
+    ],
+    "1.2 Write property tests for the driver domain module `backend/tests/domain/test_drivers_properties.py`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792822934264
+      }
+    ],
+    "3. Wave 2 — Ingest paths and persistence": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823866291
+      }
+    ],
+    "3.4 Write pitch recognition example / edge tests in `backend/tests/domain/`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823866897
+      }
+    ],
+    "3.5 Write batch anti-inference / conservation example tests in `backend/tests/engines/`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792823886262
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824197355
+      }
+    ],
+    "5.4 Write the comps-absence property test in `backend/tests/api/` or `backend/tests/domain/`": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824199697
+      },
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824591229
+      }
+    ],
+    "5. Wave 3 — Provider round-trip, seed invariance, and config": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792824590104
+      }
+    ],
+    "7. Wave 4 — Frontend Asset Studio controls": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792825164433
+      }
+    ],
+    "7.3 Write Vitest component tests for the Asset Studio driver section": [
+      {
+        "executionId": "6c774d00-3f26-4d7b-9b1f-a168388d264a",
+        "chatSessionId": "sess_92144deb-3815-485a-b2ef-0c8e16e15d5d",
+        "timestamp": 1792825165027
+      }
+    ]
+  }
+}

@@ -41,17 +41,17 @@ from app.core.errors import UnsupportedFormatError
 from app.domain import drivers, negotiation
 from app.domain.metadata import derive_production_scale
 from app.domain.momentum import Production_Stage
-from app.engines.guardrails import churn_model_json
 from app.domain.pitch_parse import parse_pitch_text
+from app.engines.guardrails import churn_model_json
 from app.engines.rbac import Operation
+from app.models.title import ASSET_TYPES, Title
+from app.models.title_version import TitleVersion
+from app.repositories.titles import TitleRepository, TitleVersionRepository
 from app.schemas.api import (
     ChurnCohortOut,
     CounterProposalLeverOut,
     LtvAttributionOut,
 )
-from app.models.title import ASSET_TYPES, Title
-from app.models.title_version import TitleVersion
-from app.repositories.titles import TitleRepository, TitleVersionRepository
 
 router = APIRouter(prefix="/titles", tags=["titles"])
 
@@ -380,45 +380,6 @@ def _metadata_profile(body: QuickEvaluateRequest) -> MetadataProfileOut:
     )
 
 
-def _target_ceiling(result: dict[str, Any]) -> Decimal | None:
-    """Estimate the max cost at which the cost-sensitive guardrails still pass.
-
-    CPVH and LTV-to-Cost both scale with cost. From the computed values at the
-    submitted cost we back out the cost that would put each exactly at its
-    threshold and take the binding (smaller) one. Derived guidance only.
-    """
-    cost = result.get("normalized_cost_usd")
-    if cost is None or Decimal(cost) <= 0:
-        return None
-    cost = Decimal(cost)
-    candidates: list[Decimal] = []
-
-    cpvh = result.get("calculated_cpvh")
-    checks = {c_name(c): c for c in _raw_checks(result)}
-    cpvh_check = checks.get("CPVH")
-    if cpvh is not None and cpvh_check is not None:
-        ceiling = _attr(cpvh_check, "threshold")
-        if cpvh and Decimal(cpvh) > 0 and ceiling:
-            # CPVH = cost / hours; cost_at_ceiling = cost * (ceiling / cpvh).
-            candidates.append(cost * (Decimal(ceiling) / Decimal(cpvh)))
-
-    ltv_mult = result.get("ltv_to_cost_multiple")
-    ltv_check = checks.get("LTV_TO_COST")
-    if ltv_mult is not None and ltv_check is not None:
-        threshold = _attr(ltv_check, "threshold")
-        if ltv_mult and Decimal(ltv_mult) > 0 and threshold:
-            # multiple = value / cost; cost_at_threshold = cost * (multiple / threshold).
-            candidates.append(cost * (Decimal(ltv_mult) / Decimal(threshold)))
-
-    if not candidates:
-        return None
-    return min(candidates).quantize(Decimal("1"))
-
-
-def c_name(check: Any) -> str:
-    return str(_attr(check, "name"))
-
-
 def _estimate_viewing_hours(body: QuickEvaluateRequest) -> Decimal:
     """Estimate projected viewing hours when the user leaves the field blank.
 
@@ -520,7 +481,9 @@ async def quick_evaluate(
     ceiling = negotiation.target_purchase_ceiling(normalized, checks)
     discount = negotiation.implied_discount_pct(normalized, ceiling)
     levers = [
-        CounterProposalLeverOut(name=lv["name"], correctable=lv["correctable"], message=lv["message"])
+        CounterProposalLeverOut(
+            name=lv["name"], correctable=lv["correctable"], message=lv["message"]
+        )
         for lv in negotiation.counter_proposal_levers(checks)
     ]
     ltv_attr = None
